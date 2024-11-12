@@ -396,7 +396,7 @@ export async function splitChunks(
     console.log("model", model);
 
     console.log("model.model.embedding", model.model.embedding);
-    
+
     if(!model.model.embedding) {
         throw new Error("Model does not support embedding");
     }
@@ -678,12 +678,28 @@ export const generateImage = async (
     const modelSettings = models[runtime.character.modelProvider].imageSettings;
     // some fallbacks for backwards compat, should remove in the future
     const apiKey =
-        runtime.token ??
-        runtime.getSetting("TOGETHER_API_KEY") ??
-        runtime.getSetting("OPENAI_API_KEY");
+        runtime.character.modelProvider === ModelProviderName.GROK
+            ? runtime.getSetting("TOGETHER_API_KEY")
+            : (runtime.token ??
+              runtime.getSetting("TOGETHER_API_KEY") ??
+              runtime.getSetting("OPENAI_API_KEY"));
 
     try {
-        if (runtime.character.modelProvider === ModelProviderName.LLAMACLOUD) {
+        if (runtime.character.modelProvider === ModelProviderName.GROK) {
+            const together = new Together({ apiKey: apiKey as string });
+            const response: any = await together.images.create({
+                model: "black-forest-labs/FLUX.1-schnell",
+                prompt,
+                width,
+                height,
+                steps: modelSettings?.steps ?? 4,
+                n: count,
+            });
+            // return urls from together api
+            return { success: true, data: response.data.map((i) => i.url) };
+        } else if (
+            runtime.character.modelProvider === ModelProviderName.LLAMACLOUD
+        ) {
             const together = new Together({ apiKey: apiKey as string });
             const response = await together.images.create({
                 model: "black-forest-labs/FLUX.1-schnell",

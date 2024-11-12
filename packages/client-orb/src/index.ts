@@ -117,8 +117,8 @@ export class OrbClient {
                 await runtime.ensureConnection(
                     userId,
                     roomId,
-                    req.body.userName,
-                    req.body.name,
+                    req.body?.userName,
+                    req.body?.name,
                     "direct"
                 );
 
@@ -129,6 +129,7 @@ export class OrbClient {
                 }
 
                 const text = req.body.text || getRandomPrompt();
+
                 const messageId = stringToUuid(Date.now().toString());
 
                 const content: Content = {
@@ -400,10 +401,11 @@ export class OrbClient {
 }
 
 export const OrbClientInterface: Client = {
-    start: async (runtime: IAgentRuntime) => {
+    start: async (runtime: AgentRuntime) => {
         console.log("OrbClientInterface start");
         const client = new OrbClient();
         const serverPort = parseInt(settings.SERVER_PORT || "3001");
+        client.registerAgent(runtime);
         client.start(serverPort);
         return client;
     },

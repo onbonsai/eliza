@@ -146,6 +146,8 @@ export function getTokenForProvider(
                 character.settings?.secrets?.OPENROUTER ||
                 settings.OPENROUTER_API_KEY
             );
+        case ModelProviderName.GROK:
+            return character.settings?.secrets?.GROK || settings.XAI_API_KEY;
     }
 }
 
@@ -229,9 +231,7 @@ export async function createAgent(
         plugins: [
             bootstrapPlugin,
             nodePlugin,
-            character.settings.secrets.WALLET_PUBLIC_KEY
-                ? solanaPlugin
-                : null
+            character.settings.secrets.WALLET_PUBLIC_KEY ? solanaPlugin : null,
         ].filter(Boolean),
         providers: [],
         actions: [],
