@@ -2,6 +2,7 @@ import bodyParser from "body-parser";
 import cors from "cors";
 import express, { Request as ExpressRequest } from "express";
 import multer, { File } from "multer";
+import { v4 as uuid } from "uuid";
 import { generateCaption, generateImage } from "@ai16z/eliza/src/generation.ts";
 import { composeContext } from "@ai16z/eliza/src/context.ts";
 import { generateMessageResponse } from "@ai16z/eliza/src/generation.ts";
@@ -248,7 +249,6 @@ export class OrbClient {
             async (req: express.Request, res: express.Response) => {
                 // TODO: authorization
                 const params = req.body;
-
                 const { collection, tips } = await getClient();
                 const agent = await collection.findOne({ clubId: params.community_id });
                 if (!agent) {
@@ -343,7 +343,8 @@ export class OrbClient {
             async (req: express.Request, res: express.Response) => {
                 // verify lens jwt token
                 const { fundTxHash } = req.body;
-                const { agentId } = req.params;
+                const { handle } = req.params;
+                const agentId = uuid();
                 const token = req.headers["lens-access-token"] as string;
                 if (!token) {
                     res.status(401).send("Lens access token is required");
@@ -355,8 +356,8 @@ export class OrbClient {
                     return;
                 }
 
-                if (!agentId) {
-                    res.status(400).send("agentId is required");
+                if (!handle) {
+                    res.status(400).send("handle is required");
                     return;
                 }
 
@@ -370,13 +371,13 @@ export class OrbClient {
                     // mints the profile with agentId as the handle, if not already taken
                     const { profileId, txHash } = await mintProfile(
                         wallets!.polygon,
-                        agentId
+                        handle
                     );
 
                     const { collection } = await getClient();
                     await collection.updateOne(
                         { agentId },
-                        { $set: { profileId, adminProfileId } }
+                        { $set: { profileId, adminProfileId, handle } }
                     );
 
                     res.status(!!profileId ? 200 : 400).json({

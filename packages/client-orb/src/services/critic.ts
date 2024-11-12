@@ -266,10 +266,10 @@ class ContentJudgementService {
         content: Content
     ): Promise<{ rating: number; comment: string }> {
         const { text, imageUrl } = content
-        console.log("***** PROCESSING IMAGE", imageUrl);
 
         try {
             if (imageUrl) {
+                console.log("***** PROCESSING IMAGE", imageUrl);
                 const description = await this.recognizeWithOpenAI(imageUrl)
                 return await this.rateAndComment(text, description)
             } else {

@@ -39,7 +39,7 @@ export const getWallets = async (agentId: string, create = false): Promise<{ bas
       wallets = {
         base,
         polygon,
-        profile: { id: walletData.profileId, handle: agentId },
+        profile: { id: walletData.profileId, handle: walletData.handle },
         adminProfileId: walletData.adminProfileId,
       };
     }
