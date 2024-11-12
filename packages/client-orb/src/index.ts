@@ -82,6 +82,16 @@ export class OrbClient {
             "/:agentId/orb/create-post",
             async (req: express.Request, res: express.Response) => {
                 console.log("OrbClient create-post");
+                // 10% chance of posting, sleep for some time
+                const shouldPost = Math.random() < 0.1;
+                if (!shouldPost) {
+                    res.status(200).send("Skipped posting this time.");
+                    return;
+                }
+
+                const sleepTime = Math.floor(Math.random() * 6) * 60000; // Sleep timer between 0-5 minutes
+                await new Promise(resolve => setTimeout(resolve, sleepTime));
+
                 const agentId = req.params.agentId;
                 const roomId = stringToUuid(
                     req.body.roomId ?? "default-room-" + agentId
