@@ -84,14 +84,18 @@ export class OrbClient {
             async (req: express.Request, res: express.Response) => {
                 console.log("OrbClient create-post");
                 // 10% chance of posting, sleep for some time
-                const shouldPost = Math.random() < 0.1;
+                const shouldPost = Math.random() < 0.1 || req.body?.shouldPost;
                 if (!shouldPost) {
                     res.status(200).send("Skipped posting this time.");
                     return;
                 }
 
                 const sleepTime = Math.floor(Math.random() * 6) * 60000; // Sleep timer between 0-5 minutes
-                await new Promise(resolve => setTimeout(resolve, sleepTime));
+                if (!req.body?.shouldPost) {
+                    await new Promise((resolve) =>
+                        setTimeout(resolve, sleepTime)
+                    );
+                }
 
                 const agentId = req.params.agentId;
                 const roomId = stringToUuid(
@@ -239,170 +243,220 @@ export class OrbClient {
         );
 
         // webhook endpoint to process a post from bonsai club
-        this.app.post("/orb/webhook/new-post", async (req: express.Request, res: express.Response) => {
-            // TODO: authorization
-            const params = req.body;
+        this.app.post(
+            "/orb/webhook/new-post",
+            async (req: express.Request, res: express.Response) => {
+                // TODO: authorization
+                const params = req.body;
 
-            const { collection, tips } = await getClient();
-            const agent = await collection.findOne({ clubId: params.community_id });
-            if (!agent) {
-                res.status(404).send();
-                return;
-            }
-
-            let runtime = this.agents.get(agent.agentId);
-
-            // if runtime is null, look for runtime with the same name
-            if (!runtime) {
-                runtime = Array.from(this.agents.values()).find(
-                    (a) =>
-                        a.character.name.toLowerCase() ===
-                        agent.agentId.toLowerCase()
-                );
-            }
-
-            if (!runtime) {
-                res.status(404).send("Agent not found");
-                return;
-            }
-
-            const contentJudgementService = ContentJudgementService.getInstance(runtime);
-
-            const wallets = await getWallets(agent.agentId, false);
-            if (!wallets?.polygon) {
-                res.status(500).send("failed to load polygon wallet");
-                return;
-            }
-
-            try {
-                // process content from the publication, perform the resulting action
-                const content = params.lens.content;
-                const imageURL = params.lens.image?.item ? getLensImageURL(params.lens.image?.item) : undefined;
-                const { rating, comment } = await contentJudgementService.judgeContent({ text: content, imageUrl: imageURL });
-
-                res.status(200).json({ rating, comment });
-                return;
-
-                if (rating >= 5) {
-                    // TODO: send sticker reaction from bonsai energy
+                const { collection, tips } = await getClient();
+                const agent = await collection.findOne({ clubId: params.community_id });
+                if (!agent) {
+                    res.status(404).send();
+                    return;
                 }
 
-                if (rating >= 6 && rating < 8) {
-                    await createPost(wallets?.polygon, wallets?.profile?.id, comment, undefined, params.publication_id);
+                let runtime = this.agents.get(agent.agentId);
+
+                // if runtime is null, look for runtime with the same name
+                if (!runtime) {
+                    runtime = Array.from(this.agents.values()).find(
+                        (a) =>
+                            a.character.name.toLowerCase() ===
+                            agent.agentId.toLowerCase()
+                    );
                 }
 
-                // tip with the reply
-                if (rating >= 8) {
-                    const tipAmount = await handleUserTips(tips, rating, agent.agentId, params.profile_id);
-                    if (tipAmount > 0) {
-                        await tipPublication(wallets?.polygon, params.publication_id, tipAmount, comment);
-                    } else {
-                        const reply = `${comment}. I'd tip you, but you exceeded your daily limit.`;
-                        await createPost(wallets?.polygon, wallets?.profile?.id, reply, undefined, params.publication_id);
+                if (!runtime) {
+                    res.status(404).send("Agent not found");
+                    return;
+                }
+
+                const contentJudgementService = ContentJudgementService.getInstance(runtime);
+
+                const wallets = await getWallets(agent.agentId, false);
+                if (!wallets?.polygon) {
+                    res.status(500).send("failed to load polygon wallet");
+                    return;
+                }
+
+                try {
+                    // process content from the publication, perform the resulting action
+                    const content = params.lens.content;
+                    const imageURL = params.lens.image?.item ? getLensImageURL(params.lens.image?.item) : undefined;
+                    const { rating, comment } = await contentJudgementService.judgeContent({ text: content, imageUrl: imageURL });
+
+                    res.status(200).json({ rating, comment });
+                    return;
+
+                    if (rating >= 5) {
+                        // TODO: send sticker reaction from bonsai energy
                     }
-                }
 
-                res.status(200).json();
-            } catch (error) {
-                console.log(error);
-                res.status(400).send(error);
+                    if (rating >= 6 && rating < 8) {
+                        await createPost(
+                            wallets?.polygon,
+                            wallets?.profile?.id,
+                            comment,
+                            undefined,
+                            params.publication_id
+                        );
+                    }
+
+                    // tip with the reply
+                    if (rating >= 8) {
+                        const tipAmount = await handleUserTips(
+                            tips,
+                            rating,
+                            agent.agentId,
+                            params.profile_id
+                        );
+                        if (tipAmount > 0) {
+                            await tipPublication(
+                                wallets?.polygon,
+                                params.publication_id,
+                                tipAmount,
+                                comment
+                            );
+                        } else {
+                            const reply = `${comment}. I'd tip you, but you exceeded your daily limit.`;
+                            await createPost(
+                                wallets?.polygon,
+                                wallets?.profile?.id,
+                                reply,
+                                undefined,
+                                params.publication_id
+                            );
+                        }
+                    }
+                    res.status(200).json();
+                } catch (error) {
+                    console.log(error);
+                    res.status(400).send(error);
+                }
             }
-        });
+        );
 
         // admin endpoint to create an agent
-        this.app.post("/admin/create/:agentId", async (req: express.Request, res: express.Response) => {
-            // verify lens jwt token
-            const { fundTxHash } = req.body;
-            const { agentId } = req.params;
-            const token = req.headers['lens-access-token'] as string;
-            if (!token) {
-                res.status(401).send("Lens access token is required");
-                return;
+        this.app.post(
+            "/admin/create/:agentId",
+            async (req: express.Request, res: express.Response) => {
+                // verify lens jwt token
+                const { fundTxHash } = req.body;
+                const { agentId } = req.params;
+                const token = req.headers["lens-access-token"] as string;
+                if (!token) {
+                    res.status(401).send("Lens access token is required");
+                    return;
+                }
+                const { id: adminProfileId } = parseJwt(token);
+                if (!adminProfileId) {
+                    res.status(403).send("Invalid access token");
+                    return;
+                }
+
+                if (!agentId) {
+                    res.status(400).send("agentId is required");
+                    return;
+                }
+
+                const wallets = await getWallets(agentId, true);
+                if (!wallets?.polygon)
+                    res.status(500).send("failed to load polygon wallet");
+
+                // TODO: verify `fundTxHash` was sent to this polygon wallet with value = 8 pol
+
+                try {
+                    // mints the profile with agentId as the handle, if not already taken
+                    const { profileId, txHash } = await mintProfile(
+                        wallets!.polygon,
+                        agentId
+                    );
+
+                    const { collection } = await getClient();
+                    await collection.updateOne(
+                        { agentId },
+                        { $set: { profileId, adminProfileId } }
+                    );
+
+                    res.status(!!profileId ? 200 : 400).json({
+                        profileId,
+                        txHash,
+                    });
+                } catch (error) {
+                    console.log(error);
+                    res.status(400).send(error);
+                }
             }
-            const { id: adminProfileId } = parseJwt(token);
-            if (!adminProfileId) {
-                res.status(403).send("Invalid access token");
-                return;
-            }
-
-            if (!agentId) {
-                res.status(400).send("agentId is required");
-                return;
-            }
-
-            const wallets = await getWallets(agentId, true);
-            if (!wallets?.polygon) res.status(500).send("failed to load polygon wallet");
-
-            // TODO: verify `fundTxHash` was sent to this polygon wallet with value = 8 pol
-
-            try {
-                // mints the profile with agentId as the handle, if not already taken
-                const { profileId, txHash } = await mintProfile(wallets!.polygon, agentId);
-
-                const { collection } = await getClient();
-                await collection.updateOne({ agentId }, { $set: { profileId, adminProfileId } });
-
-                res.status(!!profileId ? 200 : 400).json({ profileId, txHash });
-            } catch (error) {
-                console.log(error);
-                res.status(400).send(error);
-            }
-        });
+        );
 
         // admin endpoint to update an agent
-        this.app.put("/admin/:agentId", async (req: express.Request, res: express.Response) => {
-            // verify lens jwt token
-            const { profileData, approveSignless } = req.body;
-            const { agentId } = req.params;
-            const token = req.headers['lens-access-token'] as string;
-            if (!token) {
-                res.status(401).send("Lens access token is required");
-                return;
-            }
-            if (!profileData) {
-                res.status(400).send("profileData is required");
-                return;
-            }
-            const { id: adminProfileId } = parseJwt(token);
+        this.app.put(
+            "/admin/:agentId",
+            async (req: express.Request, res: express.Response) => {
+                // verify lens jwt token
+                const { profileData, approveSignless } = req.body;
+                const { agentId } = req.params;
+                const token = req.headers["lens-access-token"] as string;
+                if (!token) {
+                    res.status(401).send("Lens access token is required");
+                    return;
+                }
+                if (!profileData) {
+                    res.status(400).send("profileData is required");
+                    return;
+                }
+                const { id: adminProfileId } = parseJwt(token);
 
-            const wallets = await getWallets(agentId);
-            if (!wallets?.polygon) {
-                res.status(500).send("failed to load polygon wallet");
-                return;
-            }
-            if (wallets.adminProfileId != adminProfileId) {
-                res.status(403).send("not authenticated admin");
-                return;
-            }
+                const wallets = await getWallets(agentId);
+                if (!wallets?.polygon) {
+                    res.status(500).send("failed to load polygon wallet");
+                    return;
+                }
+                if (wallets.adminProfileId != adminProfileId) {
+                    res.status(403).send("not authenticated admin");
+                    return;
+                }
 
-            try {
-                const success = await updateProfile(wallets?.polygon, wallets?.profile.id, profileData, approveSignless);
+                try {
+                    const success = await updateProfile(
+                        wallets?.polygon,
+                        wallets?.profile.id,
+                        profileData,
+                        approveSignless
+                    );
 
-                res.status(success ? 200 : 400).send();
-            } catch (error) {
-                console.log(error);
-                res.status(400).send(error);
+                    res.status(success ? 200 : 400).send();
+                } catch (error) {
+                    console.log(error);
+                    res.status(400).send(error);
+                }
             }
-        });
+        );
 
         // get agent info
-        this.app.get("/:agentId/info", async (req: express.Request, res: express.Response) => {
-            const { agentId } = req.params;
-            if (!agentId) {
-                res.status(400).send();
-                return;
-            }
+        this.app.get(
+            "/:agentId/info",
+            async (req: express.Request, res: express.Response) => {
+                const { agentId } = req.params;
+                if (!agentId) {
+                    res.status(400).send();
+                    return;
+                }
 
-            const wallets = await getWallets(agentId);
-            if (!wallets) {
-                res.status(404).send();
-                return;
-            }
-            const [polygon] = await wallets.polygon.listAddresses();
-            const [base] = await wallets?.base.listAddresses();
+                const wallets = await getWallets(agentId);
+                if (!wallets) {
+                    res.status(404).send();
+                    return;
+                }
+                const [polygon] = await wallets.polygon.listAddresses();
+                const [base] = await wallets?.base.listAddresses();
 
-            res.status(200).json({ wallets: { polygon: polygon.getId(), base: base.getId() } });
-        });
+                res.status(200).json({
+                    wallets: { polygon: polygon.getId(), base: base.getId() },
+                });
+            }
+        );
     }
 
     public registerAgent(runtime: AgentRuntime) {
