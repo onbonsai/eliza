@@ -14,9 +14,13 @@ import fs from "fs";
 import gifFrames from "gif-frames";
 import os from "os";
 import path from "path";
-import models from "../core/models.ts";
-import { IAgentRuntime, ModelClass, ModelProvider } from "../core/types.ts";
-import { generateText } from "../core/generation.ts";
+import models from "@ai16z/eliza/src/models.ts";
+import {
+    ModelProviderName,
+    ModelClass,
+    IAgentRuntime,
+} from "@ai16z/eliza/src/types.ts";
+import { generateText, trimTokens } from "@ai16z/eliza/src/generation.ts";
 
 interface Content { text: string, imageUrl: string }
 
@@ -57,7 +61,7 @@ class ContentJudgementService {
 
         const model = models[this.runtime.character.settings.model];
 
-        if (model === ModelProvider.LLAMALOCAL) {
+        if (model === ModelProviderName.LLAMALOCAL) {
             this.modelId = modelId || "onnx-community/Florence-2-base-ft";
 
             env.allowLocalModels = false;
@@ -290,11 +294,11 @@ class ContentJudgementService {
         # Task: i have some text and a description of an accompanying image. i want you rate this on a scale of 1-10 on how good of
         content this is for social media, think about whether its entertaining, interesting, informative etc and most of all if it is good content
         for the bonsai community. perform this task as ${this.runtime.character.name}.
-        
+
         post text: ${text}
         image caption: ${detailedCaption}
-        
-        format your reponse as a single number, then a period, then a reply to their post not related to the critique, just a genuine response, no hashtags, no emojis. 
+
+        format your reponse as a single number, then a period, then a reply to their post not related to the critique, just a genuine response, no hashtags, no emojis.
         DON'T JUSTIFY YOUR RATING, ONLY RESPOND WITH RATING, PERIOD, THEN A REPLY, NOTHING ELSE. NO HASHTAGS, NO EMOJIS`
 
         for (let retryAttempts = 0; retryAttempts < 3; retryAttempts++) {
@@ -338,7 +342,7 @@ class ContentJudgementService {
                 const [ratingStr, ...commentParts] = reponseText.split('.');
                 const rating = parseInt(ratingStr.trim());
                 const comment = commentParts.join('.').trim();
-                
+
                 // Only return comment if it exists and isn't empty
                 return {
                     rating,

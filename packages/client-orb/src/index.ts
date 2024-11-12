@@ -28,6 +28,7 @@ import { updateProfile } from "./services/lens/updateProfile.ts";
 import { getLensImageURL } from "./services/lens/ipfs.ts";
 import { tipPublication } from "./services/orb/tip.ts";
 import handleUserTips from "./utils/handleUserTips.ts";
+import ContentJudgementService from "./services/critic.ts";
 const upload = multer({ storage: multer.memoryStorage() });
 
 export const messageHandlerTemplate =
@@ -249,6 +250,24 @@ export class OrbClient {
                 return;
             }
 
+            let runtime = this.agents.get(agent.agentId);
+
+            // if runtime is null, look for runtime with the same name
+            if (!runtime) {
+                runtime = Array.from(this.agents.values()).find(
+                    (a) =>
+                        a.character.name.toLowerCase() ===
+                        agent.agentId.toLowerCase()
+                );
+            }
+
+            if (!runtime) {
+                res.status(404).send("Agent not found");
+                return;
+            }
+
+            const contentJudgementService = ContentJudgementService.getInstance(runtime);
+
             const wallets = await getWallets(agent.agentId, false);
             if (!wallets?.polygon) {
                 res.status(500).send("failed to load polygon wallet");
@@ -259,10 +278,11 @@ export class OrbClient {
                 // process content from the publication, perform the resulting action
                 const content = params.lens.content;
                 const imageURL = params.lens.image?.item ? getLensImageURL(params.lens.image?.item) : undefined;
-                // TODO: after refactor
-                // const { rating, comment } = await this.contentJudgementService.judgeContent({ text: content, imageUrl: imageURL })
-                const rating = 5;
-                const comment = "";
+                const { rating, comment } = await contentJudgementService.judgeContent({ text: content, imageUrl: imageURL });
+
+                res.status(200).json({ rating, comment });
+                return;
+
                 if (rating >= 5) {
                     // TODO: send sticker reaction from bonsai energy
                 }
