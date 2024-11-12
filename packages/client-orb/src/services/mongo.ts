@@ -15,6 +15,7 @@ export const getClient = async () => {
   const client = await _client();
   const database = client.db("moonshot");
   const collection = database.collection("agents");
+  const tips = database.collection("user-tips");
 
-  return { client, collection };
+  return { client, collection, tips };
 };

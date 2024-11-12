@@ -17,9 +17,17 @@ import {
 } from "@ai16z/eliza/src/types.ts";
 import { stringToUuid } from "@ai16z/eliza/src/uuid.ts";
 import settings from "@ai16z/eliza/src/settings.ts";
-import createPost from "./createPost.ts";
-import { getWallets } from "./coinbase.ts";
+import createPost from "./services/orb/createPost.ts";
+import { getWallets } from "./services/coinbase.ts";
 import { getRandomPrompt } from "./utils/postPrompt.ts";
+import { mintProfile } from "./services/lens/mintProfile.ts";
+import { getClient } from "./services/mongo.ts";
+import parseJwt from "./services/lens/parseJwt.ts";
+import { updateProfile } from "./services/lens/updateProfile.ts";
+// import { addDelegators } from "./services/lens/addDelegators.ts";
+import { getLensImageURL } from "./services/lens/ipfs.ts";
+import { tipPublication } from "./services/orb/tip.ts";
+import handleUserTips from "./utils/handleUserTips.ts";
 const upload = multer({ storage: multer.memoryStorage() });
 
 export const messageHandlerTemplate =
@@ -69,6 +77,7 @@ export class OrbClient {
         this.app.use(bodyParser.json());
         this.app.use(bodyParser.urlencoded({ extended: true }));
 
+        // agent creates a post on bonsai club
         this.app.post(
             "/:agentId/orb/create-post",
             async (req: express.Request, res: express.Response) => {
@@ -216,6 +225,153 @@ export class OrbClient {
                 }
             }
         );
+
+        // webhook endpoint to process a post from bonsai club
+        this.app.post("/orb/webhook/new-post", async (req: express.Request, res: express.Response) => {
+            // TODO: authorization
+            const params = req.body;
+
+            const { collection, tips } = await getClient();
+            const agent = await collection.findOne({ clubId: params.community_id });
+            if (!agent) {
+                res.status(404).send();
+                return;
+            }
+
+            const wallets = await getWallets(agent.agentId, false);
+            if (!wallets?.polygon) {
+                res.status(500).send("failed to load polygon wallet");
+                return;
+            }
+
+            try {
+                // process content from the publication, perform the resulting action
+                const content = params.lens.content;
+                const imageURL = params.lens.image?.item ? getLensImageURL(params.lens.image?.item) : undefined;
+                // TODO: after refactor
+                // const { rating, comment } = await this.contentJudgementService.judgeContent({ text: content, imageUrl: imageURL })
+                const rating = 5;
+                const comment = "";
+                if (rating >= 5) {
+                    // TODO: send sticker reaction from bonsai energy
+                }
+
+                if (rating >= 6 && rating < 8) {
+                    await createPost(wallets?.polygon, wallets?.profile?.id, comment, undefined, params.publication_id);
+                }
+
+                // tip with the reply
+                if (rating >= 8) {
+                    const tipAmount = await handleUserTips(tips, rating, agent.agentId, params.profile_id);
+                    if (tipAmount > 0) {
+                        await tipPublication(wallets?.polygon, params.publication_id, tipAmount, comment);
+                    } else {
+                        const reply = `${comment}. I'd tip you, but you exceeded your daily limit.`;
+                        await createPost(wallets?.polygon, wallets?.profile?.id, reply, undefined, params.publication_id);
+                    }
+                }
+
+                res.status(200).json();
+            } catch (error) {
+                console.log(error);
+                res.status(400).send(error);
+            }
+        });
+
+        // admin endpoint to create an agent
+        this.app.post("/admin/create/:agentId", async (req: express.Request, res: express.Response) => {
+            // verify lens jwt token
+            const { fundTxHash } = req.body;
+            const { agentId } = req.params;
+            const token = req.headers['lens-access-token'] as string;
+            if (!token) {
+                res.status(401).send("Lens access token is required");
+                return;
+            }
+            const { id: adminProfileId } = parseJwt(token);
+            if (!adminProfileId) {
+                res.status(403).send("Invalid access token");
+                return;
+            }
+
+            if (!agentId) {
+                res.status(400).send("agentId is required");
+                return;
+            }
+
+            const wallets = await getWallets(agentId, true);
+            if (!wallets?.polygon) res.status(500).send("failed to load polygon wallet");
+
+            // TODO: verify `fundTxHash` was sent to this polygon wallet with value = 8 pol
+
+            try {
+                // mints the profile with agentId as the handle, if not already taken
+                const { profileId, txHash } = await mintProfile(wallets!.polygon, agentId);
+
+                const { collection } = await getClient();
+                await collection.updateOne({ agentId }, { $set: { profileId, adminProfileId } });
+
+                res.status(!!profileId ? 200 : 400).json({ profileId, txHash });
+            } catch (error) {
+                console.log(error);
+                res.status(400).send(error);
+            }
+        });
+
+        // admin endpoint to update an agent
+        this.app.put("/admin/:agentId", async (req: express.Request, res: express.Response) => {
+            // verify lens jwt token
+            const { profileData, approveSignless } = req.body;
+            const { agentId } = req.params;
+            const token = req.headers['lens-access-token'] as string;
+            if (!token) {
+                res.status(401).send("Lens access token is required");
+                return;
+            }
+            if (!profileData) {
+                res.status(400).send("profileData is required");
+                return;
+            }
+            const { id: adminProfileId } = parseJwt(token);
+
+            const wallets = await getWallets(agentId);
+            if (!wallets?.polygon) {
+                res.status(500).send("failed to load polygon wallet");
+                return;
+            }
+            if (wallets.adminProfileId != adminProfileId) {
+                res.status(403).send("not authenticated admin");
+                return;
+            }
+
+            try {
+                const success = await updateProfile(wallets?.polygon, wallets?.profile.id, profileData, approveSignless);
+
+                res.status(success ? 200 : 400).send();
+            } catch (error) {
+                console.log(error);
+                res.status(400).send(error);
+            }
+        });
+
+        // get agent info
+        this.app.get("/:agentId/info", async (req: express.Request, res: express.Response) => {
+            const { agentId } = req.params;
+            if (!agentId) {
+                res.status(400).send();
+                return;
+            }
+
+            const wallets = await getWallets(agentId);
+            if (!wallets) {
+                res.status(404).send();
+                return;
+            }
+            const [polygon] = await wallets.polygon.listAddresses();
+            const [base] = await wallets?.base.listAddresses();
+
+            res.status(200).json({ wallets: { polygon: polygon.getId(), base: base.getId() } });
+        });
     }
 
     public registerAgent(runtime: AgentRuntime) {

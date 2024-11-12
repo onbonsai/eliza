@@ -4,9 +4,9 @@ import { polygon } from "viem/chains";
 import { Wallet } from "@coinbase/coinbase-sdk"
 import axios from 'axios';
 import { LensClient, production } from "@lens-protocol/client";
-import { approveToken } from "./utils/viem.ts";
-import { BONSAI_TOKEN_ADDRESS_POLYGON } from "./utils/constants.ts";
 import OrbAttestationAbi from "./abi/OrbAttestation.ts";
+import { approveToken } from "../../utils/viem.ts";
+import { BONSAI_TOKEN_ADDRESS_POLYGON } from "../../utils/constants.ts";
 // import { approveToken } from "../../core/coinbase.ts";
 
 const ORB_API_URL = "https://us-central1-stellar-verve-314311.cloudfunctions.net/ORBV2-BOT-tipping";
