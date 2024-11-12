@@ -83,14 +83,14 @@ export class OrbClient {
             async (req: express.Request, res: express.Response) => {
                 console.log("OrbClient create-post");
                 // 10% chance of posting, sleep for some time
-                const shouldPost = Math.random() < 0.1 || req.body.shouldPost;
+                const shouldPost = Math.random() < 0.1 || req.body?.shouldPost;
                 if (!shouldPost) {
                     res.status(200).send("Skipped posting this time.");
                     return;
                 }
 
                 const sleepTime = Math.floor(Math.random() * 6) * 60000; // Sleep timer between 0-5 minutes
-                if (!req.body.shouldPost) {
+                if (!req.body?.shouldPost) {
                     await new Promise((resolve) =>
                         setTimeout(resolve, sleepTime)
                     );
