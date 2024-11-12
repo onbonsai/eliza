@@ -17,8 +17,9 @@ import {
 } from "@ai16z/eliza/src/types.ts";
 import { stringToUuid } from "@ai16z/eliza/src/uuid.ts";
 import settings from "@ai16z/eliza/src/settings.ts";
-import createPost from "./createPost";
-import { getWallets } from "./coinbase";
+import createPost from "./createPost.ts";
+import { getWallets } from "./coinbase.ts";
+import { getRandomPrompt } from "./utils/postPrompt.ts";
 const upload = multer({ storage: multer.memoryStorage() });
 
 export const messageHandlerTemplate =
@@ -45,7 +46,7 @@ Note that {{agentName}} is capable of reading/seeing/hearing various forms of me
 
 {{actions}}
 
-# Instructions: Write the next message for {{agentName}}. Ignore "action".
+# Instructions: Write the next thought for {{agentName}}. Ignore "action".
 ` + messageCompletionFooter;
 
 export interface SimliClientConfig {
@@ -108,7 +109,7 @@ export class OrbClient {
                     return;
                 }
 
-                const text = req.body.text;
+                const text = req.body.text || getRandomPrompt();
                 const messageId = stringToUuid(Date.now().toString());
 
                 const content: Content = {
@@ -152,6 +153,8 @@ export class OrbClient {
                     modelClass: ModelClass.SMALL,
                 });
 
+                console.log("response", response);
+
                 // save response to memory
                 const responseMessage = {
                     ...userMessage,
@@ -184,14 +187,17 @@ export class OrbClient {
                     // TODO: this url is base64 data. upload to ipfs first?
                     imageUrl = imageResponse.data[0];
                 }
+                console.log("imageUrl", imageUrl);
 
                 /* create post */
-                await createPost(
-                    wallets.polygon,
-                    wallets.profile.id,
-                    responseMessage.content.text,
-                    imageUrl
-                );
+                if (process.env.ORB_DRY_RUN != "true") {
+                    await createPost(
+                        wallets.polygon,
+                        wallets.profile.id,
+                        responseMessage.content.text,
+                        imageUrl
+                    );
+                }
 
                 const result = await runtime.processActions(
                     memory,
@@ -222,7 +228,7 @@ export class OrbClient {
 
     public start(port: number) {
         this.app.listen(port, () => {
-            console.log(`Server running at http://localhost:${port}/`);
+            console.log(`Orb client running at http://localhost:${port}/`);
         });
     }
 }
@@ -231,7 +237,7 @@ export const OrbClientInterface: Client = {
     start: async (runtime: IAgentRuntime) => {
         console.log("OrbClientInterface start");
         const client = new OrbClient();
-        const serverPort = parseInt(settings.SERVER_PORT || "3000");
+        const serverPort = parseInt(settings.SERVER_PORT || "3001");
         client.start(serverPort);
         return client;
     },

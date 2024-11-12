@@ -20,6 +20,7 @@
         "@ai16z/client-discord": "workspace:*",
         "@ai16z/client-telegram": "workspace:*",
         "@ai16z/client-twitter": "workspace:*",
+        "@ai16z/client-orb": "workspace:*",
         "@ai16z/plugin-bootstrap": "workspace:*",
         "@ai16z/plugin-image-generation": "workspace:*",
         "@ai16z/plugin-node": "workspace:*",

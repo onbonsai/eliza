@@ -5,6 +5,7 @@ import { DiscordClientInterface } from "@ai16z/client-discord/src/index.ts";
 import { AutoClientInterface } from "@ai16z/client-auto/src/index.ts";
 import { TelegramClientInterface } from "@ai16z/client-telegram/src/index.ts";
 import { TwitterClientInterface } from "@ai16z/client-twitter/src/index.ts";
+import { OrbClientInterface } from "@ai16z/client-orb/src/index.ts";
 import { defaultCharacter } from "@ai16z/eliza/src/defaultCharacter.ts";
 import { AgentRuntime } from "@ai16z/eliza/src/runtime.ts";
 import settings from "@ai16z/eliza/src/settings.ts";
@@ -203,6 +204,11 @@ export async function initializeClients(
     if (clientTypes.includes("twitter")) {
         const twitterClients = await TwitterClientInterface.start(runtime);
         clients.push(twitterClients);
+    }
+
+    if (clientTypes.includes("orb")) {
+        const orbClients = await OrbClientInterface.start(runtime);
+        clients.push(orbClients);
     }
 
     return clients;

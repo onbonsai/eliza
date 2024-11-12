@@ -322,6 +322,7 @@ export enum Clients {
     DIRECT = "direct",
     TWITTER = "twitter",
     TELEGRAM = "telegram",
+    ORB = "orb",
 }
 
 export type Character = {

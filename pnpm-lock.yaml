@@ -191,6 +191,9 @@ importers:
       '@ai16z/client-discord':
         specifier: workspace:*
         version: link:../client-discord
+      '@ai16z/client-orb':
+        specifier: workspace:*
+        version: link:../client-orb
       '@ai16z/client-telegram':
         specifier: workspace:*
         version: link:../client-telegram
