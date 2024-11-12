@@ -287,6 +287,8 @@ export class OrbClient {
                     const imageURL = params.lens.image?.item ? getLensImageURL(params.lens.image?.item) : undefined;
                     const { rating, comment } = await contentJudgementService.judgeContent({ text: content, imageUrl: imageURL });
 
+                    console.log("RESULT");
+                    console.log(JSON.stringify({ rating, comment },null,2));
                     res.status(200).json({ rating, comment });
                     return;
 
