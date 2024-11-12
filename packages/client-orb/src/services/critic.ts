@@ -14,9 +14,10 @@ import fs from "fs";
 import gifFrames from "gif-frames";
 import os from "os";
 import path from "path";
-import models from "../core/models.ts";
-import { IAgentRuntime, ModelClass, ModelProvider } from "../core/types.ts";
-import { generateText } from "../core/generation.ts";
+import { generateText } from "@ai16z/eliza/src/generation.ts";
+import { IAgentRuntime, ModelClass, ModelProviderName } from "@ai16z/eliza";
+import models from "@ai16z/eliza/src/models.ts";
+
 
 interface Content { text: string, imageUrl: string }
 
@@ -57,7 +58,7 @@ class ContentJudgementService {
 
         const model = models[this.runtime.character.settings.model];
 
-        if (model === ModelProvider.LLAMALOCAL) {
+        if (model === ModelProviderName.LLAMALOCAL) {
             this.modelId = modelId || "onnx-community/Florence-2-base-ft";
 
             env.allowLocalModels = false;

@@ -1,5 +1,5 @@
 import { Coinbase, Wallet } from "@coinbase/coinbase-sdk";
-import { decrypt, encrypt } from "./utils/crypto.ts";
+import { decrypt, encrypt } from "../utils/crypto.ts";
 import { getClient } from "./mongo.ts";
 
 // lens profile
