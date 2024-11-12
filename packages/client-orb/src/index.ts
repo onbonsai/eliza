@@ -25,7 +25,7 @@ import { mintProfile } from "./services/lens/mintProfile.ts";
 import { getClient } from "./services/mongo.ts";
 import parseJwt from "./services/lens/parseJwt.ts";
 import { updateProfile } from "./services/lens/updateProfile.ts";
-// import { addDelegators } from "./services/lens/addDelegators.ts";
+import { addDelegators } from "./services/lens/addDelegators.ts";
 import { getLensImageURL } from "./services/lens/ipfs.ts";
 import { tipPublication } from "./services/orb/tip.ts";
 import handleUserTips from "./utils/handleUserTips.ts";
@@ -220,6 +220,7 @@ export class OrbClient {
                     await createPost(
                         wallets.polygon,
                         wallets.profile.id,
+                        wallets.profile.handle,
                         responseMessage.content.text,
                         imageUrl
                     );
@@ -297,6 +298,7 @@ export class OrbClient {
                         await createPost(
                             wallets?.polygon,
                             wallets?.profile?.id,
+                            wallets?.profile?.handle,
                             comment,
                             undefined,
                             params.publication_id
@@ -323,6 +325,7 @@ export class OrbClient {
                             await createPost(
                                 wallets?.polygon,
                                 wallets?.profile?.id,
+                                wallets?.profile?.handle,
                                 reply,
                                 undefined,
                                 params.publication_id
@@ -426,6 +429,10 @@ export class OrbClient {
                         profileData,
                         approveSignless
                     );
+                    // const success = true;
+                    // await addDelegators(wallets?.polygon, wallets?.profile?.id, [
+                    //     "0x28ff8e457feF9870B9d1529FE68Fbb95C3181f64"
+                    // ]);
 
                     res.status(success ? 200 : 400).send();
                 } catch (error) {

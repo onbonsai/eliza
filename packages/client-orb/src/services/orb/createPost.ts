@@ -1,5 +1,5 @@
 import { privateKeyToAccount } from "viem/accounts";
-import { http, createWalletClient } from "viem";
+import { http, createWalletClient, hashMessage } from "viem";
 import { polygon } from "viem/chains";
 import { Wallet } from "@coinbase/coinbase-sdk"
 import axios from 'axios';
@@ -12,28 +12,29 @@ const ORB_BONSAI_CLUB_ID = "65e6dec26d85271723b6357c";
 const ORB_BONSAI_CLUB_TREASURY_ADDRESS = "0xa713822097941a68ab495a2f56ba6b276775c4b7";
 
 // post to lens from the first profile in the wallet
-export default async (_wallet: Wallet, _profileId: string, text: string, imageUrl?: string, commentOn?: string) => {
+export default async (wallet: Wallet, profileId: string, handle: string, text: string, imageUrl?: string, commentOn?: string) => {
   const client = new LensClient({ environment: production });
 
   // TODO: testing with personal wallet for posting
-  // const [address] = await wallet.listAddresses()
-  const { profileId, handle, privateKey } = {
-    profileId: "0x0e76",
-    privateKey: process.env.TEST_PERSONAL_PRIVATE_KEY!,
-    handle: 'natem'
-  };
-  const account = privateKeyToAccount(privateKey as `0x${string}`);
-  const wallet = createWalletClient({
-    account,
-    chain: polygon,
-    transport: http(process.env.POLYGON_RPC_URL!)
-  });
+  const [address] = await wallet.listAddresses()
+  // const { profileId, handle, privateKey } = {
+  //   profileId: "0x0e76",
+  //   privateKey: process.env.TEST_PERSONAL_PRIVATE_KEY!,
+  //   handle: 'natem'
+  // };
+  // const account = privateKeyToAccount(privateKey as `0x${string}`);
+  // const wallet = createWalletClient({
+  //   account,
+  //   chain: polygon,
+  //   transport: http(process.env.POLYGON_RPC_URL!)
+  // });
   const challenge = await client.authentication.generateChallenge({
-    signedBy: account.address,
+    signedBy: address.getId(),
     for: profileId,
   })
-  const signature = await wallet.signMessage({ account, message: challenge.text });
-  await client.authentication.authenticate({ id: challenge.id, signature });
+  let signature = await wallet.createPayloadSignature(hashMessage(challenge.text));
+  signature = await signature.wait();
+  await client.authentication.authenticate({ id: challenge.id, signature: signature.getSignature() });
 
   // prepare orb api params
   const publicationType = imageUrl ? 'image':  'text';
@@ -57,8 +58,8 @@ export default async (_wallet: Wallet, _profileId: string, text: string, imageUr
         split: 10
       },
       {
-        address: _wallet.getId(),
-        id: _profileId,
+        address: wallet.getId(),
+        id: profileId,
         split: 90
       }
     ]
