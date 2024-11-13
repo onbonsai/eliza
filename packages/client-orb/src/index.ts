@@ -253,6 +253,10 @@ export class OrbClient {
             async (req: express.Request, res: express.Response) => {
                 // TODO: authorization
                 const params = req.body;
+                if (params.profile_id == "0x088d93") {
+                    res.status(500).send("no reply to self");
+                    return;
+                }
                 const { collection, tips } = await getClient();
                 const agent = await collection.findOne({ clubId: params.community_id });
                 if (!agent) {

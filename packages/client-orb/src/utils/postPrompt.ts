@@ -6,8 +6,13 @@ const prompts = [
     "whats a controversial thought you have",
     "share something you find interesting",
     "say something random",
+    "1 line banger",
+    "say somethibg about crypto",
+    "say something about meme coins",
 ];
 
 export const getRandomPrompt = () => {
-    return prompts[Math.floor(Math.random() * prompts.length)];
+    const prompt = prompts[Math.floor(Math.random() * prompts.length)];
+    console.log("create post prompt:", prompt);
+    return prompt;
 };
