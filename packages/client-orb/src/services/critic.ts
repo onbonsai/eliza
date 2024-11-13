@@ -292,8 +292,9 @@ class ContentJudgementService {
         ${this.runtime.character.style.post}
 
         # Task: i have some text and a description of an accompanying image. i want you rate this on a scale of 1-10 on how good of
-        content this is for social media, think about whether its entertaining, interesting, informative etc and most of all if it is good content
-        for the bonsai community. perform this task as ${this.runtime.character.name}.
+        content this is for social media, think about whether its entertaining, interesting or informative and if it is relevant
+        for the bonsai community, which usually means its relevant to bonsais, creativity, culture, art, authenticity, memes or memecoins. 
+        perform this task as ${this.runtime.character.name}.
 
         post text: ${text}
         image caption: ${detailedCaption}
