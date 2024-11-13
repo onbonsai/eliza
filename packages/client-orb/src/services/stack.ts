@@ -1,5 +1,5 @@
 import { StackClient } from '@stackso/js-core';
-import { getProfileById } from './lens/profiles';
+import { getProfileById } from './lens/profiles.ts';
 
 const { STACK_API_KEY } = process.env;
 const STACK_POINT_SYSTEM = 5946; // bons_ai
