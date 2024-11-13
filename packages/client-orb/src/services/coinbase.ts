@@ -55,10 +55,10 @@ export const getWallets = async (agentId: string, create = false): Promise<{ bas
 export const approveToken = async (
   token: string,
   wallet: Wallet,
+  user: `0x${string}`,
   operator: `0x${string}`,
   chain: string = "polygon"
 ) => {
-  const user = wallet.getId() as `0x${string}`;
   const client = getPublicClient(chain);
   const allowance = await client.readContract({
     address: token as `0x${string}`,

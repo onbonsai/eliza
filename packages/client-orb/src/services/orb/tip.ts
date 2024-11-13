@@ -59,7 +59,13 @@ export const tipPublication = async (wallet: Wallet, profileId: string, publicat
   console.log('transactions to send:', data);
   const { data: { args, id } } = data;
 
-  await approveToken(BONSAI_TOKEN_ADDRESS_POLYGON, wallet, ORB_ATTESTATION_CONTRACT_ADDRES, "polygon");
+  await approveToken(
+    BONSAI_TOKEN_ADDRESS_POLYGON,
+    wallet,
+    address.getId() as `0x${string}`,
+    ORB_ATTESTATION_CONTRACT_ADDRES,
+    "polygon"
+  );
 
   console.log("sending transfer tx");
 
