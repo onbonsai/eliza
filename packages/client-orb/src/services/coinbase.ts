@@ -56,7 +56,7 @@ export const approveToken = async (
   token: string,
   wallet: Wallet,
   user: `0x${string}`,
-  operator: `0x${string}`,
+  spender: `0x${string}`,
   chain: string = "polygon"
 ) => {
   const client = getPublicClient(chain);
@@ -64,14 +64,14 @@ export const approveToken = async (
     address: token as `0x${string}`,
     abi: erc20Abi,
     functionName: "allowance",
-    args: [user, operator],
+    args: [user, spender],
   });
 
   if (allowance == 0n) {
     const contractInvocation = await wallet.invokeContract({
       contractAddress: token,
       method: "approve",
-      args: [operator, maxUint256],
+      args: { spender, amount: maxUint256.toString() },
       abi: erc20Abi,
     });
 

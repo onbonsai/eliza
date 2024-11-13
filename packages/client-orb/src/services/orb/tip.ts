@@ -72,17 +72,17 @@ export const tipPublication = async (wallet: Wallet, profileId: string, publicat
   const contractInvocation = await wallet.invokeContract({
     contractAddress: ORB_ATTESTATION_CONTRACT_ADDRES,
     method: "transfer",
-    args: [
-      args.token,
-      args.fromProfileId,
-      args.from,
-      args.toProfileId,
-      args.to,
-      args.amount,
-      args.contentURI,
-      args.erc721Id,
-      args.isERC20
-    ],
+    args: {
+      token: args.token,
+      fromProfileId: args.fromProfileId,
+      from: args.from,
+      toProfileId: args.toProfileId,
+      to: args.to,
+      amount: args.amount,
+      contentURI: args.contentURI,
+      erc721Id: args.erc721Id,
+      isERC20: args.isERC20
+    },
     abi: OrbAttestationAbi,
   });
 
