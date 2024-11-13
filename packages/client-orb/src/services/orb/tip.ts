@@ -7,7 +7,7 @@ import { BONSAI_TOKEN_ADDRESS_POLYGON } from "../../utils/constants.ts";
 import { approveToken } from "../coinbase.ts";
 
 const ORB_API_URL = "https://us-central1-stellar-verve-314311.cloudfunctions.net/ORBV2-BOT-tipping";
-const ORB_ATTESTATION_CONTRACT_ADDRES = "0xa8208529573e32b0aec07565fa8bc3cd01115449"; // polygon
+const ORB_ATTESTATION_CONTRACT_ADDRESS = "0xa8208529573e32b0aec07565fa8bc3cd01115449"; // polygon
 
 // tip a publication with bonsai on polygon
 export const tipPublication = async (wallet: Wallet, profileId: string, publicationId: string, amount: number, content?: string) => {
@@ -63,24 +63,24 @@ export const tipPublication = async (wallet: Wallet, profileId: string, publicat
     BONSAI_TOKEN_ADDRESS_POLYGON,
     wallet,
     address.getId() as `0x${string}`,
-    ORB_ATTESTATION_CONTRACT_ADDRES,
+    ORB_ATTESTATION_CONTRACT_ADDRESS,
     "polygon"
   );
 
   console.log("sending transfer tx");
 
   const contractInvocation = await wallet.invokeContract({
-    contractAddress: ORB_ATTESTATION_CONTRACT_ADDRES,
+    contractAddress: ORB_ATTESTATION_CONTRACT_ADDRESS,
     method: "transfer",
     args: {
       token: args.token,
-      fromProfileId: args.fromProfileId,
+      fromProfileId: BigInt(args.fromProfileId).toString(),
       from: args.from,
-      toProfileId: args.toProfileId,
+      toProfileId: BigInt(args.toProfileId).toString(),
       to: args.to,
       amount: args.amount,
-      contentURI: args.contentURI,
-      erc721Id: args.erc721Id,
+      contentURI: args.contentUri,
+      erc721Id: args.erc721Id.toString(),
       isERC20: args.isERC20
     },
     abi: OrbAttestationAbi,
