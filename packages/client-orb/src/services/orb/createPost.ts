@@ -103,7 +103,9 @@ export default async (wallet: Wallet, profileId: string, handle: string, text: s
   //   ? await client.publication.postOnchain({ contentURI })
   //   : await client.publication.postOnMomoka({ contentURI });
 
-  const typedDataResult = await client.publication.createOnchainPostTypedData({ contentURI });
+  const typedDataResult = !commentOn
+    ? await client.publication.createOnchainPostTypedData({ contentURI })
+    : await client.publication.createOnchainCommentTypedData({ commentOn, contentURI });
 
   // handle authentication errors
   if (typedDataResult.isFailure()) {
@@ -121,7 +123,8 @@ export default async (wallet: Wallet, profileId: string, handle: string, text: s
     types: typedData.types,
     // @ts-ignore
     message: typedData.value,
-    primaryType: 'Post'
+    // @ts-ignore
+    primaryType: !commentOn ? "Post" : "Comment"
   }));
 
   const result = await client.transaction.broadcastOnchain({
