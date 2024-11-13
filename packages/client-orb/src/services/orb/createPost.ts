@@ -1,5 +1,5 @@
 import { privateKeyToAccount } from "viem/accounts";
-import { http, createWalletClient, hashMessage } from "viem";
+import { http, createWalletClient, hashMessage, hashTypedData } from "viem";
 import { polygon } from "viem/chains";
 import { Wallet } from "@coinbase/coinbase-sdk"
 import axios from 'axios';
@@ -98,9 +98,36 @@ export default async (wallet: Wallet, profileId: string, handle: string, text: s
   const { status, data: { contentURI }, onchain } = data;
   if (status !== "SUCCESS") return false;
 
-  const result = onchain
-    ? await client.publication.postOnchain({ contentURI })
-    : await client.publication.postOnMomoka({ contentURI });
+  // TODO: only if signless is enabled for the profileId
+  // const result = onchain
+  //   ? await client.publication.postOnchain({ contentURI })
+  //   : await client.publication.postOnMomoka({ contentURI });
+
+  const typedDataResult = await client.publication.createOnchainPostTypedData({ contentURI });
+
+  // handle authentication errors
+  if (typedDataResult.isFailure()) {
+    console.error(typedDataResult.error); // CredentialsExpiredError or NotAuthenticatedError
+    return;
+  }
+
+  const { id, typedData } = typedDataResult.unwrap();
+
+  const signatureTyped = await wallet.createPayloadSignature(hashTypedData({
+    domain: {
+      ...typedData.domain,
+      verifyingContract: typedData.domain.verifyingContract as `0x${string}`
+    },
+    types: typedData.types,
+    // @ts-ignore
+    message: typedData.value,
+    primaryType: 'Post'
+  }));
+
+  const result = await client.transaction.broadcastOnchain({
+    id,
+    signature: signatureTyped.getSignature(),
+  });
 
   return handleBroadcastResult(result);
 };

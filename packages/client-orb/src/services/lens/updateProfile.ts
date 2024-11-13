@@ -18,9 +18,6 @@ export const updateProfile = async (wallet: Wallet, profileId: string, profileDa
   signature = await signature.wait();
   await client.authentication.authenticate({ id: challenge.id, signature: signature.getSignature() });
 
-  const metadata = profile(profileData)
-  const metadataURI = await uploadJson(metadata);
-
   // approve signless for all future txs
   if (approveSignless) {
     console.log('approving signless...');
@@ -28,8 +25,16 @@ export const updateProfile = async (wallet: Wallet, profileId: string, profileDa
       approveSignless: true,
     });
     console.log(typedDataResult);
+    const page = await client.profile.managers({
+      for: profileId,
+    });
+
+    console.log(`page.items[0]?.isLensManager: ${page.items[0]?.isLensManager}`); // => true | false
+    return page.items[0]?.isLensManager
   }
 
+  const metadata = profile(profileData)
+  const metadataURI = await uploadJson(metadata);
   const result = await client.profile.setProfileMetadata({ metadataURI });
 
   // handle authentication errors
