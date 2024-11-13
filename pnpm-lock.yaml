@@ -351,6 +351,9 @@ importers:
       '@lens-protocol/metadata':
         specifier: ^1.2.0
         version: 1.2.0(zod@3.23.8)
+      '@stackso/js-core':
+        specifier: ^0.5.2
+        version: 0.5.2(typescript@5.6.3)(zod@3.23.8)
       '@types/body-parser':
         specifier: 1.19.5
         version: 1.19.5
@@ -7849,6 +7852,21 @@ packages:
       '@stablelib/keyagreement': 1.0.1
       '@stablelib/random': 1.0.2
       '@stablelib/wipe': 1.0.1
+    dev: false
+
+  /@stackso/js-core@0.5.2(typescript@5.6.3)(zod@3.23.8):
+    resolution: {integrity: sha512-+kLZo4yvuv9+AsuW2uatNQ6nGHfCmCREnH/fK2IPlBD74qVZehSJl9Heabe/ddw1GyvkNr/mjEiwmtJTZP/8hg==}
+    dependencies:
+      '@solana/web3.js': 1.95.4
+      axios: 1.7.7(debug@4.3.7)
+      viem: 2.21.38(typescript@5.6.3)(zod@3.23.8)
+    transitivePeerDependencies:
+      - bufferutil
+      - debug
+      - encoding
+      - typescript
+      - utf-8-validate
+      - zod
     dev: false
 
   /@supabase/auth-js@2.65.1:

@@ -30,6 +30,7 @@ import { getLensImageURL } from "./services/lens/ipfs.ts";
 import { tipPublication } from "./services/orb/tip.ts";
 import handleUserTips from "./utils/handleUserTips.ts";
 import ContentJudgementService from "./services/critic.ts";
+import { updatePointsWithProfileId } from "./services/stack.ts";
 const upload = multer({ storage: multer.memoryStorage() });
 
 export const messageHandlerTemplate =
@@ -316,6 +317,7 @@ export class OrbClient {
                             params.profile_id
                         );
                         if (tipAmount > 0) {
+                            await updatePointsWithProfileId(params.profile_id, "tip", tipAmount);
                             await tipPublication(
                                 wallets?.polygon,
                                 params.publication_id,
