@@ -320,6 +320,7 @@ export class OrbClient {
                             await updatePointsWithProfileId(params.profile_id, "tip", tipAmount);
                             await tipPublication(
                                 wallets?.polygon,
+                                wallets?.profile?.id,
                                 params.publication_id,
                                 tipAmount,
                                 comment

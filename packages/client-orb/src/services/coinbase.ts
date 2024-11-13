@@ -1,6 +1,8 @@
 import { Coinbase, Wallet } from "@coinbase/coinbase-sdk";
+import { erc20Abi, maxUint256 } from "viem";
 import { decrypt, encrypt } from "../utils/crypto.ts";
 import { getClient } from "./mongo.ts";
+import { getPublicClient } from "../utils/viem.ts";
 
 // lens profile
 export type WalletProfile = { id: `0x${string}`, handle: string }
@@ -50,31 +52,31 @@ export const getWallets = async (agentId: string, create = false): Promise<{ bas
   return wallets;
 };
 
-// export const approveToken = async (
-//   token: string,
-//   wallet: Wallet,
-//   operator: `0x${string}`,
-//   chain: string = "polygon"
-// ) => {
-//   const user = wallet.getId() as `0x${string}`;
-//   const client = getPublicClient(chain);
-//   const allowance = await client.readContract({
-//     address: token as `0x${string}`,
-//     abi: erc20Abi,
-//     functionName: "allowance",
-//     args: [user, operator],
-//   });
+export const approveToken = async (
+  token: string,
+  wallet: Wallet,
+  operator: `0x${string}`,
+  chain: string = "polygon"
+) => {
+  const user = wallet.getId() as `0x${string}`;
+  const client = getPublicClient(chain);
+  const allowance = await client.readContract({
+    address: token as `0x${string}`,
+    abi: erc20Abi,
+    functionName: "allowance",
+    args: [user, operator],
+  });
 
-//   if (allowance == 0n) {
-//     const contractInvocation = await wallet.invokeContract({
-//       contractAddress: token,
-//       method: "approve",
-//       args: [operator, maxUint256],
-//       abi: erc20Abi,
-//     });
+  if (allowance == 0n) {
+    const contractInvocation = await wallet.invokeContract({
+      contractAddress: token,
+      method: "approve",
+      args: [operator, maxUint256],
+      abi: erc20Abi,
+    });
 
-//     const hash = contractInvocation.getTransactionHash();
-//     console.log(`tx: ${hash}`);
-//     await contractInvocation.wait();
-//   }
-// };
+    const hash = contractInvocation.getTransactionHash();
+    console.log(`tx: ${hash}`);
+    await contractInvocation.wait();
+  }
+};
