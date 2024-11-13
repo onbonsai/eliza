@@ -225,6 +225,8 @@ export class OrbClient {
                         responseMessage.content.text,
                         imageUrl
                     );
+                } else {
+                    console.log("Dry run: not posting to Orb")
                 }
 
                 const result = await runtime.processActions(
@@ -290,8 +292,6 @@ export class OrbClient {
 
                     console.log("RESULT");
                     console.log(JSON.stringify({ rating, comment },null,2));
-                    res.status(200).json({ rating, comment });
-                    return;
 
                     if (rating >= 5) {
                         // TODO: send sticker reaction from bonsai energy
@@ -336,7 +336,7 @@ export class OrbClient {
                             );
                         }
                     }
-                    res.status(200).json();
+                    res.status(200).json({ rating, comment });
                 } catch (error) {
                     console.log(error);
                     res.status(400).send(error);

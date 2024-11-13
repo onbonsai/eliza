@@ -298,7 +298,9 @@ class ContentJudgementService {
         post text: ${text}
         image caption: ${detailedCaption}
 
-        format your reponse as a single number, then a period, then a reply to their post not related to the critique, just a genuine response, no hashtags, no emojis.
+        format your reponse as a single number, then a period, then a reply to their post. reply with something interesting that adds to the conversation.
+        if you gave it a high rating you can compliment it and if you gave it a low rating you can say why you don't like it but not in a mean way.
+        Your reply should be a snappy one liner.
         DON'T JUSTIFY YOUR RATING, ONLY RESPOND WITH RATING, PERIOD, THEN A REPLY, NOTHING ELSE. NO HASHTAGS, NO EMOJIS`
 
         for (let retryAttempts = 0; retryAttempts < 3; retryAttempts++) {
