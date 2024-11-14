@@ -72,7 +72,7 @@ export interface SimliClientConfig {
 export class OrbClient {
     private app: express.Application;
     private agents: Map<string, AgentRuntime>;
-    private responded: { postId: boolean };
+    private responded: Record<string, boolean>;
 
     constructor() {
         console.log("OrbClient constructor");
