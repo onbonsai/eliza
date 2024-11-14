@@ -57,7 +57,8 @@ Note that {{agentName}} is capable of reading/seeing/hearing various forms of me
 
 {{actions}}
 
-# Instructions: Respond to the most recent message as {{agentName}}. Ignore "action". Don't say anything similar to a previous conversation message, make each thought fresh and unique, you can be off-topic or unhinged.
+# Instructions: Write a post responding to the most recent message as {{agentName}}. Ignore "action". 
+Don't say anything similar to a previous conversation message, make each thought fresh and unique. avoid posting platitudes. Post as if you're just firing thoughts off the top of the dome as you go about your day. 
 ` + messageCompletionFooter;
 
 export interface SimliClientConfig {
