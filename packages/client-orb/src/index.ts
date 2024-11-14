@@ -57,7 +57,7 @@ Note that {{agentName}} is capable of reading/seeing/hearing various forms of me
 
 {{actions}}
 
-# Instructions: Write the next thought for {{agentName}}. Ignore "action".
+# Instructions: Respond to the most recent message as {{agentName}}. Ignore "action". Don't say anything similar to a previous conversation message, make each thought fresh and unique, you can be off-topic or unhinged.
 ` + messageCompletionFooter;
 
 export interface SimliClientConfig {
@@ -205,7 +205,7 @@ export class OrbClient {
 
                 /* generate an image */
                 let imageUrl;
-                if (Math.random() < 1.15) {
+                if (Math.random() < 0.15) {
                     const imagePrompt = `Generate an image to accompany this post: ${responseMessage.content.text}`;
                     const imageResponse = await generateImage(
                         { prompt: imagePrompt, width: 1024, height: 1024 },

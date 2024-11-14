@@ -59,7 +59,7 @@ const models: Models = {
             maxOutputTokens: 8192,
             frequency_penalty: 0.0,
             presence_penalty: 0.0,
-            temperature: 0.3,
+            temperature: 1,
         },
         endpoint: "https://api.x.ai/v1",
         model: {
