@@ -70,6 +70,7 @@ export interface SimliClientConfig {
 export class OrbClient {
     private app: express.Application;
     private agents: Map<string, AgentRuntime>;
+    private responded: { postId: boolean };
 
     constructor() {
         console.log("OrbClient constructor");
@@ -273,6 +274,13 @@ export class OrbClient {
                     res.status(500).send("no reply to self");
                     return;
                 }
+                if (this.responded[params.publication_id]) {
+                    res.status(500).send(
+                        `already responded to publication: ${params.publication_id}`
+                    );
+                    return;
+                }
+                this.responded[params.publication_id] = true;
                 const { collection, tips } = await getClient();
                 const agent = await collection.findOne({
                     clubId: params.community_id,
