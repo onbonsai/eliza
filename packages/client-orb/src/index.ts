@@ -26,7 +26,7 @@ import { getClient } from "./services/mongo.ts";
 import parseJwt from "./services/lens/parseJwt.ts";
 import { updateProfile } from "./services/lens/updateProfile.ts";
 import { addDelegators } from "./services/lens/addDelegators.ts";
-import { getLensImageURL } from "./services/lens/ipfs.ts";
+import { getLensImageURL, pinFile } from "./services/lens/ipfs.ts";
 import { tipPublication } from "./services/orb/tip.ts";
 import handleUserTips from "./utils/handleUserTips.ts";
 import ContentJudgementService from "./services/critic.ts";
@@ -204,15 +204,31 @@ export class OrbClient {
 
                 /* generate an image */
                 let imageUrl;
-                if (Math.random() < 0.15) {
-                    // TODO: generate a prompt based on the post
+                if (Math.random() < 1.15) {
                     const imagePrompt = `Generate an image to accompany this post: ${responseMessage.content.text}`;
                     const imageResponse = await generateImage(
                         { prompt: imagePrompt, width: 1024, height: 1024 },
                         runtime
                     );
-                    // TODO: this url is base64 data. upload to ipfs first?
-                    imageUrl = imageResponse.data[0];
+
+                    if (imageResponse.success && imageResponse.data?.[0]) {
+                        // Convert base64 to buffer
+                        const base64Data = imageResponse.data[0].replace(
+                            /^data:image\/\w+;base64,/,
+                            ""
+                        );
+                        const imageBuffer = Buffer.from(base64Data, "base64");
+
+                        // Create a file object that can be used with FormData
+                        const file = {
+                            buffer: imageBuffer,
+                            originalname: `generated_${Date.now()}.png`,
+                            mimetype: "image/png",
+                        };
+
+                        // Upload to your hosting service
+                        imageUrl = await pinFile(file);
+                    }
                 }
                 console.log("imageUrl", imageUrl);
 
@@ -226,7 +242,7 @@ export class OrbClient {
                         imageUrl
                     );
                 } else {
-                    console.log("Dry run: not posting to Orb")
+                    console.log("Dry run: not posting to Orb");
                 }
 
                 const result = await runtime.processActions(
@@ -258,7 +274,9 @@ export class OrbClient {
                     return;
                 }
                 const { collection, tips } = await getClient();
-                const agent = await collection.findOne({ clubId: params.community_id });
+                const agent = await collection.findOne({
+                    clubId: params.community_id,
+                });
                 if (!agent) {
                     res.status(404).send();
                     return;
@@ -280,7 +298,8 @@ export class OrbClient {
                     return;
                 }
 
-                const contentJudgementService = ContentJudgementService.getInstance(runtime);
+                const contentJudgementService =
+                    ContentJudgementService.getInstance(runtime);
 
                 const wallets = await getWallets(agent.agentId, false);
                 if (!wallets?.polygon) {
@@ -291,11 +310,17 @@ export class OrbClient {
                 try {
                     // process content from the publication, perform the resulting action
                     const content = params.lens.content;
-                    const imageURL = params.lens.image?.item ? getLensImageURL(params.lens.image?.item) : undefined;
-                    const { rating, comment } = await contentJudgementService.judgeContent({ text: content, imageUrl: imageURL });
+                    const imageURL = params.lens.image?.item
+                        ? getLensImageURL(params.lens.image?.item)
+                        : undefined;
+                    const { rating, comment } =
+                        await contentJudgementService.judgeContent({
+                            text: content,
+                            imageUrl: imageURL,
+                        });
 
                     console.log("RESULT");
-                    console.log(JSON.stringify({ rating, comment },null,2));
+                    console.log(JSON.stringify({ rating, comment }, null, 2));
 
                     if (rating >= 5) {
                         // TODO: send sticker reaction from bonsai energy
@@ -321,7 +346,11 @@ export class OrbClient {
                             params.profile_id
                         );
                         if (tipAmount > 0) {
-                            await updatePointsWithProfileId(params.profile_id, "tip", tipAmount);
+                            await updatePointsWithProfileId(
+                                params.profile_id,
+                                "tip",
+                                tipAmount
+                            );
                             await tipPublication(
                                 wallets?.polygon,
                                 wallets?.profile?.id,

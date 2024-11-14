@@ -695,8 +695,17 @@ export const generateImage = async (
                 steps: modelSettings?.steps ?? 4,
                 n: count,
             });
-            // return urls from together api
-            return { success: true, data: response.data.map((i) => i.url) };
+            const base64s = await Promise.all(
+                response.data.map(async (i) => {
+                    const response = await fetch(i.url);
+                    const blob = await response.blob();
+                    const buffer = await blob.arrayBuffer();
+                    let base64 = Buffer.from(buffer).toString('base64');
+                    base64 = "data:image/jpeg;base64," + base64;
+                    return base64;
+                })
+            );
+            return { success: true, data: base64s };
         } else if (
             runtime.character.modelProvider === ModelProviderName.LLAMACLOUD
         ) {
