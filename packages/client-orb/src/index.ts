@@ -275,9 +275,9 @@ export class OrbClient {
                     return;
                 }
                 if (this.responded[params.publication_id]) {
-                    res.status(500).send(
-                        `already responded to publication: ${params.publication_id}`
-                    );
+                    const message = `already responded to publication: ${params.publication_id}`;
+                    console.log(message);
+                    res.status(500).send(message);
                     return;
                 }
                 this.responded[params.publication_id] = true;
