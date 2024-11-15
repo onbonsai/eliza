@@ -80,6 +80,7 @@ export class OrbClient {
         this.app = express();
         this.app.use(cors());
         this.agents = new Map();
+        this.responded = {};
 
         this.app.use(bodyParser.json());
         this.app.use(bodyParser.urlencoded({ extended: true }));
