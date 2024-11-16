@@ -64,7 +64,7 @@ export default async (wallet: Wallet, profileId: string, handle: string, text: s
       }
     ]
   } : undefined;
-  const isPrivate = true; // all posts going to the bonsai club will be private
+  const isPrivate = false; // TODO: all posts going to the bonsai club will be private
   const accessTokenResult = await client.authentication.getAccessToken();
   const accessToken = accessTokenResult.unwrap();
   const { data } = await axios.post(ORB_API_URL, {
