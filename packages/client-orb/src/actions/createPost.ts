@@ -40,13 +40,13 @@ const createPostAction = {
     }
 
     try {
-      // await createPost(
-      //     wallets.polygon,
-      //     wallets.profile.id,
-      //     wallets.profile.handle,
-      //     response.content.text,
-      //     undefined // TODO: generate image
-      // );
+      await createPost(
+          wallets.polygon,
+          wallets.profile.id,
+          wallets.profile.handle,
+          response.content.text,
+          undefined // TODO: generate image
+      );
 
       callback(
           {
