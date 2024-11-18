@@ -97,3 +97,14 @@ export const getLensImageURL = (uri: string): string => {
         throw error;
     }
 };
+
+
+// First, create a function to download the video buffer
+export async function downloadVideoBuffer(url: string): Promise<Buffer> {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to download video: ${response.statusText}`);
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    return Buffer.from(arrayBuffer);
+  }

@@ -3,7 +3,12 @@ import cors from "cors";
 import express, { Request as ExpressRequest } from "express";
 import multer, { File } from "multer";
 import { v4 as uuid } from "uuid";
-import { generateCaption, generateImage } from "@ai16z/eliza/src/generation.ts";
+import {
+    generateCaption,
+    generateImage,
+    generateText,
+    generateVideo,
+} from "@ai16z/eliza/src/generation.ts";
 import { composeContext } from "@ai16z/eliza/src/context.ts";
 import { generateMessageResponse } from "@ai16z/eliza/src/generation.ts";
 import { messageCompletionFooter } from "@ai16z/eliza/src/parsing.ts";
@@ -26,7 +31,11 @@ import { getClient } from "./services/mongo.ts";
 import parseJwt from "./services/lens/parseJwt.ts";
 import { updateProfile } from "./services/lens/updateProfile.ts";
 import { addDelegators } from "./services/lens/addDelegators.ts";
-import { getLensImageURL, pinFile } from "./services/lens/ipfs.ts";
+import {
+    downloadVideoBuffer,
+    getLensImageURL,
+    pinFile,
+} from "./services/lens/ipfs.ts";
 import { tipPublication } from "./services/orb/tip.ts";
 import handleUserTips from "./utils/handleUserTips.ts";
 import ContentJudgementService from "./services/critic.ts";
@@ -325,6 +334,7 @@ export class OrbClient {
 
                 /* generate an image */
                 let imageUrl;
+                let videoUrl;
                 if (Math.random() < 0.15) {
                     const imagePrompt = `Generate an image to accompany this post: ${responseMessage.content.text}`;
                     const imageResponse = await generateImage(
@@ -349,9 +359,60 @@ export class OrbClient {
 
                         // Upload to your hosting service
                         imageUrl = await pinFile(file);
+                        console.log("imageUrl", imageUrl);
+                    }
+
+                    /* generate a video */
+                    if (Math.random() < 0.25) {
+                        const videoPrompt = await generateText({
+                            runtime,
+                            context: `Write a succinct prompt to generate a captivating 5 second video based on this message: "${responseMessage.content.text}". Write only the prompt and nothing else, don't include any text in the video, only imagery.`,
+                            modelClass: ModelClass.SMALL,
+                        });
+                        console.log({
+                            prompt: videoPrompt,
+                            promptImage: imageUrl,
+                        });
+                        const videoResponse = await generateVideo(
+                            {
+                                prompt: videoPrompt.slice(0, 510),
+                                promptImage: imageUrl,
+                            },
+                            runtime
+                        );
+                        if (videoResponse.success && videoResponse.data?.[0]) {
+                            try {
+                                // Download the video from the URL
+                                const videoBuffer = await downloadVideoBuffer(
+                                    videoResponse.data[0]
+                                );
+
+                                // Create a file object that can be used with FormData
+                                const file = {
+                                    buffer: videoBuffer,
+                                    originalname: `generated_video_${Date.now()}.mp4`,
+                                    mimetype: "video/mp4",
+                                };
+
+                                // Upload to your hosting service using the existing pinFile function
+                                videoUrl = await pinFile(file);
+                                console.log(
+                                    "Video uploaded successfully:",
+                                    videoUrl
+                                );
+                            } catch (error) {
+                                console.error("Error processing video:", error);
+                            }
+                        }
                     }
                 }
-                console.log("imageUrl", imageUrl);
+                console.log(
+                    videoUrl
+                        ? "posting video"
+                        : imageUrl
+                          ? "posting image"
+                          : "posting text only"
+                );
 
                 /* create post */
                 if (process.env.ORB_DRY_RUN != "true") {
@@ -360,7 +421,8 @@ export class OrbClient {
                         wallets.profile.id,
                         wallets.profile.handle,
                         responseMessage.content.text,
-                        imageUrl
+                        videoUrl ? undefined : imageUrl,
+                        videoUrl
                     );
                 } else {
                     console.log("Dry run: not posting to Orb");
@@ -461,6 +523,7 @@ export class OrbClient {
                             wallets?.profile?.handle,
                             comment,
                             undefined,
+                            undefined,
                             params.publication_id
                         );
                     }
@@ -493,6 +556,7 @@ export class OrbClient {
                                 wallets?.profile?.id,
                                 wallets?.profile?.handle,
                                 reply,
+                                undefined,
                                 undefined,
                                 params.publication_id
                             );
