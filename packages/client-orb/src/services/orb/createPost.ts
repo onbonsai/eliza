@@ -47,7 +47,7 @@ export default async (wallet: Wallet, profileId: string, handle: string, text: s
       type: "image/png",
   }] : [];
   const communityId = ORB_BONSAI_CLUB_ID;
-  const digitalCollectibleSettings = imageUrl ? {
+  const digitalCollectibleSettings = (imageUrl || videoUrl) ? {
     endsAt: null,
     followerOnly: false,
     currency: BONSAI_TOKEN_ADDRESS_POLYGON,
