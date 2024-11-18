@@ -58,7 +58,7 @@ export default async (wallet: Wallet, profileId: string, handle: string, text: s
         split: 10
       },
       {
-        address: wallet.getId(),
+        address: address.getId(),
         id: profileId,
         split: 90
       }
