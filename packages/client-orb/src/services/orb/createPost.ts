@@ -12,7 +12,7 @@ const ORB_BONSAI_CLUB_ID = "65e6dec26d85271723b6357c";
 const ORB_BONSAI_CLUB_TREASURY_ADDRESS = "0xa713822097941a68ab495a2f56ba6b276775c4b7";
 
 // post to lens from the first profile in the wallet
-export default async (wallet: Wallet, profileId: string, handle: string, text: string, imageUrl?: string, commentOn?: string) => {
+export default async (wallet: Wallet, profileId: string, handle: string, text: string, imageUrl?: string, videoUrl?: string, commentOn?: string) => {
   const client = new LensClient({ environment: production });
 
   // TODO: testing with personal wallet for posting
@@ -37,9 +37,12 @@ export default async (wallet: Wallet, profileId: string, handle: string, text: s
   await client.authentication.authenticate({ id: challenge.id, signature: signature.getSignature() });
 
   // prepare orb api params
-  const publicationType = imageUrl ? 'image':  'text';
+  const publicationType = videoUrl ? "video" : imageUrl ? 'image':  'text';
   const content = text;
-  const items = imageUrl ? [{
+  const items = videoUrl ? [{
+    url: videoUrl,
+    type: "video/mp4",
+  }] : imageUrl ? [{
       url: imageUrl,
       type: "image/png",
   }] : [];

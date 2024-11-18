@@ -45,7 +45,8 @@ const createPostAction = {
           wallets.profile.id,
           wallets.profile.handle,
           response.content.text,
-          undefined // TODO: generate image
+          undefined, // TODO: generate image
+          undefined // TODO: generate video
       );
 
       callback(
