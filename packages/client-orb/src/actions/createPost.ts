@@ -14,7 +14,7 @@ const createPostAction = {
   similes: ["ORB_POST", "CREATE_ORB_POST", "CREATE_LENS_POST", "LENS_POST"],
   description: "Create a post to Orb using the message prompt.",
   validate: async (runtime: IAgentRuntime, message: Memory) => {
-    return !!process.env.ORB_API_BEARER_KEY;
+    return !!process.env.ORB_API_BEARER_KEY
   },
   handler: async (
     runtime: IAgentRuntime,
@@ -37,6 +37,12 @@ const createPostAction = {
     if (!wallets?.polygon) {
         elizaLogger.error(`Failed to fetch wallets for agentId: ${message.agentId}`);
         return;
+    }
+    if (wallets?.adminProfileId !== state.adminProfileId) {
+      elizaLogger.error(
+          `Invalid state.adminProfileId, expected: ${state.adminProfileId} to equal ${wallets?.adminProfileId}`
+      );
+      return;
     }
 
     try {

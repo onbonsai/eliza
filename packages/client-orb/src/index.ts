@@ -212,6 +212,13 @@ export class OrbClient {
                         );
                 }
 
+                // set the adminProfileId to be able to post to orb
+                const token = req.headers["lens-access-token"] as string;
+                if (token) {
+                    const { id: adminProfileId } = parseJwt(token);
+                    state.adminProfileId = adminProfileId;
+                }
+
                 const result = await runtime.processActions(
                     memory,
                     [responseMessage],
