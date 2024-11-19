@@ -44,6 +44,7 @@ import ContentJudgementService from "./services/critic.ts";
 import { updatePointsWithProfileId } from "./services/stack.ts";
 import createPostAction from "./actions/createPost.ts";
 import searchTokenAction from "./actions/searchToken.ts";
+import { tokenAnalysisPlugin } from "@ai16z/plugin-token-analysis/src/index.ts";
 const upload = multer({ storage: multer.memoryStorage() });
 
 export const messageHandlerTemplate =
@@ -93,7 +94,9 @@ export class OrbClient {
         console.log("OrbClient constructor");
         this.app = express();
         this.server = createServer(this.app);
-        this.io = new SocketIOServer(this.server, { cors: { origin: "*", methods: ["GET", "POST" ]}});
+        this.io = new SocketIOServer(this.server, {
+            cors: { origin: "*", methods: ["GET", "POST"] },
+        });
         this.app.use(cors());
         this.agents = new Map();
         this.responded = {};
@@ -103,15 +106,76 @@ export class OrbClient {
 
         this.initializeWebSocket();
 
+        /* test endpoint for token ratings */
+        this.app.post(
+            "/:agentId/score-token",
+            async (req: express.Request, res: express.Response) => {
+                console.log("Score Token");
+                const agentId = req.params.agentId;
+                const roomId =
+                    req.body.roomId || stringToUuid("default-room-" + agentId);
+                const userId = stringToUuid(req.body.userId ?? "user");
+
+                let runtime = this.agents.get(agentId);
+
+                // if runtime is null, look for runtime with the same name
+                if (!runtime) {
+                    runtime = Array.from(this.agents.values()).find(
+                        (a) =>
+                            a.character.name.toLowerCase() ===
+                            agentId.toLowerCase()
+                    );
+                }
+
+                if (!runtime) {
+                    res.status(404).send("Agent not found");
+                    return;
+                }
+
+                await runtime.ensureConnection(
+                    userId,
+                    roomId,
+                    req.body.userName,
+                    req.body.name,
+                    "direct"
+                );
+
+                const text = req.body.text;
+                const messageId = stringToUuid(Date.now().toString());
+
+                const content: Content = {
+                    text,
+                    attachments: [],
+                    source: "direct",
+                    inReplyTo: undefined,
+                };
+
+                const memory: Memory = {
+                    id: messageId,
+                    agentId: runtime.agentId,
+                    userId,
+                    roomId,
+                    content,
+                    createdAt: Date.now(),
+                };
+
+                await runtime.messageManager.createMemory(memory);
+
+                const tokenScoreAction = tokenAnalysisPlugin.actions[0];
+                const result = await tokenScoreAction.handler(runtime, memory);
+                console.log(result);
+                res.json({ result });
+            }
+        );
+
         // GENERAL ENTRY POINT
         this.app.post(
             "/:agentId/message",
             async (req: express.Request, res: express.Response) => {
                 console.log("OrbClient message");
                 const agentId = req.params.agentId;
-                const roomId = req.body.roomId || stringToUuid(
-                    "default-room-" + agentId
-                );
+                const roomId =
+                    req.body.roomId || stringToUuid("default-room-" + agentId);
                 const userId = stringToUuid(req.body.userId ?? "user");
 
                 let runtime = this.agents.get(agentId);
@@ -203,13 +267,14 @@ export class OrbClient {
 
                 // if we process some actions, send the original response as a ws event for feedback
                 if (response.action !== "NONE") {
-                    console.log('emitting to roomId', roomId);
-                    this.io
-                        .to(roomId)
-                        .emit(
-                            "response",
-                            JSON.stringify({ text: response.text, action: "NONE" })
-                        );
+                    console.log("emitting to roomId", roomId);
+                    this.io.to(roomId).emit(
+                        "response",
+                        JSON.stringify({
+                            text: response.text,
+                            action: "NONE",
+                        })
+                    );
                 }
 
                 // set the adminProfileId to be able to post to orb
@@ -737,7 +802,9 @@ export class OrbClient {
         //     console.log(`Orb client running at http://localhost:${port}/`);
         // });
         this.server.listen(port, () => {
-            console.log(`Orb client (and socket.io) server running on http://localhost:${port}/`);
+            console.log(
+                `Orb client (and socket.io) server running on http://localhost:${port}/`
+            );
         });
     }
 
