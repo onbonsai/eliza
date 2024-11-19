@@ -1,6 +1,8 @@
 import bodyParser from "body-parser";
 import cors from "cors";
 import express, { Request as ExpressRequest } from "express";
+import { Server as HttpServer, createServer } from "http";
+import { Server as SocketIOServer } from "socket.io";
 import multer, { File } from "multer";
 import { v4 as uuid } from "uuid";
 import {
@@ -30,7 +32,7 @@ import { mintProfile } from "./services/lens/mintProfile.ts";
 import { getClient } from "./services/mongo.ts";
 import parseJwt from "./services/lens/parseJwt.ts";
 import { updateProfile } from "./services/lens/updateProfile.ts";
-import { addDelegators } from "./services/lens/addDelegators.ts";
+// import { addDelegators } from "./services/lens/addDelegators.ts";
 import {
     downloadVideoBuffer,
     getLensImageURL,
@@ -41,6 +43,7 @@ import handleUserTips from "./utils/handleUserTips.ts";
 import ContentJudgementService from "./services/critic.ts";
 import { updatePointsWithProfileId } from "./services/stack.ts";
 import createPostAction from "./actions/createPost.ts";
+import searchTokenAction from "./actions/searchToken.ts";
 const upload = multer({ storage: multer.memoryStorage() });
 
 export const messageHandlerTemplate =
@@ -81,12 +84,16 @@ export interface SimliClientConfig {
 }
 export class OrbClient {
     private app: express.Application;
+    private server: HttpServer;
+    private io: SocketIOServer;
     private agents: Map<string, AgentRuntime>;
     private responded: Record<string, boolean>;
 
     constructor() {
         console.log("OrbClient constructor");
         this.app = express();
+        this.server = createServer(this.app);
+        this.io = new SocketIOServer(this.server, { cors: { origin: "*", methods: ["GET", "POST" ]}});
         this.app.use(cors());
         this.agents = new Map();
         this.responded = {};
@@ -94,14 +101,16 @@ export class OrbClient {
         this.app.use(bodyParser.json());
         this.app.use(bodyParser.urlencoded({ extended: true }));
 
+        this.initializeWebSocket();
+
         // GENERAL ENTRY POINT
         this.app.post(
             "/:agentId/message",
             async (req: express.Request, res: express.Response) => {
                 console.log("OrbClient message");
                 const agentId = req.params.agentId;
-                const roomId = stringToUuid(
-                    req.body.roomId ?? "default-room-" + agentId
+                const roomId = req.body.roomId || stringToUuid(
+                    "default-room-" + agentId
                 );
                 const userId = stringToUuid(req.body.userId ?? "user");
 
@@ -191,6 +200,17 @@ export class OrbClient {
                 let message = null as Content | null;
 
                 await runtime.evaluate(memory, state);
+
+                // if we process some actions, send the original response as a ws event for feedback
+                if (response.action !== "NONE") {
+                    console.log('emitting to roomId', roomId);
+                    this.io
+                        .to(roomId)
+                        .emit(
+                            "response",
+                            JSON.stringify({ text: response.text, action: "NONE" })
+                        );
+                }
 
                 const result = await runtime.processActions(
                     memory,
@@ -706,8 +726,20 @@ export class OrbClient {
     }
 
     public start(port: number) {
-        this.app.listen(port, () => {
-            console.log(`Orb client running at http://localhost:${port}/`);
+        // this.app.listen(port, () => {
+        //     console.log(`Orb client running at http://localhost:${port}/`);
+        // });
+        this.server.listen(port, () => {
+            console.log(`Orb client (and socket.io) server running on http://localhost:${port}/`);
+        });
+    }
+
+    private initializeWebSocket() {
+        this.io.on("connection", (socket) => {
+            const roomId = socket.handshake.query.roomId as string;
+            console.log(`ws joined: ${roomId}`);
+
+            socket.join(roomId);
         });
     }
 }
@@ -718,6 +750,7 @@ export const OrbClientInterface: Client = {
         const client = new OrbClient();
         const serverPort = parseInt(settings.SERVER_PORT || "3001");
         runtime.registerAction(createPostAction);
+        runtime.registerAction(searchTokenAction);
         client.registerAgent(runtime);
         client.start(serverPort);
         return client;

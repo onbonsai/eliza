@@ -7,7 +7,6 @@
     "dependencies": {
         "@ai16z/eliza": "workspace:*",
         "@ai16z/plugin-image-generation": "workspace:*",
-        "@apollo/client": "^3.11.10",
         "@coinbase/coinbase-sdk": "^0.10.0",
         "@lens-protocol/client": "^2.3.1",
         "@lens-protocol/metadata": "^1.2.0",
@@ -17,8 +16,11 @@
         "@types/express": "5.0.0",
         "body-parser": "1.20.3",
         "cors": "2.8.5",
+        "graphql": "^16.9.0",
+        "graphql-request": "^7.1.2",
         "mongodb": "^6.10.0",
-        "multer": "1.4.5-lts.1"
+        "multer": "1.4.5-lts.1",
+        "socket.io": "^4.8.1"
     },
     "devDependencies": {
         "tsup": "^8.3.5"
