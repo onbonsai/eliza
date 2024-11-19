@@ -62,7 +62,8 @@ const searchTokenAction = {
             let attachments;
             if (tokens.length === 1) {
                 const token = tokens[0];
-                token.token.networkName = TOKEN_ID_TO_NAME[token.token.networkId];
+                token.token.networkName =
+                    TOKEN_ID_TO_NAME[token.token.networkId];
                 state.tokenInfo = JSON.stringify(token);
                 const context = composeContext({
                     state,
@@ -109,7 +110,7 @@ const searchTokenAction = {
                         },
                     },
                 ];
-            } else {
+            } else if (tokens.length > 1) {
                 // respond with all 'tool buttons' and ask user to confirm one ({ name, symbol, address })
                 console.log(
                     "FOUND SEVERAL TOKENS",
@@ -127,6 +128,8 @@ const searchTokenAction = {
                         },
                     },
                 }));
+            } else {
+              text = `Found 0 tokens, are you sure you have the right ticker? If it has a low market cap, I won't know about it.`;
             }
 
             callback({
@@ -139,19 +142,17 @@ const searchTokenAction = {
         }
     },
     examples: [
-        // TODO: We want to generate posts in more abstract ways, not just when asked to generate a post
-
         [
             {
                 user: "{{user1}}",
                 content: {
-                    text: "What do you think about this token",
+                    text: "Tell me about $BONSAI",
                 },
             },
             {
                 user: "{{agentName}}",
                 content: {
-                    text: "You mean this token?",
+                    text: "Here's an overview of $BONSAI.",
                     action: ACTION,
                 },
             },
@@ -160,13 +161,13 @@ const searchTokenAction = {
             {
                 user: "{{user1}}",
                 content: {
-                    text: "Tell me more about the token",
+                    text: "Is $BONSAI a good token?",
                 },
             },
             {
                 user: "{{agentName}}",
                 content: {
-                    text: "The token",
+                    text: "Here's my analysis of $BONSAI.",
                     action: ACTION,
                 },
             },
@@ -175,13 +176,13 @@ const searchTokenAction = {
             {
                 user: "{{user1}}",
                 content: {
-                    text: "Should I buy this token",
+                    text: "What do you think about $BONSAI?",
                 },
             },
             {
                 user: "{{agentName}}",
                 content: {
-                    text: "Here's what I think about the token",
+                    text: "Here's what I think about $BONSAI.",
                     action: ACTION,
                 },
             },
@@ -190,13 +191,103 @@ const searchTokenAction = {
             {
                 user: "{{user1}}",
                 content: {
-                    text: "What do you think about the coin",
+                    text: "Should I buy $BONSAI?",
                 },
             },
             {
                 user: "{{agentName}}",
                 content: {
-                    text: "You mean this token?",
+                    text: "Here's my take on $BONSAI as an investment.",
+                    action: ACTION,
+                },
+            },
+        ],
+        [
+            {
+                user: "{{user1}}",
+                content: {
+                    text: "Give me an analysis of $BONSAI.",
+                },
+            },
+            {
+                user: "{{agentName}}",
+                content: {
+                    text: "Here's a detailed analysis of $BONSAI.",
+                    action: ACTION,
+                },
+            },
+        ],
+        [
+            {
+                user: "{{user1}}",
+                content: {
+                    text: "What are the risks with $BONSAI?",
+                },
+            },
+            {
+                user: "{{agentName}}",
+                content: {
+                    text: "Here are the risks associated with $BONSAI.",
+                    action: ACTION,
+                },
+            },
+        ],
+        [
+            {
+                user: "{{user1}}",
+                content: {
+                    text: "Look up $BONSAI.",
+                },
+            },
+            {
+                user: "{{agentName}}",
+                content: {
+                    text: "Here's $BONSAI.",
+                    action: ACTION,
+                },
+            },
+        ],
+        [
+            {
+                user: "{{user1}}",
+                content: {
+                    text: "Is $BONSAI undervalued?",
+                },
+            },
+            {
+                user: "{{agentName}}",
+                content: {
+                    text: "Here's my assessment of whether $BONSAI is undervalued.",
+                    action: ACTION,
+                },
+            },
+        ],
+        [
+            {
+                user: "{{user1}}",
+                content: {
+                    text: "What are analysts saying about $BONSAI?",
+                },
+            },
+            {
+                user: "{{agentName}}",
+                content: {
+                    text: "Here's what analysts are saying about $BONSAI.",
+                    action: ACTION,
+                },
+            },
+        ],
+        [
+            {
+                user: "{{user1}}",
+                content: {
+                    text: "Does $BONSAI have potential?",
+                },
+            },
+            {
+                user: "{{agentName}}",
+                content: {
+                    text: "Here's my take on the potential of $BONSAI.",
                     action: ACTION,
                 },
             },
