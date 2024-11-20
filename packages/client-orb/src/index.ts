@@ -163,8 +163,7 @@ export class OrbClient {
 
                 const tokenScoreAction = tokenAnalysisPlugin.actions[0];
                 const result = await tokenScoreAction.handler(runtime, memory);
-                console.log(result);
-                res.json({ result });
+                res.json(result);
             }
         );
 

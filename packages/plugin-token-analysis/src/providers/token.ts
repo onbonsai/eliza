@@ -252,6 +252,7 @@ export class TokenProvider {
             method: "GET",
             headers: {
                 accept: "application/json",
+                "x-chain": this.chain,
                 "X-API-KEY": settings.BIRDEYE_API_KEY || "",
             },
         };

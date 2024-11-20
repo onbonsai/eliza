@@ -31,7 +31,7 @@ Example response:
 {
     "ticker": "$BONSAI"
     "inputTokenAddress": "0x474f4cb764df9da079D94052fED39625c147C12C",
-    "chain": "Base"
+    "chain": "base"
 }
 \`\`\`
 
@@ -58,12 +58,14 @@ The chain will be one of the following: ["solana", "ethereum", "arbitrum", "aval
 The token address will start with a "0x" and be 42 characters long, hexadecimal (example: 0x474f4cb764df9da079D94052fED39625c147C12C) UNLESS it is a Solana token in which case it will be 44 characters long and a mix of digits and letters (example: 5voS9evDjxF589WuEub5i4ti7FWQmZCsAsyD5ucbuRqM).
 `;
 
+// TODO: update judgement instructions
 const ratingTemplate = `Respond with a JSON markdown block containing only the extracted values. Use null for any values that cannot be determined.
 
 Example response:
 \`\`\`json
 {
-    "rating": TokenScore.STRONG_BUY
+    "rating": TokenScore.STRONG_BUY,
+    "reason": "This token is a strong buy because..."
 }
 \`\`\`
 
@@ -73,20 +75,22 @@ Social Report
 Technical Report
 {{technicalResult}}
 
-Given the social and technical reports assign the token a TokenScore rating. Token Score is an enum defined as:
+Given the social and technical reports assign the token a TokenScore rating. Note that there may be missing data for certain metrics since this reporting is still in development. Disregard this and make your analysis solely on the data present. A strong opinion is preferential.
 
+Token Score is an enum defined as:
 enum TokenScore {
-    STRONG_SELL = "Strong Sell",
-    SELL = "Sell",
-    NEUTRAL = "Neutral",
-    BUY = "Buy",
-    STRONG_BUY = "Strong Buy",
+    STRONG_SELL,
+    SELL,
+    NEUTRAL,
+    BUY,
+    STRONG_BUY,
 }
 
-Respond with a JSON markdown block containing only the extracted values. The result should be a valid JSON object with the following schema:
+Include your reasoning also. Respond with a JSON markdown block containing only the extracted values. The result should be a valid JSON object with the following schema:
 \`\`\`json
 {
-    "rating": TokenScore
+    "rating": TokenScore,
+    "reason": string
 }
 \`\`\`
 `;
@@ -94,11 +98,11 @@ Respond with a JSON markdown block containing only the extracted values. The res
 // scoreToken should took CA, not symbol. return TokenScore enum
 
 export enum TokenScore {
-    STRONG_SELL = "Strong Sell",
-    SELL = "Sell",
-    NEUTRAL = "Neutral",
-    BUY = "Buy",
-    STRONG_BUY = "Strong Buy",
+    STRONG_SELL = 0,
+    SELL = 1,
+    NEUTRAL = 2,
+    BUY = 3,
+    STRONG_BUY = 4,
 }
 
 // SOCIAL ANALYSIS
@@ -107,7 +111,7 @@ const socialAnalysis = async (
     ticker: string
 ): Promise<string> => {
     // TODO
-    return "higher";
+    return "N/A";
 };
 
 // TECHNICAL ANALYSIS
@@ -139,7 +143,7 @@ export const scoreToken: Action = {
         state: State,
         _options: { [key: string]: unknown },
         callback?: HandlerCallback
-    ): Promise<TokenScore> => {
+    ): Promise<{ score: TokenScore; scoreString: string; reason: string }> => {
         // composeState
         if (!state) {
             state = (await runtime.composeState(message)) as State;
@@ -151,8 +155,6 @@ export const scoreToken: Action = {
             state,
             template: messageTemplate,
         });
-
-        console.log(messageContext)
 
         const response = await generateObject({
             runtime,
@@ -188,9 +190,14 @@ export const scoreToken: Action = {
                 .replace("{{technicalResult}}", technicalResult),
             modelClass: ModelClass.LARGE,
         });
-        let score: TokenScore = ratingResponse.rating;
+        console.log("ratingResponse", ratingResponse);
 
-        return score;
+        const scoreString = ratingResponse.rating.replace(
+            "TokenScore.",
+            ""
+        ) as keyof typeof TokenScore;
+        const score = TokenScore[scoreString] as number;
+        return { score, scoreString, reason: ratingResponse.reason };
     },
     examples: [
         [
