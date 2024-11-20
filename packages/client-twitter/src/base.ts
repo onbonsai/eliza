@@ -155,7 +155,7 @@ export class ClientBase extends EventEmitter {
         );
     }
 
-    constructor({ runtime }: { runtime: IAgentRuntime }) {
+    constructor({ runtime }: { runtime: IAgentRuntime }, searchOnly=false) {
         super();
         this.runtime = runtime;
         if (ClientBase._twitterClient) {
@@ -272,9 +272,10 @@ export class ClientBase extends EventEmitter {
             console.log("Twitter user ID:", userId);
             this.twitterUserId = userId;
 
-            await this.populateTimeline();
-
-            this.onReady();
+            if (!searchOnly) {
+                await this.populateTimeline(); 
+                this.onReady();
+            }
         })();
     }
 
@@ -365,6 +366,37 @@ export class ClientBase extends EventEmitter {
             console.error("Error fetching search tweets:", error);
             return { tweets: [] };
         }
+    }
+
+    async searchWithDelay(searchTerm: string, count = 20): Promise<QueryTweetsResponse> {
+        if (!fs.existsSync("tweetcache")) {
+            fs.mkdirSync("tweetcache");
+        }
+    
+        const MAX_RETRIES = 3;
+        const DELAY_MS = 5000;
+    
+        for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+            try {
+                console.log(`Fetching search tweets (attempt ${attempt}/${MAX_RETRIES})`);
+                const recentTweets = await this.fetchSearchTweets(
+                    searchTerm,
+                    count,
+                    SearchMode.Top
+                );
+                console.log("Search tweets fetched successfully");
+                return recentTweets;
+            } catch (error) {
+                if (attempt === MAX_RETRIES) {
+                    console.error("Failed to fetch tweets after all retries:", error);
+                    return { tweets: [] };
+                }
+                console.log(`Attempt ${attempt} failed, retrying in ${DELAY_MS/1000} seconds...`);
+                await new Promise(resolve => setTimeout(resolve, DELAY_MS));
+            }
+        }
+    
+        return { tweets: [] }; // Fallback return in case of unexpected loop exit
     }
 
     private async populateTimeline() {

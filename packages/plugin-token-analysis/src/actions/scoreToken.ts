@@ -1,10 +1,3 @@
-import { bs58 } from "@coral-xyz/anchor/dist/cjs/utils/bytes/index.js";
-import {
-    Connection,
-    Keypair,
-    PublicKey,
-    VersionedTransaction,
-} from "@solana/web3.js";
 import BigNumber from "bignumber.js";
 import { v4 as uuidv4 } from "uuid";
 import { TrustScoreDatabase } from "../adapters/trustScoreDatabase.ts";
@@ -23,6 +16,7 @@ import {
 import { TokenProvider } from "../providers/token.ts";
 import { TrustScoreManager } from "../providers/trustScoreProvider.ts";
 import { ProcessedTokenData } from "../types/token.ts";
+import { ClientBase } from "@ai16z/client-twitter/src/base.ts";
 
 const messageTemplate = `Respond with a JSON markdown block containing only the extracted values. Use null for any values that cannot be determined.
 
@@ -75,7 +69,13 @@ Social Report
 Technical Report
 {{technicalResult}}
 
-Given the social and technical reports assign the token a TokenScore rating. Note that there may be missing data for certain metrics since this reporting is still in development. Disregard this and make your analysis solely on the data present. A strong opinion is preferential.
+You are an expert crypto and memecoin trader. You know how to combine charting skills with sentiment analysis to determine if a coin is under or over valued.
+
+Given the social and technical reports assign the token a TokenScore rating. Note that there may be missing data for certain metrics since this reporting is still in development. Disregard this and make your analysis solely on the data present.
+For the technical report the most important things are signs of momentum in increasing price, higher highs higher lows, increasing volume, that kind of thing.
+For the social data an active community is one of the most important signals. 
+
+Beyond these things interpret the data as you see fit.
 
 Token Score is an enum defined as:
 enum TokenScore {
@@ -110,8 +110,32 @@ const socialAnalysis = async (
     runtime: IAgentRuntime,
     ticker: string
 ): Promise<string> => {
-    // TODO
-    return "N/A";
+    const client = new ClientBase({ runtime }, true);
+    const { tweets } = await client.searchWithDelay(`$${ticker}`);
+    let report = `Social Analysis Report for ${ticker}\n\n`;
+
+    for (const tweet of tweets) {
+        // Skip retweets to avoid duplicate content
+        if (tweet.isRetweet) continue;
+
+        const engagement = {
+            likes: tweet.likes || 0,
+            retweets: tweet.retweets || 0,
+            replies: tweet.replies || 0,
+            views: tweet.views || 0,
+        };
+
+        const timestamp = tweet.timeParsed
+            ? new Date(tweet.timeParsed).toISOString()
+            : "Unknown time";
+
+        report += `---\nTweet: ${tweet.text}\n`;
+        report += `Author: @${tweet.username}\n`;
+        report += `Time: ${timestamp}\n`;
+        report += `Engagement: ${engagement.likes} likes, ${engagement.retweets} RTs, ${engagement.replies} replies, ${engagement.views} views\n`;
+    }
+
+    return tweets?.length > 0 ? report : "No relevant tweets found";
 };
 
 // TECHNICAL ANALYSIS
@@ -183,11 +207,12 @@ export const scoreToken: Action = {
         ]);
 
         // prompt LLM to read the results and return a TokenScore
+        const context = ratingTemplate
+            .replace("{{socialResult}}", socialResult)
+            .replace("{{technicalResult}}", technicalResult);
         const ratingResponse = await generateObject({
             runtime,
-            context: ratingTemplate
-                .replace("{{socialResult}}", socialResult)
-                .replace("{{technicalResult}}", technicalResult),
+            context,
             modelClass: ModelClass.LARGE,
         });
         console.log("ratingResponse", ratingResponse);

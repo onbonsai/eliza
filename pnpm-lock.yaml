@@ -818,6 +818,9 @@ importers:
 
   packages/plugin-token-analysis:
     dependencies:
+      '@ai16z/client-twitter':
+        specifier: workspace:*
+        version: link:../client-twitter
       '@ai16z/eliza':
         specifier: workspace:*
         version: link:../core
