@@ -1,9 +1,5 @@
-import BigNumber from "bignumber.js";
-import { v4 as uuidv4 } from "uuid";
-import { TrustScoreDatabase } from "../adapters/trustScoreDatabase.ts";
 import { composeContext } from "@ai16z/eliza/src/context.ts";
 import { generateObject } from "@ai16z/eliza/src/generation.ts";
-import settings from "@ai16z/eliza/src/settings.ts";
 import {
     ActionExample,
     HandlerCallback,
@@ -14,8 +10,6 @@ import {
     type Action,
 } from "@ai16z/eliza/src/types.ts";
 import { TokenProvider } from "../providers/token.ts";
-import { TrustScoreManager } from "../providers/trustScoreProvider.ts";
-import { ProcessedTokenData } from "../types/token.ts";
 import { ClientBase } from "@ai16z/client-twitter/src/base.ts";
 
 const messageTemplate = `Respond with a JSON markdown block containing only the extracted values. Use null for any values that cannot be determined.
