@@ -133,7 +133,7 @@ const socialAnalysis = async (
         report += `Time: ${timestamp}\n`;
         report += `Engagement: ${engagement.likes} likes, ${engagement.retweets} RTs, ${engagement.replies} replies, ${engagement.views} views\n`;
     }
-    console.log(report)
+
     return tweets?.length > 0 ? report : "No relevant tweets found";
 };
 
@@ -194,7 +194,9 @@ export const scoreToken: Action = {
 
         console.log("response:", response);
 
-        const { ticker, inputTokenAddress, chain } = response;
+        let { ticker, inputTokenAddress, chain } = response;
+        ticker = ticker.toLowerCase();
+        chain = chain.toLowerCase();
 
         const [socialResult, technicalResult] = await Promise.all([
             ticker
