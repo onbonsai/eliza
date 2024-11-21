@@ -18,7 +18,7 @@ import {
 export const tokenSummaryTemplate = `# Structured token information
 {{tokenInfo}}
 
-# Instructions: Provide an analysis of the information to provide insight. No need to format information, keep it under 450 characters, and use 4 decimals of precision for floats, and for larger numbers round to integer and use k, mil, or bil formatting. Just return the analysis. Do not acknowledge this request, just provide the analysis without labeling.`;
+# Instructions: Provide an analysis of the information to provide insight. No need to format information, keep it under 450 characters, and use 4 decimals of precision for floats, and for larger numbers round to integer and use k, mil, or bil formatting. Just return the analysis, and do not share any links. Do not acknowledge this request, just provide the analysis without labeling.`;
 
 const ACTION = "FIND_TOKEN";
 const searchTokenAction = {
@@ -84,14 +84,15 @@ const searchTokenAction = {
                 attachments = [
                     {
                         button: {
-                            label: `Score $${token.token.symbol}`,
-                            text: `Score $${token.token.symbol} on ${token.token.networkName} (CA: ${token.token.address})`,
+                            label: `Rate $${token.token.symbol}`,
+                            text: `Rate $${token.token.symbol} on ${token.token.networkName} (CA: ${token.token.address})`,
                             payload: {
                                 action: "SCORE_TOKEN",
                                 data: {
                                     inputTokenAddress: token.token.address,
                                     chain: token.token.networkName.toLowerCase(),
                                     ticker: token.token.symbol,
+                                    imageURL: token.token.info.imageSmallUrl,
                                 },
                             },
                         },
@@ -109,7 +110,7 @@ const searchTokenAction = {
                     "FOUND SEVERAL TOKENS",
                     JSON.stringify(tokens, null, 2)
                 );
-                text = `Found ${tokens.length} tokens, can you clarify which one you meant?`;
+                text = `Found ${tokens.length} tokens, can you clarify which one you meant, maybe with a contract address?`;
                 attachments = tokens.map(({ token }) => ({
                     button: {
                         label: `${token.name} ($${token.symbol})`,

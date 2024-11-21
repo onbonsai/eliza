@@ -53,6 +53,9 @@ const FILTER_TOKENS = gql`
                     name
                     networkId
                     symbol
+                    info {
+                        imageSmallUrl
+                    }
                 }
             }
         }
@@ -88,6 +91,9 @@ type TokenResult = {
         networkId: number;
         symbol: string;
         networkName?: string;
+        info?: {
+            imageSmallUrl?: string;
+        };
     };
 };
 export const searchTokens = async (phrase: string, contractAddress?: string): Promise<TokenResult[]> => {

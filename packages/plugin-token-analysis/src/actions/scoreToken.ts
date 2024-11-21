@@ -244,6 +244,7 @@ export const scoreToken: Action = {
                     // @ts-ignore
                     userId: state.payload.userId,
                     agentId: message.agentId,
+                    imageURL: response.imageURL,
                     createdAt: Math.floor(Date.now() / 1000),
                 });
             } catch (error) {

@@ -846,6 +846,7 @@ export class OrbClient {
                         chain: ticker.chain,
                         score: ticker.score,
                         url: `${DEFAULT_NETWORK_EXPLORER_URL}/token/${ticker.inputTokenAddress}`,
+                        imageURL: ticker.imageURL,
                     },
                 }));
 
