@@ -106,7 +106,11 @@ const socialAnalysis = async (
     ticker: string
 ): Promise<string> => {
     const client = new ClientBase({ runtime }, true);
-    const { tweets } = await client.searchWithDelay(`$${ticker}`);
+    // Ensure ticker starts with $ for Twitter search
+    if (!ticker.startsWith('$')) {
+        ticker = `$${ticker}`;
+    }
+    const { tweets } = await client.searchWithDelay(ticker);
     let report = `Social Analysis Report for ${ticker}\n\n`;
 
     for (const tweet of tweets) {
@@ -129,7 +133,7 @@ const socialAnalysis = async (
         report += `Time: ${timestamp}\n`;
         report += `Engagement: ${engagement.likes} likes, ${engagement.retweets} RTs, ${engagement.replies} replies, ${engagement.views} views\n`;
     }
-
+    console.log(report)
     return tweets?.length > 0 ? report : "No relevant tweets found";
 };
 
@@ -243,7 +247,7 @@ export const scoreToken: Action = {
             }
         }
 
-        callback({
+        callback?.({
             text: ratingResponse.reason,
             attachments: [],
         });

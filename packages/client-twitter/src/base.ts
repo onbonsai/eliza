@@ -93,6 +93,7 @@ export class ClientBase extends EventEmitter {
     temperature: number = 0.5;
 
     private tweetCache: Map<string, Tweet> = new Map();
+    private searchTermCache: Map<string, {queryResponse: QueryTweetsResponse, timestamp: number}> = new Map();
     requestQueue: RequestQueue = new RequestQueue();
     twitterUserId: string;
 
@@ -368,9 +369,80 @@ export class ClientBase extends EventEmitter {
         }
     }
 
+    // utilities for doing searches from agent interface
+    async cacheSearchTerm(searchTerm: string, queryResponse: QueryTweetsResponse): Promise<void> {
+        if (!queryResponse) {
+            console.warn("Query is undefined, skipping cache");
+            return;
+        }
+        const cacheDir = path.join(
+            __dirname,
+            "tweetcache",
+            "searchTerms",
+            `${searchTerm}.json`
+        );
+        const obj = { queryResponse, timestamp: Date.now() }
+        await fs.promises.mkdir(path.dirname(cacheDir), { recursive: true });
+        await fs.promises.writeFile(cacheDir, JSON.stringify(obj, null, 2));
+        this.searchTermCache.set(searchTerm, obj);
+    }
+
+    async getCachedSearchTerm(searchTerm: string): Promise<QueryTweetsResponse | undefined> {
+        // Check memory cache first
+        if (this.searchTermCache.has(searchTerm)) {
+            const cachedData = this.searchTermCache.get(searchTerm);
+            const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
+            if (Date.now() - cachedData.timestamp > SIX_HOURS_MS) {
+                this.searchTermCache.delete(searchTerm);
+            } else {
+                return cachedData.queryResponse;
+            }
+        }
+    
+        // Check file cache if not in memory
+        const cacheFile = path.join(
+            __dirname,
+            "tweetcache",
+            "searchTerms",
+            `${searchTerm}.json`
+        );
+        
+        try {
+            const files = await glob(cacheFile);
+            if (files.length > 0) {
+                const searchData = await fs.promises.readFile(files[0], "utf-8");
+                const cachedData = JSON.parse(searchData) as {
+                    queryResponse: QueryTweetsResponse;
+                    timestamp: number;
+                };
+                
+                // Check if cache is still valid
+                const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
+                if (Date.now() - cachedData.timestamp > SIX_HOURS_MS) {
+                    return undefined;
+                }
+                
+                // Store in memory cache and return
+                this.searchTermCache.set(searchTerm, cachedData);
+                return cachedData.queryResponse;
+            }
+        } catch (error) {
+            console.error("Error reading search term cache:", error);
+        }
+    
+        return undefined;
+    }
+
     async searchWithDelay(searchTerm: string, count = 20): Promise<QueryTweetsResponse> {
         if (!fs.existsSync("tweetcache")) {
             fs.mkdirSync("tweetcache");
+        }
+    
+        // First check cache
+        const cachedResult = await this.getCachedSearchTerm(searchTerm);
+        if (cachedResult) {
+            console.log("cached results found for search term", searchTerm)
+            return cachedResult;
         }
     
         const MAX_RETRIES = 3;
@@ -385,6 +457,10 @@ export class ClientBase extends EventEmitter {
                     SearchMode.Top
                 );
                 console.log("Search tweets fetched successfully");
+                
+                // Cache the successful result
+                await this.cacheSearchTerm(searchTerm, recentTweets);
+                
                 return recentTweets;
             } catch (error) {
                 if (attempt === MAX_RETRIES) {
