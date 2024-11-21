@@ -38,6 +38,5 @@ const prompts = [
 
 export const getRandomPrompt = () => {
     const prompt = prompts[Math.floor(Math.random() * prompts.length)];
-    console.log("create post prompt:", prompt);
     return prompt;
 };

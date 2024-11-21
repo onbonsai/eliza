@@ -45,6 +45,7 @@ import { updatePointsWithProfileId } from "./services/stack.ts";
 import createPostAction from "./actions/createPost.ts";
 import searchTokenAction from "./actions/searchToken.ts";
 import { tokenAnalysisPlugin } from "@ai16z/plugin-token-analysis/src/index.ts";
+import { ClientBase } from "@ai16z/client-twitter/src/base.ts";
 const upload = multer({ storage: multer.memoryStorage() });
 
 export const messageHandlerTemplate =
@@ -78,7 +79,7 @@ NO EMOJIS. don't take yourself to seriously. NO EMOJIS.
 
 export interface Payload {
     action: string;
-    data: { [key: string]: string }
+    data: { [key: string]: string };
 }
 export interface SimliClientConfig {
     apiKey: string;
@@ -356,13 +357,29 @@ export class OrbClient {
                     "direct"
                 );
 
+                let text = req.body.text || getRandomPrompt();
+                if (Math.random() < 0.66) {
+                    const twitterSearchClient = new ClientBase(
+                        { runtime },
+                        true
+                    );
+                    await new Promise((resolve) => setTimeout(resolve, 5000));
+                    const homeTimeline =
+                        await twitterSearchClient.fetchHomeTimeline(20);
+                    // Format timeline into string of tweets and authors
+                    const timelineText = homeTimeline
+                        .map((tweet) => `@${tweet.username}: ${tweet.text}`)
+                        .join("\n");
+
+                    // Add timeline context to prompt text
+                    text = `Recent tweets from the timeline:\n${timelineText}\n\n Make a tweet of your own that's relevant to and contributing to the discourse.`;
+                }
+
                 const wallets = await getWallets(agentId, true);
                 if (!wallets?.polygon) {
                     res.status(404).send("Polygon wallet not found");
                     return;
                 }
-
-                const text = req.body.text || getRandomPrompt();
 
                 const messageId = stringToUuid(Date.now().toString());
 

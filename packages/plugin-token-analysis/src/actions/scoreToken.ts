@@ -245,7 +245,7 @@ export const scoreToken: Action = {
 
         callback({
             text: ratingResponse.reason,
-            attachments: []
+            attachments: [],
         });
 
         return { score, scoreString, reason: ratingResponse.reason };

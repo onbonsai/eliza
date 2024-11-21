@@ -5,6 +5,7 @@
     "type": "module",
     "types": "dist/index.d.ts",
     "dependencies": {
+        "@ai16z/client-twitter": "workspace:*",
         "@ai16z/eliza": "workspace:*",
         "@ai16z/plugin-image-generation": "workspace:*",
         "@ai16z/plugin-token-analysis": "workspace:*",
