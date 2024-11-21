@@ -226,7 +226,7 @@ export const scoreToken: Action = {
         ) as keyof typeof TokenScore;
         const score = TokenScore[scoreString] as number;
 
-        // todo: score non-neutral to the db, using ticker as the uniq id
+        // score non-neutral to the db, using ticker as the uniq id
         if (score != 2) {
             const { tickers } = await getClient();
             try {
