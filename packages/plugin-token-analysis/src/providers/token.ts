@@ -421,13 +421,120 @@ export class TokenProvider {
     }
 
     async fetchHolderList(): Promise<HolderData[]> {
-        if (this.chain == "solana") return await this.fetchHolderListSolana()
-        else return await this.fetchHolderListEvm()
+        if (this.chain == "solana") return await this.fetchHolderListSolana();
+        else return await this.fetchHolderListEvm();
     }
 
     async fetchHolderListEvm(): Promise<HolderData[]> {
-        // TODO: fetch holders for token on this.chain
-        return []
+        const cacheKey = `holderList_${this.tokenAddress}_${this.chain}`;
+        const cachedData = this.getCachedData<HolderData[]>(cacheKey);
+        if (cachedData) {
+            console.log("Returning cached EVM holder list.");
+            return cachedData;
+        }
+
+        const chainMap: Record<string, string> = {
+            ethereum: "eth",
+            base: "base",
+            polygon: "polygon",
+            arbitrum: "arbitrum",
+            optimism: "optimism",
+        };
+
+        const chainName = chainMap[this.chain.toLowerCase()];
+        if (!chainName) {
+            throw new Error(`Unsupported chain: ${this.chain}`);
+        }
+
+        const moralisKey = settings.MORALIS_API_KEY;
+        if (!moralisKey) {
+            throw new Error("No Moralis API key provided");
+        }
+
+        try {
+            const allHolders: HolderData[] = [];
+            let cursor: string | undefined;
+            const limit = 100; // Number of records per page
+            let totalFetched = 0;
+            const MAX_HOLDERS = 2500;
+
+            do {
+                console.log(
+                    `Fetching EVM holders (${totalFetched}/${MAX_HOLDERS})`
+                );
+
+                const url = new URL(
+                    `https://deep-index.moralis.io/api/v2.2/erc20/${this.tokenAddress}/owners`
+                );
+                url.searchParams.append("chain", chainName);
+                url.searchParams.append("limit", limit.toString());
+                url.searchParams.append("order", "DESC"); // This ensures we get the largest holders first
+                if (cursor) {
+                    url.searchParams.append("cursor", cursor);
+                }
+
+                const response = await fetch(url.toString(), {
+                    headers: {
+                        accept: "application/json",
+                        "X-API-Key": moralisKey,
+                    },
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        `API error: ${data.message || response.statusText}`
+                    );
+                }
+
+                const holders = (data.result || [])
+                    .filter(
+                        (holder: { balance: string }) => holder.balance !== "0"
+                    )
+                    .map(
+                        (holder: {
+                            owner_address: string;
+                            balance: string;
+                        }) => ({
+                            address: holder.owner_address,
+                            balance: holder.balance,
+                        })
+                    );
+
+                if (holders.length === 0) {
+                    break;
+                }
+
+                allHolders.push(...holders);
+                totalFetched += holders.length;
+
+                // Break if we've reached our maximum holders limit
+                if (totalFetched >= MAX_HOLDERS) {
+                    break;
+                }
+
+                cursor = data.cursor;
+
+                // Add a small delay to avoid rate limiting
+                await new Promise((resolve) => setTimeout(resolve, 200));
+            } while (cursor);
+
+            console.log(`Total EVM holders fetched: ${allHolders.length}`);
+
+            // Cache the results
+            this.setCachedData(cacheKey, allHolders);
+
+            return allHolders;
+        } catch (error) {
+            console.error(
+                `Error fetching EVM holder list for chain ${this.chain}:`,
+                error
+            );
+            throw new Error(
+                `Failed to fetch EVM holder list: ${error.message}`
+            );
+        }
     }
 
     async fetchHolderListSolana(): Promise<HolderData[]> {
@@ -779,7 +886,7 @@ export class TokenProvider {
 }
 
 const tokenAddress = PROVIDER_CONFIG.TOKEN_ADDRESSES.Example;
-const chain = "base"
+const chain = "base";
 const tokenProvider: Provider = {
     get: async (
         // eslint-disable-next-line @typescript-eslint/no-unused-vars

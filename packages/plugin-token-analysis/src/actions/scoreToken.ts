@@ -106,7 +106,11 @@ const socialAnalysis = async (
     ticker: string
 ): Promise<string> => {
     const client = new ClientBase({ runtime }, true);
-    const { tweets } = await client.searchWithDelay(`$${ticker}`);
+    // Ensure ticker starts with $ for Twitter search
+    if (!ticker.startsWith('$')) {
+        ticker = `$${ticker}`;
+    }
+    const { tweets } = await client.searchWithDelay(ticker);
     let report = `Social Analysis Report for ${ticker}\n\n`;
 
     for (const tweet of tweets) {
@@ -190,7 +194,9 @@ export const scoreToken: Action = {
 
         console.log("response:", response);
 
-        const { ticker, inputTokenAddress, chain } = response;
+        let { ticker, inputTokenAddress, chain } = response;
+        ticker = ticker.toLowerCase();
+        chain = chain.toLowerCase();
 
         const [socialResult, technicalResult] = await Promise.all([
             ticker
@@ -247,7 +253,7 @@ export const scoreToken: Action = {
             }
         }
 
-        callback({
+        callback?.({
             text: ratingResponse.reason,
             attachments: [],
         });
