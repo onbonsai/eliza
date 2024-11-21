@@ -1,7 +1,6 @@
 import { elizaLogger } from "@ai16z/eliza/src/logger.ts";
 import { composeContext } from "@ai16z/eliza/src/context.ts";
 import { generateText, trimTokens } from "@ai16z/eliza/src/generation.ts";
-import models from "@ai16z/eliza/src/models.ts";
 import {
     Action,
     HandlerCallback,
@@ -21,15 +20,15 @@ export const tokenSummaryTemplate = `# Structured token information
 
 # Instructions: Provide an analysis of the information to provide insight. No need to format information, keep it under 450 characters, and use 4 decimals of precision for floats, and for larger numbers round to integer and use k, mil, or bil formatting. Just return the analysis. Do not acknowledge this request, just provide the analysis without labeling.`;
 
-const ACTION = "THINK_TOKEN";
+const ACTION = "FIND_TOKEN";
 const searchTokenAction = {
     name: ACTION,
     similes: [
+        "FIND_TICKER",
+        "FIND_COIN",
         "THINK_TICKER",
         "THINK_COIN",
-        "FIND_TICKER",
-        "FIND_TOKEN",
-        "FIND_COIN",
+        "TELL_TOKEN",
     ],
     description:
         "Find the token given a ticker or name in the prompt. Require confirmation from user on multiple tokens",
@@ -53,6 +52,8 @@ const searchTokenAction = {
             message.content.text.match(/0x[a-fA-F0-9]{40}/)?.[0];
         console.log(`the ticker is $${ticker}`);
         console.log(`the contract address is ${contractAddress}`);
+
+        if (!ticker) return;
 
         try {
             const tokens = await searchTokens(ticker, contractAddress);
@@ -83,23 +84,15 @@ const searchTokenAction = {
                 attachments = [
                     {
                         button: {
-                            label: "Social sentiment (X)",
+                            label: `Score $${token.token.symbol}`,
+                            text: `Score $${token.token.symbol} on ${token.token.networkName} (CA: ${token.token.address})`,
                             payload: {
-                                action: "CHECK_SOCIAL_SENTIMENT",
-                                address: token.token.address,
-                                networkId: token.token.networkId,
-                                symbol: token.token.symbol,
-                            },
-                        },
-                    },
-                    {
-                        button: {
-                            label: "Technical Analysis",
-                            payload: {
-                                action: "GET_TECHNICAL_ANALYSIS",
-                                address: token.token.address,
-                                networkId: token.token.networkId,
-                                symbol: token.token.symbol,
+                                action: "SCORE_TOKEN",
+                                data: {
+                                    inputTokenAddress: token.token.address,
+                                    chain: token.token.networkName.toLowerCase(),
+                                    ticker: token.token.symbol,
+                                },
                             },
                         },
                     },
@@ -120,16 +113,11 @@ const searchTokenAction = {
                 attachments = tokens.map(({ token }) => ({
                     button: {
                         label: `${token.name} ($${token.symbol})`,
-                        payload: {
-                            action: ACTION,
-                            address: token.address,
-                            networkId: token.networkId,
-                            symbol: token.symbol,
-                        },
+                        text: `Find the token with ticker ${token.symbol} and contract address ${token.address} on chain ${TOKEN_ID_TO_NAME[token.networkId]}`
                     },
                 }));
             } else {
-              text = `Found 0 tokens, are you sure you have the right ticker? If it has a low market cap, I won't know about it.`;
+                text = `Found 0 tokens, are you sure you have the right ticker? If it has a low market cap, I won't know about it.`;
             }
 
             callback({
@@ -153,6 +141,66 @@ const searchTokenAction = {
                 user: "{{agentName}}",
                 content: {
                     text: "Here's an overview of $BONSAI.",
+                    action: ACTION,
+                },
+            },
+        ],
+        [
+            {
+                user: "{{user1}}",
+                content: {
+                    text: "Tell me about the token $BONSAI",
+                },
+            },
+            {
+                user: "{{agentName}}",
+                content: {
+                    text: "Here's an overview of $BONSAI.",
+                    action: ACTION,
+                },
+            },
+        ],
+        [
+            {
+                user: "{{user1}}",
+                content: {
+                    text: "Tell me about the coin $BONSAI",
+                },
+            },
+            {
+                user: "{{agentName}}",
+                content: {
+                    text: "Here's an overview of $BONSAI.",
+                    action: ACTION,
+                },
+            },
+        ],
+        [
+            {
+                user: "{{user1}}",
+                content: {
+                    text: "What do you think about the token $BONSAI",
+                },
+            },
+            {
+                user: "{{agentName}}",
+                content: {
+                    text: "Here's what I think of $BONSAI.",
+                    action: ACTION,
+                },
+            },
+        ],
+        [
+            {
+                user: "{{user1}}",
+                content: {
+                    text: "Find out about the token $BONSAI",
+                },
+            },
+            {
+                user: "{{agentName}}",
+                content: {
+                    text: "Here's what I found on $BONSAI.",
                     action: ACTION,
                 },
             },

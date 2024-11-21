@@ -76,6 +76,10 @@ Don't say anything similar to a previous conversation message, make each thought
 NO EMOJIS. don't take yourself to seriously. NO EMOJIS.
 ` + messageCompletionFooter;
 
+export interface Payload {
+    action: string;
+    data: { [key: string]: string }
+}
 export interface SimliClientConfig {
     apiKey: string;
     faceID: string;
@@ -176,6 +180,7 @@ export class OrbClient {
                 const roomId =
                     req.body.roomId || stringToUuid("default-room-" + agentId);
                 const userId = stringToUuid(req.body.userId ?? "user");
+                const payload: Payload = req.body.payload; // in order for actions to pull in preset params
 
                 let runtime = this.agents.get(agentId);
 
@@ -232,6 +237,7 @@ export class OrbClient {
                 const state = (await runtime.composeState(userMessage, {
                     agentName: runtime.character.name,
                 })) as State;
+                state.payload = payload;
 
                 const context = composeContext({
                     state,
@@ -824,6 +830,7 @@ export const OrbClientInterface: Client = {
         const serverPort = parseInt(settings.SERVER_PORT || "3001");
         runtime.registerAction(createPostAction);
         runtime.registerAction(searchTokenAction);
+        runtime.registerAction(tokenAnalysisPlugin.actions[0]); // tokenScoreAction
         client.registerAgent(runtime);
         client.start(serverPort);
         return client;

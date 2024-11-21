@@ -11,6 +11,7 @@ import {
 } from "@ai16z/eliza/src/types.ts";
 import { TokenProvider } from "../providers/token.ts";
 import { ClientBase } from "@ai16z/client-twitter/src/base.ts";
+import { getClient } from "../services/mongo.ts";
 
 const messageTemplate = `Respond with a JSON markdown block containing only the extracted values. Use null for any values that cannot be determined.
 
@@ -67,7 +68,7 @@ You are an expert crypto and memecoin trader. You know how to combine charting s
 
 Given the social and technical reports assign the token a TokenScore rating. Note that there may be missing data for certain metrics since this reporting is still in development. Disregard this and make your analysis solely on the data present.
 For the technical report the most important things are signs of momentum in increasing price, higher highs higher lows, increasing volume, that kind of thing.
-For the social data an active community is one of the most important signals. 
+For the social data an active community is one of the most important signals.
 
 Beyond these things interpret the data as you see fit.
 
@@ -169,18 +170,26 @@ export const scoreToken: Action = {
             state = await runtime.updateRecentMessageState(state);
         }
 
-        const messageContext = composeContext({
-            state,
-            template: messageTemplate,
-        });
+        let response;
+        // @ts-ignore
+        if (state.payload && state.payload.action === "SCORE_TOKEN") {
+            const { data } = state.payload as { data: any };
+            response = data;
+        } else {
+            const messageContext = composeContext({
+                state,
+                template: messageTemplate,
+            });
 
-        const response = await generateObject({
-            runtime,
-            context: messageContext,
-            modelClass: ModelClass.LARGE,
-        });
+            response = await generateObject({
+                runtime,
+                context: messageContext,
+                modelClass: ModelClass.LARGE,
+            });
+        }
 
-        console.log("Response:", response);
+        console.log("response:", response);
+
         const { ticker, inputTokenAddress, chain } = response;
 
         const [socialResult, technicalResult] = await Promise.all([
@@ -216,6 +225,29 @@ export const scoreToken: Action = {
             ""
         ) as keyof typeof TokenScore;
         const score = TokenScore[scoreString] as number;
+
+        // todo: score non-neutral to the db, using ticker as the uniq id
+        if (score != 2) {
+            const { tickers } = await getClient();
+            try {
+                await tickers.insertOne({
+                    ticker,
+                    inputTokenAddress,
+                    chain,
+                    score,
+                    userId: message.userId,
+                    createdAt: Math.floor(Date.now() / 1000),
+                });
+            } catch (error) {
+                console.log(error);
+            }
+        }
+
+        callback({
+            text: ratingResponse.reason,
+            attachments: []
+        });
+
         return { score, scoreString, reason: ratingResponse.reason };
     },
     examples: [
