@@ -456,7 +456,7 @@ export class TokenProvider {
             let cursor: string | undefined;
             const limit = 100; // Number of records per page
             let totalFetched = 0;
-            const MAX_HOLDERS = 2500;
+            const MAX_HOLDERS = 1000;
 
             do {
                 console.log(
@@ -547,7 +547,7 @@ export class TokenProvider {
 
         const allHoldersMap = new Map<string, number>();
         let page = 1;
-        const limit = 1000;
+        const limit = 1500;
         let cursor;
         //HELIOUS_API_KEY needs to be added
         const url = `https://mainnet.helius-rpc.com/?api-key=${settings.HELIUS_API_KEY || ""}`;
