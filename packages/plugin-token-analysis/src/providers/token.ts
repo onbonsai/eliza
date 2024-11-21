@@ -456,7 +456,7 @@ export class TokenProvider {
             let cursor: string | undefined;
             const limit = 100; // Number of records per page
             let totalFetched = 0;
-            const MAX_HOLDERS = 1000;
+            const MAX_HOLDERS = 2500;
 
             do {
                 console.log(
@@ -839,9 +839,10 @@ export class TokenProvider {
         if (data.highValueHolders.length === 0) {
             output += `- No high-value holders found or data not available.\n`;
         } else {
-            data.highValueHolders.forEach((holder) => {
-                output += `- ${holder.holderAddress}: $${holder.balanceUsd}\n`;
-            });
+            // data.highValueHolders.forEach((holder) => {
+            //     output += `- ${holder.holderAddress}: $${holder.balanceUsd}\n`;
+            // });
+            output += `- There are at least ${data.highValueHolders.length} high value holders.\n`;
         }
         output += `\n`;
 
