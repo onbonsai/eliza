@@ -25,8 +25,6 @@ const createPostAction = {
   ) => {
     elizaLogger.log("Composing state for message:", message);
     state = (await runtime.composeState(message)) as State;
-    const userId = runtime.agentId;
-    elizaLogger.log("User ID:", userId);
 
     const response = (await runtime.messageManager.getMemories({
         roomId: message.roomId,

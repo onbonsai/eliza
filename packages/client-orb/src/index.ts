@@ -46,6 +46,7 @@ import createPostAction from "./actions/createPost.ts";
 import searchTokenAction from "./actions/searchToken.ts";
 import { tokenAnalysisPlugin } from "@ai16z/plugin-token-analysis/src/index.ts";
 import { ClientBase } from "@ai16z/client-twitter/src/base.ts";
+import { DEFAULT_NETWORK_EXPLORER_URL } from "./services/codex.ts";
 const upload = multer({ storage: multer.memoryStorage() });
 
 export const messageHandlerTemplate =
@@ -238,7 +239,10 @@ export class OrbClient {
                 const state = (await runtime.composeState(userMessage, {
                     agentName: runtime.character.name,
                 })) as State;
-                state.payload = payload;
+                state.payload = {
+                    ...payload,
+                    userId: req.body.userId,
+                };
 
                 const context = composeContext({
                     state,
@@ -806,6 +810,48 @@ export class OrbClient {
 
                 res.status(200).json({
                     wallets: { polygon: polygon.getId(), base: base.getId() },
+                });
+            }
+        );
+
+        // get agent actions
+        this.app.get(
+            "/:agentId/actions",
+            async (req: express.Request, res: express.Response) => {
+                const { agentId, page } = req.params;
+                if (!agentId) {
+                    res.status(400).send();
+                    return;
+                }
+
+                let actions = [];
+                const { tickers } = await getClient();
+                actions = await tickers
+                    .find({ agentId })
+                    .sort({ createdAt: -1 })
+                    .limit(51)
+                    .skip(parseInt(page) * 50)
+                    .toArray();
+
+                const hasMore = actions.length > 50;
+                if (hasMore) {
+                    actions.pop();
+                }
+                actions = actions.map((ticker) => ({
+                    type: "ticker",
+                    createdAt: ticker.createdAt,
+                    user: ticker.userId,
+                    data: {
+                        ticker: ticker.ticker,
+                        chain: ticker.chain,
+                        score: ticker.score,
+                        url: `${DEFAULT_NETWORK_EXPLORER_URL}/token/${ticker.inputTokenAddress}`,
+                    },
+                }));
+
+                res.status(200).json({
+                    actions,
+                    hasMore,
                 });
             }
         );

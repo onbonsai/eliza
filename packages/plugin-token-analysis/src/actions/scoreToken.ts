@@ -226,7 +226,7 @@ export const scoreToken: Action = {
         ) as keyof typeof TokenScore;
         const score = TokenScore[scoreString] as number;
 
-        // score non-neutral to the db, using ticker as the uniq id
+        // score non-neutral to the db - using ticker, userAddress as the uniq id
         if (score != 2) {
             const { tickers } = await getClient();
             try {
@@ -235,11 +235,15 @@ export const scoreToken: Action = {
                     inputTokenAddress,
                     chain,
                     score,
-                    userId: message.userId,
+                    // @ts-ignore
+                    userId: state.payload.userId,
+                    agentId: message.agentId,
                     createdAt: Math.floor(Date.now() / 1000),
                 });
             } catch (error) {
-                console.log(error);
+                if (!error.message.includes("duplicate key error collection: moonshot.tickers")) {
+                    console.log(error);
+                }
             }
         }
 
