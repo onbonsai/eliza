@@ -1,14 +1,19 @@
 import { MongoClient } from 'mongodb';
 
 let client: MongoClient;
+let connecting: Promise<MongoClient> | null = null;
 
 const _client = async () => {
-  if (client) return client;
+    if (client) return client;
+    if (connecting) return connecting;
 
-  client = new MongoClient(process.env.MONGO_URI!);
-  await client.connect();
+    connecting = (async () => {
+        client = new MongoClient(process.env.MONGO_URI!);
+        await client.connect();
+        return client;
+    })();
 
-  return client;
+    return connecting;
 };
 
 export const getClient = async () => {
