@@ -75,7 +75,7 @@ Note that {{agentName}} is capable of reading/seeing/hearing various forms of me
 {{actions}}
 
 # Instructions: Write a response to the most recent message as {{agentName}}. Ignore "action". Don't say anything similar to a previous conversation message, make each thought fresh and unique. avoid posting platitudes.
-NO EMOJIS. don't take yourself to seriously. don't say 'ah' or 'oh'.
+NO EMOJIS. don't take yourself to seriously, don't say 'ah' or 'oh', no questions, be brief and concise.
 ` + messageCompletionFooter;
 
 export interface Payload {
