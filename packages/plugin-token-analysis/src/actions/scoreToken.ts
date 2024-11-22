@@ -188,8 +188,8 @@ export const scoreToken: Action = {
         console.log("response:", response);
 
         let { ticker, inputTokenAddress, chain } = response;
-        ticker = ticker.toLowerCase();
-        chain = chain.toLowerCase();
+        ticker = ticker?.toLowerCase();
+        chain = chain?.toLowerCase();
 
         const [socialResult, technicalResult] = await Promise.all([
             ticker
