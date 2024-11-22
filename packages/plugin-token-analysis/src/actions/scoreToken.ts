@@ -53,7 +53,7 @@ const ratingTemplate = `Respond with a JSON markdown block containing only the e
 Example response:
 \`\`\`json
 {
-    "rating": TokenScore.STRONG_BUY,
+    "rating": "STRONG_BUY",
     "reason": "This token is a strong buy because..."
 }
 \`\`\`
@@ -72,19 +72,12 @@ For the social data an active community is one of the most important signals.
 
 Beyond these things interpret the data as you see fit.
 
-Token Score is an enum defined as:
-enum TokenScore {
-    STRONG_SELL,
-    SELL,
-    NEUTRAL,
-    BUY,
-    STRONG_BUY,
-}
+Token Score should be one of the following: "STRONG_SELL", "SELL", "NEUTRAL", "BUY", "STRONG_BUY"
 
 Include your reasoning also. Respond with a JSON markdown block containing only the extracted values. The result should be a valid JSON object with the following schema:
 \`\`\`json
 {
-    "rating": TokenScore,
+    "rating": string,
     "reason": string
 }
 \`\`\`
@@ -107,7 +100,7 @@ const socialAnalysis = async (
 ): Promise<string> => {
     const client = new ClientBase({ runtime }, true);
     // Ensure ticker starts with $ for Twitter search
-    if (!ticker.startsWith('$')) {
+    if (!ticker.startsWith("$")) {
         ticker = `$${ticker}`;
     }
     const { tweets } = await client.searchWithDelay(ticker);
@@ -248,7 +241,11 @@ export const scoreToken: Action = {
                     createdAt: Math.floor(Date.now() / 1000),
                 });
             } catch (error) {
-                if (!error.message.includes("duplicate key error collection: moonshot.tickers")) {
+                if (
+                    !error.message.includes(
+                        "duplicate key error collection: moonshot.tickers"
+                    )
+                ) {
                     console.log(error);
                 }
             }

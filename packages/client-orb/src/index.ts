@@ -47,6 +47,7 @@ import searchTokenAction from "./actions/searchToken.ts";
 import { tokenAnalysisPlugin } from "@ai16z/plugin-token-analysis/src/index.ts";
 import { ClientBase } from "@ai16z/client-twitter/src/base.ts";
 import { DEFAULT_NETWORK_EXPLORER_URL } from "./services/codex.ts";
+import { fetchFeed } from "./services/lens/fetchFeed.ts";
 const upload = multer({ storage: multer.memoryStorage() });
 
 export const messageHandlerTemplate =
@@ -73,9 +74,8 @@ Note that {{agentName}} is capable of reading/seeing/hearing various forms of me
 
 {{actions}}
 
-# Instructions: Write a response to the most recent message as {{agentName}}. Ignore "action".
-Don't say anything similar to a previous conversation message, make each thought fresh and unique. avoid posting platitudes. Post as if you're just firing thoughts off as you go about your day.
-NO EMOJIS. don't take yourself to seriously. NO EMOJIS.
+# Instructions: Write a response to the most recent message as {{agentName}}. Ignore "action". Don't say anything similar to a previous conversation message, make each thought fresh and unique. avoid posting platitudes.
+NO EMOJIS. don't take yourself to seriously, don't say 'ah' or 'oh', no questions, be brief and concise.
 ` + messageCompletionFooter;
 
 export interface Payload {
@@ -361,8 +361,16 @@ export class OrbClient {
                     "direct"
                 );
 
+                const wallets = await getWallets(agentId, true);
+                if (!wallets?.polygon) {
+                    res.status(404).send("Polygon wallet not found");
+                    return;
+                }
+
+                // get post prompt
                 let text = req.body.text || getRandomPrompt();
-                if (Math.random() < 0.66) {
+                const randomNumber = Math.random();
+                if (randomNumber < 0.6) {
                     const twitterSearchClient = new ClientBase(
                         { runtime },
                         true
@@ -376,13 +384,17 @@ export class OrbClient {
                         .join("\n");
 
                     // Add timeline context to prompt text
-                    text = `Recent tweets from the timeline:\n${timelineText}\n\n Make a tweet of your own that's relevant to and contributing to the discourse.`;
-                }
-
-                const wallets = await getWallets(agentId, true);
-                if (!wallets?.polygon) {
-                    res.status(404).send("Polygon wallet not found");
-                    return;
+                    text = `Here are some recent tweets from your timeline:\n${timelineText}\n\n Make a tweet of your own that's relevant to and contributing to the discourse.`;
+                } else if (randomNumber < 0.8) {
+                    const homeTimeline = await fetchFeed(
+                        wallets.polygon,
+                        wallets.profile.id
+                    );
+                    // Format timeline into string of tweets and authors
+                    const timelineText = homeTimeline
+                        .map((post) => `${post.author}: ${post.content}`)
+                        .join("\n");
+                    text = `Here are some recent posts from your Lens timeline:\n${timelineText}\n\n Write a post of your own that's directly relevant to something that someone else is saying. Try to write something totally different than previous messages you've sent.`;
                 }
 
                 const messageId = stringToUuid(Date.now().toString());
@@ -421,7 +433,6 @@ export class OrbClient {
                     template: messageHandlerTemplate,
                 });
 
-                // TODO: writes a new post, not responding to message
                 const response = await generateMessageResponse({
                     runtime: runtime,
                     context,
