@@ -11,8 +11,9 @@ import {
 } from "@ai16z/eliza/src/types.ts";
 import {
     searchTokens,
-    DEFAULT_NETWORK_EXPLORER_URL,
-    TOKEN_ID_TO_NAME,
+    NETWORK_ID_TO_NAME,
+    NETWORK_NAME_TO_EXPLORER_URL,
+    DEXSCREENER_URL,
 } from "../services/codex.ts";
 
 export const tokenSummaryTemplate = `# Structured token information
@@ -64,7 +65,7 @@ const searchTokenAction = {
             if (tokens.length === 1) {
                 const token = tokens[0];
                 token.token.networkName =
-                    TOKEN_ID_TO_NAME[token.token.networkId];
+                    NETWORK_ID_TO_NAME[token.token.networkId];
                 state.tokenInfo = JSON.stringify(token);
                 const context = composeContext({
                     state,
@@ -100,7 +101,13 @@ const searchTokenAction = {
                     {
                         button: {
                             label: `${token.token.name} ($${token.token.symbol})`,
-                            url: `${DEFAULT_NETWORK_EXPLORER_URL}/token/${token.token.address}`,
+                            url: `${DEXSCREENER_URL}/${token.token.networkName.toLowerCase()}/${token.token.address}`,
+                        },
+                    },
+                    {
+                        button: {
+                            label: `${token.token.name} ($${token.token.symbol})`,
+                            url: `${NETWORK_NAME_TO_EXPLORER_URL[token.token.networkName.toLowerCase()]}/token/${token.token.address}`,
                         },
                     },
                 ];
@@ -114,7 +121,7 @@ const searchTokenAction = {
                 attachments = tokens.map(({ token }) => ({
                     button: {
                         label: `${token.name} ($${token.symbol})`,
-                        text: `Find the token with ticker ${token.symbol} and contract address ${token.address} on chain ${TOKEN_ID_TO_NAME[token.networkId]}`
+                        text: `Find the token with ticker ${token.symbol} and contract address ${token.address} on chain ${NETWORK_ID_TO_NAME[token.networkId]}`
                     },
                 }));
             } else {

@@ -46,7 +46,7 @@ import createPostAction from "./actions/createPost.ts";
 import searchTokenAction from "./actions/searchToken.ts";
 import { tokenAnalysisPlugin } from "@ai16z/plugin-token-analysis/src/index.ts";
 import { ClientBase } from "@ai16z/client-twitter/src/base.ts";
-import { DEFAULT_NETWORK_EXPLORER_URL } from "./services/codex.ts";
+import { DEXSCREENER_URL } from "./services/codex.ts";
 import { fetchFeed } from "./services/lens/fetchFeed.ts";
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -856,7 +856,7 @@ export class OrbClient {
                         ticker: ticker.ticker,
                         chain: ticker.chain,
                         score: ticker.score,
-                        url: `${DEFAULT_NETWORK_EXPLORER_URL}/token/${ticker.inputTokenAddress}`,
+                        url: `${DEXSCREENER_URL}/${ticker.chain}/${ticker.inputTokenAddress}`,
                         imageURL: ticker.imageURL,
                     },
                 }));
