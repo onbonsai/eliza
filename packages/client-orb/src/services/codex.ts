@@ -21,7 +21,7 @@ export const NETWORK_NAME_TO_EXPLORER_URL = {
     ethereum: "https://etherscan.io",
     solana: "https://solscan.io",
 };
-export const DEXSCREENER_URL = "https://dexscreener.com";
+export const DEXSCREENER_URL = "https://dexscreener.com"
 
 const HARDCODED_TOKENS_PER_CHAIN = {
     8453: [BONSAI_TOKEN_ADDRESS_BASE.toLowerCase()],
