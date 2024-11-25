@@ -464,7 +464,7 @@ export class OrbClient {
                 /* generate an image */
                 let imageUrl;
                 let videoUrl;
-                if (Math.random() < 0.15) {
+                if (Math.random() < 1.15) {
                     const imagePrompt = `Generate an image to accompany this post: ${responseMessage.content.text}`;
                     const imageResponse = await generateImage(
                         { prompt: imagePrompt, width: 1024, height: 1024 },
