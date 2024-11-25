@@ -6,6 +6,7 @@ import { getEventFromReceipt, getPublicClient } from "../../utils/viem.ts";
 import { LENS_HUB_PROXY } from "../../utils/constants.ts";
 import EventsEbi from "./abi/Events.ts";
 import { bToHexString } from "../../utils/utils.ts";
+import { polygon } from "viem/chains";
 
 const PERMISSIONLESS_CREATOR_ADDRESS = "0x0b5e6100243f793e480DE6088dE6bA70aA9f3872";
 
@@ -32,7 +33,7 @@ export const mintProfile = async (wallet: Wallet, handle: string) => {
   await contractInvocation.wait();
   const hash = contractInvocation.getTransactionHash();
   console.log(`tx: ${hash}`);
-  const transactionReceipt = await getPublicClient("polygon").waitForTransactionReceipt({
+  const transactionReceipt = await getPublicClient(polygon).waitForTransactionReceipt({
     hash: hash! as `0x${string}`,
   });
 

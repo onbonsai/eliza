@@ -1,5 +1,5 @@
 import { Coinbase, Wallet } from "@coinbase/coinbase-sdk";
-import { erc20Abi, maxUint256 } from "viem";
+import { Chain, erc20Abi, maxUint256 } from "viem";
 import { decrypt, encrypt } from "../utils/crypto.ts";
 import { getClient } from "./mongo.ts";
 import { getPublicClient } from "../utils/viem.ts";
@@ -21,7 +21,7 @@ export const getWallets = async (agentId: string, create = false): Promise<{ bas
   try {
     if (!walletData && create) {
       const [base, polygon] = await Promise.all([
-        Wallet.create({ networkId: Coinbase.networks.BaseSepolia }),
+        Wallet.create({ networkId: Coinbase.networks.BaseMainnet }), // TODO: was `BaseSepolia` before, need to confirm its compatible
         Wallet.create({ networkId: Coinbase.networks.PolygonMainnet })
       ]);
 
@@ -57,7 +57,7 @@ export const approveToken = async (
   wallet: Wallet,
   user: `0x${string}`,
   spender: `0x${string}`,
-  chain: string = "polygon"
+  chain: Chain
 ) => {
   const client = getPublicClient(chain);
   const allowance = await client.readContract({

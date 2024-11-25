@@ -11,8 +11,10 @@ import {
     Account,
     encodeAbiParameters,
     parseAbiParameters,
+    Chain,
 } from "viem";
 import { base, polygon, zksync } from "viem/chains";
+import { CHAIN_TO_RPC } from "./constants";
 
 interface GetEventFromReceiptProps {
   transactionReceipt: TransactionReceipt,
@@ -50,15 +52,11 @@ export const getEventFromReceipt = ({
     .find((event: { eventName: string, args: any}) => event.eventName === eventName);
 };
 
-export const getPublicClient = (chain: string) => {
-  if (chain === "polygon") {
-    return createPublicClient({
-      chain: polygon,
-      transport: http(process.env.POLYGON_RPC_URL!),
-    });
-  } else {
-    throw new Error("invalid chain");
-  }
+export const getPublicClient = (chain: Chain) => {
+  return createPublicClient({
+      chain,
+      transport: http(CHAIN_TO_RPC[chain.id]),
+  });
 }
 
 export const approveToken = async (
@@ -66,7 +64,7 @@ export const approveToken = async (
   walletClient: WalletClient,
   account: Account,
   operator: `0x${string}`,
-  chain: string = "polygon"
+  chain: Chain
 ) => {
   const [user] = await walletClient.getAddresses();
   const client = getPublicClient(chain);

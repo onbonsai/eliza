@@ -5,6 +5,7 @@ import { LensClient, production } from "@lens-protocol/client";
 import OrbAttestationAbi from "./abi/OrbAttestation.ts";
 import { BONSAI_TOKEN_ADDRESS_POLYGON } from "../../utils/constants.ts";
 import { approveToken } from "../coinbase.ts";
+import { polygon } from "viem/chains";
 
 const ORB_API_URL = "https://us-central1-stellar-verve-314311.cloudfunctions.net/ORBV2-BOT-tipping";
 const ORB_ATTESTATION_CONTRACT_ADDRESS = "0xa8208529573e32b0aec07565fa8bc3cd01115449"; // polygon
@@ -64,7 +65,7 @@ export const tipPublication = async (wallet: Wallet, profileId: string, publicat
     wallet,
     address.getId() as `0x${string}`,
     ORB_ATTESTATION_CONTRACT_ADDRESS,
-    "polygon"
+    polygon
   );
 
   console.log("sending transfer tx");

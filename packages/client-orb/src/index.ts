@@ -626,75 +626,83 @@ export class OrbClient {
                     return;
                 }
 
-                try {
-                    // process content from the publication, perform the resulting action
-                    const content = params.lens.content;
-                    const imageURL = params.lens.image?.item
-                        ? getLensImageURL(params.lens.image?.item)
-                        : undefined;
-                    const { rating, comment } =
-                        await contentJudgementService.judgeContent({
-                            text: content,
-                            imageUrl: imageURL,
-                        });
+                // if the agent was tagged, process as an action
+                if (new RegExp(`@${agent.handle}`).test(params.lens.content)) {
+                    // TODO: process actions the way we do in /message
 
-                    console.log("RESULT");
-                    console.log(JSON.stringify({ rating, comment }, null, 2));
+                } else {
+                    try {
+                        // process content from the publication, perform the resulting action
+                        const content = params.lens.content;
+                        const imageURL = params.lens.image?.item
+                            ? getLensImageURL(params.lens.image?.item)
+                            : undefined;
+                        const { rating, comment } =
+                            await contentJudgementService.judgeContent({
+                                text: content,
+                                imageUrl: imageURL,
+                            });
 
-                    if (rating >= 5) {
-                        // TODO: send sticker reaction from bonsai energy
-                    }
-
-                    if (rating >= 6 && rating < 8) {
-                        await createPost(
-                            wallets?.polygon,
-                            wallets?.profile?.id,
-                            wallets?.profile?.handle,
-                            comment,
-                            undefined,
-                            undefined,
-                            params.publication_id
+                        console.log("RESULT");
+                        console.log(
+                            JSON.stringify({ rating, comment }, null, 2)
                         );
-                    }
 
-                    // tip with the reply
-                    if (rating >= 8) {
-                        const tipAmount = await handleUserTips(
-                            tips,
-                            rating,
-                            agent.agentId,
-                            params.profile_id
-                        );
-                        if (tipAmount > 0) {
-                            await updatePointsWithProfileId(
-                                params.profile_id,
-                                "tip",
-                                tipAmount
-                            );
-                            await tipPublication(
-                                wallets?.polygon,
-                                wallets?.profile?.id,
-                                params.publication_id,
-                                tipAmount,
-                                comment
-                            );
-                        } else {
-                            const reply = `${comment}. I'd tip you, but you exceeded your daily limit.`;
+                        if (rating >= 5) {
+                            // TODO: send sticker reaction from bonsai energy
+                        }
+
+                        if (rating >= 6 && rating < 8) {
                             await createPost(
                                 wallets?.polygon,
                                 wallets?.profile?.id,
                                 wallets?.profile?.handle,
-                                reply,
+                                comment,
                                 undefined,
                                 undefined,
                                 params.publication_id
                             );
                         }
+
+                        // tip with the reply
+                        if (rating >= 8) {
+                            const tipAmount = await handleUserTips(
+                                tips,
+                                rating,
+                                agent.agentId,
+                                params.profile_id
+                            );
+                            if (tipAmount > 0) {
+                                await updatePointsWithProfileId(
+                                    params.profile_id,
+                                    "tip",
+                                    tipAmount
+                                );
+                                await tipPublication(
+                                    wallets?.polygon,
+                                    wallets?.profile?.id,
+                                    params.publication_id,
+                                    tipAmount,
+                                    comment
+                                );
+                            } else {
+                                const reply = `${comment}. I'd tip you, but you exceeded your daily limit.`;
+                                await createPost(
+                                    wallets?.polygon,
+                                    wallets?.profile?.id,
+                                    wallets?.profile?.handle,
+                                    reply,
+                                    undefined,
+                                    undefined,
+                                    params.publication_id
+                                );
+                            }
+                        }
+                        res.status(200).json({ rating, comment });
+                    } catch (error) {
+                        console.log(error);
+                        res.status(400).send(error);
                     }
-                    res.status(200).json({ rating, comment });
-                } catch (error) {
-                    console.log(error);
-                    res.status(400).send(error);
                 }
             }
         );

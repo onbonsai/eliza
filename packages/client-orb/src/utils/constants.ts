@@ -14,7 +14,7 @@ export const BONSAI_TOKEN_ADDRESS_ZKSYNC =
 export const CHAIN_TO_RPC = {
     [base.id]: process.env.NEXT_PUBLIC_BASE_RPC,
     [zksync.id]: process.env.NEXT_PUBLIC_ZKSYNC_RPC,
-    [polygon.id]: process.env.NEXT_PUBLIC_POLYGON_RPC,
+    [polygon.id]: process.env.POLYGON_RPC_URL,
 };
 
 export const CHAIN_TO_BONSAI = {
