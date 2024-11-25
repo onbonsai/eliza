@@ -97,7 +97,7 @@ export enum TokenScore {
 const socialAnalysis = async (
     runtime: IAgentRuntime,
     ticker: string
-): Promise<string> => {
+): Promise<{ socialReport: string; tweets: any[] }> => {
     const client = new ClientBase({ runtime }, true);
     // Ensure ticker starts with $ for Twitter search
     if (!ticker.startsWith("$")) {
@@ -127,7 +127,10 @@ const socialAnalysis = async (
         report += `Engagement: ${engagement.likes} likes, ${engagement.retweets} RTs, ${engagement.replies} replies, ${engagement.views} views\n`;
     }
 
-    return tweets?.length > 0 ? report : "No relevant tweets found";
+    return {
+        socialReport: tweets?.length > 0 ? report : "No relevant tweets found",
+        tweets,
+    };
 };
 
 // TECHNICAL ANALYSIS
@@ -159,7 +162,12 @@ export const scoreToken: Action = {
         state: State,
         _options: { [key: string]: unknown },
         callback?: HandlerCallback
-    ): Promise<{ score: TokenScore; scoreString: string; reason: string }> => {
+    ): Promise<{
+        score: TokenScore;
+        scoreString: string;
+        reason: string;
+        tweets: any[];
+    }> => {
         // composeState
         if (!state) {
             state = (await runtime.composeState(message)) as State;
@@ -194,7 +202,10 @@ export const scoreToken: Action = {
         const [socialResult, technicalResult] = await Promise.all([
             ticker
                 ? socialAnalysis(runtime, ticker)
-                : Promise.resolve("No ticker - skipping social analysis"),
+                : Promise.resolve({
+                      socialReport: "No ticker - skipping social analysis",
+                      tweets: [],
+                  }),
             inputTokenAddress && chain
                 ? (async () => {
                       const tokenProvider = new TokenProvider(
@@ -210,7 +221,7 @@ export const scoreToken: Action = {
 
         // prompt LLM to read the results and return a TokenScore
         const context = ratingTemplate
-            .replace("{{socialResult}}", socialResult)
+            .replace("{{socialResult}}", socialResult.socialReport)
             .replace("{{technicalResult}}", technicalResult);
         const ratingResponse = await generateObject({
             runtime,
@@ -256,7 +267,12 @@ export const scoreToken: Action = {
             attachments: [],
         });
 
-        return { score, scoreString, reason: ratingResponse.reason };
+        return {
+            score,
+            scoreString,
+            reason: ratingResponse.reason,
+            tweets: socialResult.tweets,
+        };
     },
     examples: [
         [
