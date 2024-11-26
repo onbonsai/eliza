@@ -86,7 +86,7 @@ const searchTokenAction = {
                     {
                         button: {
                             label: `Rate $${token.token.symbol}`,
-                            text: `Rate $${token.token.symbol} on ${token.token.networkName} (CA: ${token.token.address})`,
+                            text: `Rate/Score $${token.token.symbol} on ${token.token.networkName} (CA: ${token.token.address})`,
                             payload: {
                                 action: "SCORE_TOKEN",
                                 data: {
@@ -125,7 +125,7 @@ const searchTokenAction = {
                     },
                 }));
             } else {
-                text = `Found 0 tokens, are you sure you have the right ticker? If it has a low market cap, I won't know about it.`;
+                text = `Found 0 tokens, are you sure you have the right ticker? If it has a low market cap or is not on Base, Solana, or Ethereum - I won't know about it.`;
             }
 
             callback({

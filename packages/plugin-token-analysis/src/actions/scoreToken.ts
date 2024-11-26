@@ -262,9 +262,17 @@ export const scoreToken: Action = {
             }
         }
 
+        const attachments = socialResult.tweets.map(({ id, username }) => ({
+            button: {
+                label: `Post by @${username}`,
+                url: `https://x.com/${username}/status/${id}`,
+            },
+        }));
+
         callback?.({
             text: ratingResponse.reason,
-            attachments: [],
+            // @ts-expect-error attachments
+            attachments,
         });
 
         return {
