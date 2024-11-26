@@ -21,7 +21,7 @@ export const getWallets = async (agentId: string, create = false): Promise<{ bas
   try {
     if (!walletData && create) {
       const [base, polygon] = await Promise.all([
-        Wallet.create({ networkId: Coinbase.networks.BaseSepolia }),
+        Wallet.create({ networkId: Coinbase.networks.BaseMainnet }),
         Wallet.create({ networkId: Coinbase.networks.PolygonMainnet })
       ]);
 
@@ -34,8 +34,8 @@ export const getWallets = async (agentId: string, create = false): Promise<{ bas
       });
     } else if (walletData) {
       const [base, polygon] = await Promise.all([
-        Wallet.import(JSON.parse(decrypt(walletData.wallets.base))),
-        Wallet.import(JSON.parse(decrypt(walletData.wallets.polygon)))
+          Wallet.import(JSON.parse(decrypt(walletData.wallets.base))),
+          Wallet.import(JSON.parse(decrypt(walletData.wallets.polygon))),
       ]);
 
       wallets = {
