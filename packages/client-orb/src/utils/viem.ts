@@ -14,7 +14,7 @@ import {
     Chain,
 } from "viem";
 import { base, polygon, zksync } from "viem/chains";
-import { CHAIN_TO_RPC } from "./constants";
+import { CHAIN_TO_RPC } from "./constants.ts";
 
 interface GetEventFromReceiptProps {
   transactionReceipt: TransactionReceipt,
@@ -82,7 +82,7 @@ export const approveToken = async (
       abi: erc20Abi,
       functionName: "approve",
       args: [operator, maxUint256],
-      chain: chain === "polygon" ? polygon : (chain === "base" ? base : zksync),
+      chain: chain.name === "polygon" ? polygon : (chain.name === "base" ? base : zksync),
     });
     console.log(`hash: ${hash}`)
     await client.waitForTransactionReceipt({ hash });
