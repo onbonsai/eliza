@@ -22,6 +22,7 @@ import {
     State,
     Client,
     IAgentRuntime,
+    UUID,
 } from "@ai16z/eliza/src/types.ts";
 import { stringToUuid } from "@ai16z/eliza/src/uuid.ts";
 import settings from "@ai16z/eliza/src/settings.ts";
@@ -361,7 +362,7 @@ export class OrbClient {
                     "direct"
                 );
 
-                const wallets = await getWallets(agentId, true);
+                const wallets = await getWallets(agentId);
                 if (!wallets?.polygon) {
                     res.status(404).send("Polygon wallet not found");
                     return;
@@ -704,6 +705,122 @@ export class OrbClient {
                         res.status(400).send(error);
                     }
                 }
+            }
+        );
+
+        // webhook endpoint to process a post from bonsai club
+        this.app.post(
+            "/orb/webhook/jam-message",
+            async (req: express.Request, res: express.Response) => {
+                // TODO: authorization
+                const { message } = req.body;
+                const userId = message.user.id;
+                let roomId = "65e6dec26d85271723b6357c"; // orb.club/c/bonsai
+                const id = `${roomId}/${userId}-${message.created_at}`;
+                if (userId == "0x088d93") {
+                    res.status(500).send("no reply to self");
+                    return;
+                }
+                if (this.responded[id]) {
+                    res.status(200).send("already responded");
+                    return;
+                }
+                this.responded[id] = true;
+                const { collection } = await getClient();
+                const agent = await collection.findOne({
+                    clubId: roomId,
+                });
+                if (!agent) {
+                    res.status(404).send();
+                    return;
+                }
+
+                roomId = stringToUuid(roomId);
+
+                const wallets = await getWallets(agent.agentId, false);
+                console.log(JSON.stringify(wallets,null,2));
+                if (!wallets?.polygon) {
+                    res.status(404).send("Polygon wallet not found");
+                    return;
+                }
+
+                let runtime = this.agents.get(agent.agentId);
+
+                // if runtime is null, look for runtime with the same name
+                if (!runtime) {
+                    runtime = Array.from(this.agents.values()).find(
+                        (a) =>
+                            a.character.name.toLowerCase() ===
+                            agent.agentId.toLowerCase()
+                    );
+                }
+
+                if (!runtime) {
+                    res.status(404).send("Agent not found");
+                    return;
+                }
+
+                await runtime.ensureConnection(
+                    userId,
+                    roomId as UUID,
+                    req.body.userName,
+                    req.body.name,
+                    "direct"
+                );
+
+                const homeTimeline = await fetchFeed(
+                    wallets.polygon,
+                    wallets.profile.id
+                );
+                // Format timeline into string of tweets and authors
+                const timelineText = homeTimeline
+                    .map((post) => `${post.author}: ${post.content}`)
+                    .join("\n");
+                const text = `Here are some recent posts from your Lens timeline:\n${timelineText}\n\n Write a response to this message ${message.text} from ${message.user.name} of your own that could be relevant to something that someone else is saying. Try to write a direct response to this message, with our without knowing about your lens timeline.`;
+                const messageId = stringToUuid(Date.now().toString());
+
+                const content: Content = {
+                    text,
+                    attachments: [],
+                    source: "direct",
+                    inReplyTo: undefined,
+                };
+
+                const userMessage = {
+                    content,
+                    userId,
+                    roomId: roomId as UUID,
+                    agentId: runtime.agentId,
+                };
+
+                const memory: Memory = {
+                    id: messageId,
+                    agentId: runtime.agentId,
+                    userId,
+                    roomId: roomId as UUID,
+                    content,
+                    createdAt: Date.now(),
+                };
+
+                await runtime.messageManager.createMemory(memory);
+
+                const state = (await runtime.composeState(userMessage, {
+                    agentName: runtime.character.name,
+                })) as State;
+
+                const context = composeContext({
+                    state,
+                    template: messageHandlerTemplate,
+                });
+
+                const response = await generateMessageResponse({
+                    runtime: runtime,
+                    context,
+                    modelClass: ModelClass.SMALL,
+                });
+
+                // TODO: send response to orb api
+                res.status(200).send(response.text);
             }
         );
 
