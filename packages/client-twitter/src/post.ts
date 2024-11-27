@@ -27,10 +27,10 @@ Your response should not contain any questions. Brief, concise statements only. 
 export class TwitterPostClient extends ClientBase {
     onReady() {
         const generateNewTweetLoop = () => {
-            this.generateNewTweet();
+            // this.generateNewTweet();
             setTimeout(
                 generateNewTweetLoop,
-                (Math.floor(Math.random() * (8 - 4 + 1)) + 4) * 60 * 60 * 1000
+                (Math.floor(Math.random() * (7)) + 1) * 60 * 60 * 1000
             ); // Random interval between 4-8 hours
         };
         // setTimeout(() => {
