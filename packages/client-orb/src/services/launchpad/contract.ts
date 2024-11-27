@@ -559,7 +559,6 @@ export const registerClub = async (
         });
     }
 
-    // TODO: sage comments on params.pubId with a link (https://launch.bonsai.meme/token/${clubId})
     return { objectId, clubId };
 };
 

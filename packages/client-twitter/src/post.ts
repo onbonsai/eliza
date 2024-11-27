@@ -31,7 +31,7 @@ export class TwitterPostClient extends ClientBase {
             setTimeout(
                 generateNewTweetLoop,
                 (Math.floor(Math.random() * (7)) + 1) * 60 * 60 * 1000
-            ); // Random interval between 4-8 hours
+            ); // Random interval between 1-8 hours
         };
         // setTimeout(() => {
         generateNewTweetLoop();
