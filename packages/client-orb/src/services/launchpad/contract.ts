@@ -502,8 +502,8 @@ type RegistrationParams = {
     tokenDescription: string;
     tokenImage: string;
     initialSupply: string;
-    curveType: number; // default to 1
-    strategy: string; // default to "lens"
+    curveType?: number; // default to 1
+    strategy?: string; // default to "lens"
     featureStartAt?: number; // if the caller has a bonsai nft, Date.now()
 };
 export const registerClub = async (
@@ -523,7 +523,7 @@ export const registerClub = async (
             DEFAULT_HOOK_ADDRESS,
             token,
             params.initialSupply,
-            params.curveType,
+            params.curveType ?? 1,
             recipient,
         ],
     });
@@ -548,7 +548,7 @@ export const registerClub = async (
             pubId: params.pubId,
             handle: params.handle,
             profileId: params.profileId,
-            strategy: params.strategy,
+            strategy: params.strategy ?? "lens",
             token: {
                 name: params.tokenName,
                 symbol: params.tokenSymbol,
