@@ -22,6 +22,7 @@ import {
     State,
     Client,
     IAgentRuntime,
+    UUID,
 } from "@ai16z/eliza/src/types.ts";
 import { stringToUuid } from "@ai16z/eliza/src/uuid.ts";
 import settings from "@ai16z/eliza/src/settings.ts";
@@ -44,6 +45,7 @@ import ContentJudgementService from "./services/critic.ts";
 import { updatePointsWithProfileId } from "./services/stack.ts";
 import createPostAction from "./actions/createPost.ts";
 import searchTokenAction from "./actions/searchToken.ts";
+import { sendMessage } from "./services/orb/sendMessage.ts";
 import { tokenAnalysisPlugin } from "@ai16z/plugin-token-analysis/src/index.ts";
 import { ClientBase } from "@ai16z/client-twitter/src/base.ts";
 import { DEXSCREENER_URL } from "./services/codex.ts";
@@ -361,7 +363,7 @@ export class OrbClient {
                     "direct"
                 );
 
-                const wallets = await getWallets(agentId, true);
+                const wallets = await getWallets(agentId);
                 if (!wallets?.polygon) {
                     res.status(404).send("Polygon wallet not found");
                     return;
@@ -626,76 +628,197 @@ export class OrbClient {
                     return;
                 }
 
-                try {
-                    // process content from the publication, perform the resulting action
-                    const content = params.lens.content;
-                    const imageURL = params.lens.image?.item
-                        ? getLensImageURL(params.lens.image?.item)
-                        : undefined;
-                    const { rating, comment } =
-                        await contentJudgementService.judgeContent({
-                            text: content,
-                            imageUrl: imageURL,
-                        });
+                // if the agent was tagged, process as an action
+                if (new RegExp(`@${agent.handle}`).test(params.lens.content)) {
+                    // TODO: process actions the way we do in /message
 
-                    console.log("RESULT");
-                    console.log(JSON.stringify({ rating, comment }, null, 2));
+                } else {
+                    try {
+                        // process content from the publication, perform the resulting action
+                        const content = params.lens.content;
+                        const imageURL = params.lens.image?.item
+                            ? getLensImageURL(params.lens.image?.item)
+                            : undefined;
+                        const { rating, comment } =
+                            await contentJudgementService.judgeContent({
+                                text: content,
+                                imageUrl: imageURL,
+                            });
 
-                    if (rating >= 5) {
-                        // TODO: send sticker reaction from bonsai energy
-                    }
-
-                    if (rating >= 6 && rating < 8) {
-                        await createPost(
-                            wallets?.polygon,
-                            wallets?.profile?.id,
-                            wallets?.profile?.handle,
-                            comment,
-                            undefined,
-                            undefined,
-                            params.publication_id
+                        console.log("RESULT");
+                        console.log(
+                            JSON.stringify({ rating, comment }, null, 2)
                         );
-                    }
 
-                    // tip with the reply
-                    if (rating >= 8) {
-                        const tipAmount = await handleUserTips(
-                            tips,
-                            rating,
-                            agent.agentId,
-                            params.profile_id
-                        );
-                        if (tipAmount > 0) {
-                            await updatePointsWithProfileId(
-                                params.profile_id,
-                                "tip",
-                                tipAmount
-                            );
-                            await tipPublication(
-                                wallets?.polygon,
-                                wallets?.profile?.id,
-                                params.publication_id,
-                                tipAmount,
-                                comment
-                            );
-                        } else {
-                            const reply = `${comment}. I'd tip you, but you exceeded your daily limit.`;
+                        if (rating >= 5) {
+                            // TODO: send sticker reaction from bonsai energy
+                        }
+
+                        if (rating >= 6 && rating < 8) {
                             await createPost(
                                 wallets?.polygon,
                                 wallets?.profile?.id,
                                 wallets?.profile?.handle,
-                                reply,
+                                comment,
                                 undefined,
                                 undefined,
                                 params.publication_id
                             );
                         }
+
+                        // tip with the reply
+                        if (rating >= 8) {
+                            const tipAmount = await handleUserTips(
+                                tips,
+                                rating,
+                                agent.agentId,
+                                params.profile_id
+                            );
+                            if (tipAmount > 0) {
+                                await updatePointsWithProfileId(
+                                    params.profile_id,
+                                    "tip",
+                                    tipAmount
+                                );
+                                await tipPublication(
+                                    wallets?.polygon,
+                                    wallets?.profile?.id,
+                                    params.publication_id,
+                                    tipAmount,
+                                    comment
+                                );
+                            } else {
+                                const reply = `${comment}. I'd tip you, but you exceeded your daily limit.`;
+                                await createPost(
+                                    wallets?.polygon,
+                                    wallets?.profile?.id,
+                                    wallets?.profile?.handle,
+                                    reply,
+                                    undefined,
+                                    undefined,
+                                    params.publication_id
+                                );
+                            }
+                        }
+                        res.status(200).json({ rating, comment });
+                    } catch (error) {
+                        console.log(error);
+                        res.status(400).send(error);
                     }
-                    res.status(200).json({ rating, comment });
-                } catch (error) {
-                    console.log(error);
-                    res.status(400).send(error);
                 }
+            }
+        );
+
+        // webhook endpoint to process a post from bonsai club
+        this.app.post(
+            "/orb/webhook/jam-message",
+            async (req: express.Request, res: express.Response) => {
+                // TODO: authorization
+                const { message, channelId: clubId } = req.body;
+                const userId = message.user.id;
+                const messageId = message.messageId;
+                if (userId == "0x088d93") {
+                    res.status(500).send("no reply to self");
+                    return;
+                }
+                if (this.responded[messageId]) {
+                    res.status(200).send("already responded");
+                    return;
+                }
+                this.responded[messageId] = true;
+                const { collection } = await getClient();
+                const agent = await collection.findOne({ clubId });
+                if (!agent) {
+                    res.status(404).send();
+                    return;
+                }
+
+                const roomId = stringToUuid(clubId);
+
+                const wallets = await getWallets(agent.agentId, false);
+                console.log(JSON.stringify(wallets,null,2));
+                if (!wallets?.polygon) {
+                    res.status(404).send("Polygon wallet not found");
+                    return;
+                }
+
+                let runtime = this.agents.get(agent.agentId);
+
+                // if runtime is null, look for runtime with the same name
+                if (!runtime) {
+                    runtime = Array.from(this.agents.values()).find(
+                        (a) =>
+                            a.character.name.toLowerCase() ===
+                            agent.agentId.toLowerCase()
+                    );
+                }
+
+                if (!runtime) {
+                    res.status(404).send("Agent not found");
+                    return;
+                }
+
+                await runtime.ensureConnection(
+                    userId,
+                    roomId as UUID,
+                    req.body.userName,
+                    req.body.name,
+                    "direct"
+                );
+
+                const homeTimeline = await fetchFeed(
+                    wallets.polygon,
+                    wallets.profile.id
+                );
+                // Format timeline into string of tweets and authors
+                const timelineText = homeTimeline
+                    .map((post) => `${post.author}: ${post.content}`)
+                    .join("\n");
+                const text = `Here are some recent posts from your Lens timeline:\n${timelineText}\n\n Write a response to this message ${message.text} from ${message.user.name} of your own that could be relevant to something that someone else is saying. Try to write a direct response to this message, with our without knowing about your lens timeline.`;
+
+                const content: Content = {
+                    text,
+                    attachments: [],
+                    source: "direct",
+                    inReplyTo: undefined,
+                };
+
+                const userMessage = {
+                    content,
+                    userId,
+                    roomId: roomId as UUID,
+                    agentId: runtime.agentId,
+                };
+
+                const memory: Memory = {
+                    id: messageId,
+                    agentId: runtime.agentId,
+                    userId,
+                    roomId: roomId as UUID,
+                    content,
+                    createdAt: Date.now(),
+                };
+
+                await runtime.messageManager.createMemory(memory);
+
+                const state = (await runtime.composeState(userMessage, {
+                    agentName: runtime.character.name,
+                })) as State;
+
+                const context = composeContext({
+                    state,
+                    template: messageHandlerTemplate,
+                });
+
+                const response = await generateMessageResponse({
+                    runtime: runtime,
+                    context,
+                    modelClass: ModelClass.SMALL,
+                });
+
+                // send reply directly to the message
+                await sendMessage(response.text, messageId);
+                res.status(200).send();
             }
         );
 

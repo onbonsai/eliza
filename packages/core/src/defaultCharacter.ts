@@ -3,7 +3,7 @@ import { Character, Clients, ModelProviderName } from "./types.ts";
 export const defaultCharacter: Character = {
     name: "Sage",
     plugins: [],
-    clients: [Clients.ORB],
+    clients: [Clients.ORB, Clients.TWITTER],
     modelProvider: ModelProviderName.GROK,
     settings: {
         secrets: {},

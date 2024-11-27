@@ -125,7 +125,8 @@ const searchTokenAction = {
                     },
                 }));
             } else {
-                text = `Found 0 tokens, are you sure you have the right ticker? If it has a low market cap or is not on Base, Solana, or Ethereum - I won't know about it.`;
+                // TODO: make this as catch all for search or score
+                text = `Found 0 tokens, are you sure you have the right ticker? If it has a low liquidity or is not on Base, Solana, or Ethereum - I won't know about it.`;
             }
 
             callback({
