@@ -45,6 +45,7 @@ import ContentJudgementService from "./services/critic.ts";
 import { updatePointsWithProfileId } from "./services/stack.ts";
 import createPostAction from "./actions/createPost.ts";
 import searchTokenAction from "./actions/searchToken.ts";
+import { sendMessage } from "./services/orb/sendMessage.ts";
 import { tokenAnalysisPlugin } from "@ai16z/plugin-token-analysis/src/index.ts";
 import { ClientBase } from "@ai16z/client-twitter/src/base.ts";
 import { DEXSCREENER_URL } from "./services/codex.ts";
@@ -713,29 +714,26 @@ export class OrbClient {
             "/orb/webhook/jam-message",
             async (req: express.Request, res: express.Response) => {
                 // TODO: authorization
-                const { message } = req.body;
+                const { message, channelId: clubId } = req.body;
                 const userId = message.user.id;
-                let roomId = "65e6dec26d85271723b6357c"; // orb.club/c/bonsai
-                const id = `${roomId}/${userId}-${message.created_at}`;
+                const messageId = message.messageId;
                 if (userId == "0x088d93") {
                     res.status(500).send("no reply to self");
                     return;
                 }
-                if (this.responded[id]) {
+                if (this.responded[messageId]) {
                     res.status(200).send("already responded");
                     return;
                 }
-                this.responded[id] = true;
+                this.responded[messageId] = true;
                 const { collection } = await getClient();
-                const agent = await collection.findOne({
-                    clubId: roomId,
-                });
+                const agent = await collection.findOne({ clubId });
                 if (!agent) {
                     res.status(404).send();
                     return;
                 }
 
-                roomId = stringToUuid(roomId);
+                const roomId = stringToUuid(clubId);
 
                 const wallets = await getWallets(agent.agentId, false);
                 console.log(JSON.stringify(wallets,null,2));
@@ -777,7 +775,6 @@ export class OrbClient {
                     .map((post) => `${post.author}: ${post.content}`)
                     .join("\n");
                 const text = `Here are some recent posts from your Lens timeline:\n${timelineText}\n\n Write a response to this message ${message.text} from ${message.user.name} of your own that could be relevant to something that someone else is saying. Try to write a direct response to this message, with our without knowing about your lens timeline.`;
-                const messageId = stringToUuid(Date.now().toString());
 
                 const content: Content = {
                     text,
@@ -819,8 +816,9 @@ export class OrbClient {
                     modelClass: ModelClass.SMALL,
                 });
 
-                // TODO: send response to orb api
-                res.status(200).send(response.text);
+                // send reply directly to the message
+                await sendMessage(response.text, messageId);
+                res.status(200).send();
             }
         );
 
