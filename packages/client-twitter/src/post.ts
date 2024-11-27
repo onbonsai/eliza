@@ -125,6 +125,10 @@ export class TwitterPostClient extends ClientBase {
                 content = content.slice(0, content.lastIndexOf("."));
             }
             try {
+                if (process.env.TWITTER_DRY_RUN == "true") {
+                    console.log("twitter dry run, not sending tweet")
+                    return
+                }
                 const result = await this.requestQueue.add(
                     async () => await this.twitterClient.sendTweet(content)
                 );

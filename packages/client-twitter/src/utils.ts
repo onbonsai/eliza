@@ -171,6 +171,10 @@ export async function sendTweet(
     twitterUsername: string,
     inReplyTo: string
 ): Promise<Memory[]> {
+    if (process.env.TWITTER_DRY_RUN == "true") {
+        console.log("twitter dry run, not sending tweet")
+        return
+    }
     const chunk = truncateTweetContent(content.text);
     const sentTweets: Tweet[] = [];
 
