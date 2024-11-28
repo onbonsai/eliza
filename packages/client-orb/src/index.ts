@@ -373,7 +373,8 @@ export class OrbClient {
                 // get post prompt
                 let text = req.body.text || getRandomPrompt();
                 const randomNumber = Math.random();
-                if (randomNumber < 0.6) {
+                // TODO: media disabled temporarily
+                if (randomNumber < 1.6) {
                     const twitterSearchClient = new ClientBase(
                         { runtime },
                         true
