@@ -6,7 +6,7 @@ import { getPublicClient } from "../utils/viem.ts";
 
 // lens profile
 export type WalletProfile = { id: `0x${string}`, handle: string }
-export const getWallets = async (agentId: string, create = false): Promise<{ base: Wallet, polygon: Wallet, profile?: WalletProfile, adminProfileId: string } | undefined> => {
+export const getWallets = async (agentId: string, create = false): Promise<{ base: Wallet, polygon: Wallet, baseSepolia: Wallet, profile?: WalletProfile, adminProfileId: string } | undefined> => {
   Coinbase.configure({
     apiKeyName: process.env.COINBASE_API_NAME! as string,
     privateKey: process.env.COINBASE_API_PRIVATE_KEY!.replaceAll("\\n", "\n") as string,
@@ -20,27 +20,37 @@ export const getWallets = async (agentId: string, create = false): Promise<{ bas
 
   try {
     if (!walletData && create) {
-      const [base, polygon] = await Promise.all([
-        Wallet.create({ networkId: Coinbase.networks.BaseMainnet }),
-        Wallet.create({ networkId: Coinbase.networks.PolygonMainnet })
+      const [base, baseSepolia, polygon] = await Promise.all([
+          Wallet.create({ networkId: Coinbase.networks.BaseMainnet }),
+          Wallet.create({ networkId: Coinbase.networks.BaseSepolia }),
+          Wallet.create({ networkId: Coinbase.networks.PolygonMainnet }),
       ]);
 
+      wallets = {
+          base,
+          polygon,
+          baseSepolia,
+      };
+
       await collection.insertOne({
-        agentId,
-        wallets: {
-          base: encrypt(JSON.stringify(base.export())),
-          polygon: encrypt(JSON.stringify(polygon.export()))
-        }
+          agentId,
+          wallets: {
+              base: encrypt(JSON.stringify(base.export())),
+              baseSepolia: encrypt(JSON.stringify(baseSepolia.export())),
+              polygon: encrypt(JSON.stringify(polygon.export())),
+          },
       });
     } else if (walletData) {
-      const [base, polygon] = await Promise.all([
+      const [base, baseSepolia, polygon] = await Promise.all([
           Wallet.import(JSON.parse(decrypt(walletData.wallets.base))),
+          Wallet.import(JSON.parse(decrypt(walletData.wallets.baseSepolia))),
           Wallet.import(JSON.parse(decrypt(walletData.wallets.polygon))),
       ]);
 
       wallets = {
         base,
         polygon,
+        baseSepolia,
         profile: { id: walletData.profileId, handle: walletData.handle },
         adminProfileId: walletData.adminProfileId,
       };

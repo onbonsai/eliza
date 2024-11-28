@@ -1,4 +1,4 @@
-import { base, zksync, polygon } from "viem/chains";
+import { base, zksync, polygon, baseSepolia } from "viem/chains";
 
 export const AGENT_HANDLE = "bons_ai";
 export const LENS_HUB_PROXY: `0x${string}` =
@@ -13,12 +13,14 @@ export const BONSAI_TOKEN_ADDRESS_ZKSYNC =
 
 export const CHAIN_TO_RPC = {
     [base.id]: process.env.NEXT_PUBLIC_BASE_RPC,
+    [baseSepolia.id]: process.env.NEXT_PUBLIC_BASE_SEPOLIA_RPC,
     [zksync.id]: process.env.NEXT_PUBLIC_ZKSYNC_RPC,
     [polygon.id]: process.env.POLYGON_RPC_URL,
 };
 
 export const CHAIN_TO_BONSAI = {
     [base.id]: BONSAI_TOKEN_ADDRESS_BASE,
+    [baseSepolia.id]: "0x3d2bD0e15829AA5C362a4144FdF4A1112fa29B5c",
     [zksync.id]: BONSAI_TOKEN_ADDRESS_ZKSYNC,
     [polygon.id]: BONSAI_TOKEN_ADDRESS_POLYGON,
 };

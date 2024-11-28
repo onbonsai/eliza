@@ -45,6 +45,7 @@ Respond with a JSON markdown block containing only the extracted values. Use nul
 The ticker will be several characters with a dollar sign in front such as $Degen, $BONSAI, $eth, $SOL, $BTC, $MOG, $wif. It may be all caps or all lower case or something in between.
 The chain will be one of the following: ["solana", "ethereum", "arbitrum", "avalanche", "bsc", "optimism", "polygon", "base", "zksync"]
 The token address will start with a "0x" and be 42 characters long, hexadecimal (example: 0x474f4cb764df9da079D94052fED39625c147C12C) UNLESS it is a Solana token in which case it will be 44 characters long and a mix of digits and letters (example: 5voS9evDjxF589WuEub5i4ti7FWQmZCsAsyD5ucbuRqM).
+An example message would look like this: what about this token 0x00561688b20a2b8a47f504d44b7b63b996fbcbd4 on base?
 `;
 
 // TODO: update judgement instructions
@@ -237,7 +238,7 @@ export const scoreToken: Action = {
         const score = TokenScore[scoreString] as number;
 
         // score non-neutral to the db - using ticker, userAddress as the uniq id
-        if (score != 2) {
+        if (score != 2 && inputTokenAddress && chain) {
             const { tickers } = await getClient();
             try {
                 await tickers.insertOne({

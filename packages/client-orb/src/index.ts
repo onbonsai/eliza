@@ -45,6 +45,7 @@ import ContentJudgementService from "./services/critic.ts";
 import { updatePointsWithProfileId } from "./services/stack.ts";
 import createPostAction from "./actions/createPost.ts";
 import searchTokenAction from "./actions/searchToken.ts";
+import { launchpadCreate } from "./actions/launchpadCreate.ts";
 import { sendMessage } from "./services/orb/sendMessage.ts";
 import { tokenAnalysisPlugin } from "@ai16z/plugin-token-analysis/src/index.ts";
 import { ClientBase } from "@ai16z/client-twitter/src/base.ts";
@@ -629,9 +630,66 @@ export class OrbClient {
                 }
 
                 // if the agent was tagged, process as an action
-                if (new RegExp(`@${agent.handle}`).test(params.lens.content)) {
-                    // TODO: process actions the way we do in /message
+                if (
+                    new RegExp(`@${agent.handle}`).test(params.lens.content) &&
+                    params.lens.content.toLowerCase().includes("create")
+                ) {
+                    const userId = stringToUuid(params.profile_id);
+                    const roomId = stringToUuid(params.community_id);
+                    const messageId = stringToUuid(params.publication_id);
+                    const content: Content = {
+                        text: params.lens.content,
+                        attachments: [],
+                        source: "direct",
+                        inReplyTo: undefined,
+                    };
+                    const userMessage = {
+                        content,
+                        userId,
+                        roomId,
+                        agentId: runtime.agentId,
+                    };
 
+                    const memory: Memory = {
+                        id: messageId,
+                        agentId: runtime.agentId,
+                        userId,
+                        roomId,
+                        content: { text: params.lens.content },
+                        createdAt: Date.now(),
+                    };
+                    const state = (await runtime.composeState(userMessage, {
+                        agentName: runtime.character.name,
+                    })) as State;
+                    state.params = params;
+                    state.userMessage = userMessage.content.text;
+
+                    // HACK: hardcoding this action for now, to skip the first process message
+                    // save response to memory
+                    const responseMessage = {
+                        ...userMessage,
+                        userId: runtime.agentId,
+                        content: { action: "CREATE_TOKEN_LAUNCHPAD", text: "Creating token" },
+                    };
+
+                    await runtime.messageManager.createMemory(responseMessage);
+                    await runtime.evaluate(memory, state);
+
+                    let message = null as Content | null;
+
+                    await runtime.evaluate(memory, state);
+
+                    const result = await runtime.processActions(
+                        memory,
+                        [responseMessage],
+                        state,
+                        async (newMessages) => {
+                            message = newMessages;
+                            return [memory];
+                        }
+                    );
+
+                    res.status(200).json({ message });
                 } else {
                     try {
                         // process content from the publication, perform the resulting action
@@ -709,7 +767,7 @@ export class OrbClient {
             }
         );
 
-        // webhook endpoint to process a post from bonsai club
+        // webhook endpoint to process a jam message from bonsai club
         this.app.post(
             "/orb/webhook/jam-message",
             async (req: express.Request, res: express.Response) => {
@@ -941,9 +999,14 @@ export class OrbClient {
                 }
                 const [polygon] = await wallets.polygon.listAddresses();
                 const [base] = await wallets?.base.listAddresses();
+                const [baseSepolia] = await wallets?.baseSepolia.listAddresses();
 
                 res.status(200).json({
-                    wallets: { polygon: polygon.getId(), base: base.getId() },
+                    wallets: {
+                        polygon: polygon.getId(),
+                        base: base.getId(),
+                        baseSepolia: baseSepolia.getId(),
+                    },
                 });
             }
         );
@@ -1029,6 +1092,7 @@ export const OrbClientInterface: Client = {
         runtime.registerAction(createPostAction);
         runtime.registerAction(searchTokenAction);
         runtime.registerAction(tokenAnalysisPlugin.actions[0]); // tokenScoreAction
+        runtime.registerAction(launchpadCreate);
         client.registerAgent(runtime);
         client.start(serverPort);
         return client;

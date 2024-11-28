@@ -5,16 +5,24 @@ import {
     HandlerCallback,
     IAgentRuntime,
     Memory,
-    ModelClass,
     State,
     type Action,
+    ModelClass,
 } from "@ai16z/eliza/src/types.ts";
-import { ClientBase } from "@ai16z/client-twitter/src/base.ts";
+import { parseUnits } from "viem";
 import { getClient } from "../services/mongo.ts";
 import { getWallets } from "../services/coinbase.ts";
-import { registerClub } from "../services/launchpad/contract.ts";
+import {
+    registerClub,
+    IS_PRODUCTION,
+    DECIMALS,
+    USDC_CONTRACT_ADDRESS,
+    LAUNCHPAD_CONTRACT_ADDRESS,
+    CHAIN,
+} from "../services/launchpad/contract.ts";
 import { getLensImageURL } from "../services/lens/ipfs.ts";
 import { getProfileById } from "../services/lens/profiles.ts";
+import { approveToken } from "../services/coinbase.ts";
 import createPost from "../services/orb/createPost.ts";
 
 /*
@@ -63,6 +71,44 @@ example orb post body data:
   }
 */
 
+
+const DEFAULT_CURVE_TYPE = 1; // NORMAL;
+const DEFAULT_INITIAL_SUPPLY = "0"; // buy price at ~55 usdc
+
+const messageTemplate = `Respond with a JSON markdown block containing only the extracted values. Use null for any values that cannot be determined.
+
+Example response:
+\`\`\`json
+{
+    "symbol": "$blondegirl"
+    "name": "Blonde Girl",
+    "description": "for blonde girls"
+}
+\`\`\`
+
+{{userMessage}}
+
+Given the user message extract the following information about the token to create
+- The symbol
+- The name
+- The description
+
+ONLY GET THE MOST RECENT TOKEN INFO FROM THE USER MESSAGE
+
+Respond with a JSON markdown block containing only the extracted values. Use null for any values that cannot be determined. The result should be a valid JSON object with the following schema:
+\`\`\`json
+{
+    "symbol": string | null,
+    "name": string | null,
+    "description": string | null
+}
+\`\`\`
+
+The symbol will be several characters with a dollar sign in front such as $Degen, $BONSAI, $eth, $SOL, $BTC, $MOG, $wif. It may be all caps or all lower case or something in between.
+The name might come before or after, one or two words. If you can't derive it, imagine what it could be
+An example input would be: "Create $blondegirl as a token for blonde girls"
+`;
+
 export const launchpadCreate: Action = {
     name: "CREATE_TOKEN_LAUNCHPAD",
     similes: ["CREATE_TOKEN", "LAUNCH_TOKEN", "NEW_TOKEN"],
@@ -79,42 +125,48 @@ export const launchpadCreate: Action = {
         _options: { [key: string]: unknown },
         callback?: HandlerCallback
     ): Promise<{}> => {
-        // composeState
-        if (!state) {
-            state = (await runtime.composeState(message)) as State;
-        } else {
-            state = await runtime.updateRecentMessageState(state);
-        }
-
         // orb post params
-        if (!_options?.params) {
+        const params = state?.params as any;
+        if (!params?.publication_id) {
             throw new Error(
                 "no params to determine creator, image etc. Orb post body must be passed in through _options arg"
             );
         }
-        const params = _options.params as any;
 
-        const text = params.lens.content || message.content.text;
+        const messageContext = composeContext({
+            state,
+            template: messageTemplate,
+        });
 
-        // Extract name, ticker, and description from text using regex
-        const nameMatch = text.match(/name:\s*([^,\n]+)/i);
-        const tickerMatch = text.match(/ticker:\s*\$?([^,\n\s]+)/i);
-        const descriptionMatch = text.match(/description:\s*([^,\n]+)/i);
+        const response = await generateObject({
+            runtime,
+            context: messageContext,
+            modelClass: ModelClass.LARGE,
+        });
 
-        const name = nameMatch ? nameMatch[1].trim() : null;
-        const ticker = tickerMatch ? tickerMatch[1].trim().toUpperCase() : null;
-        const description = descriptionMatch
-            ? descriptionMatch[1].trim()
-            : null;
+        let { symbol, name, description } = response;
 
-        if (!name || !ticker) {
-            throw new Error(
-                "Missing required name or ticker. Format should be: name: <name>, ticker: <ticker>"
-            );
-        }
+        // // Extract name, ticker, and description from text using regex
+        // const nameMatch = text.match(/name:\s*([^,\n]+)/i);
+        // const tickerMatch = text.match(/ticker:\s*\$?([^,\n\s]+)/i);
+        // const descriptionMatch = text.match(/description:\s*([^,\n]+)/i);
 
+        // const name = nameMatch ? nameMatch[1].trim() : null;
+        // const symbol = tickerMatch ? tickerMatch[1].trim().toUpperCase() : null;
+        // const description = descriptionMatch
+        //     ? descriptionMatch[1].trim()
+        //     : null;
+
+        // if (!name || !symbol) {
+        //     throw new Error(
+        //         "Missing required name or ticker. Format should be: name: <name>, ticker: <ticker>"
+        //     );
+        // }
+
+        symbol = symbol.replace("$", "");
+        name = name || symbol.charAt(0).toUpperCase() + symbol.slice(1);
         console.log(
-            `Parsed token details - Name: ${name}, Ticker: ${ticker}, Description: ${description || "None provided"}`
+            `Parsed token details - Name: ${name}, Symbol: ${symbol}, Description: ${description || "None provided"}`
         );
 
         const imageURL = params.lens.image?.item
@@ -124,7 +176,7 @@ export const launchpadCreate: Action = {
         // get agent
         const { collection } = await getClient();
         const agent = await collection.findOne({
-            clubId: "65e6dec26d85271723b6357c", // only use bons_ai
+            handle: "bons_ai",
         });
         if (!agent) {
             console.log("agent not found");
@@ -142,31 +194,44 @@ export const launchpadCreate: Action = {
         const lensProfile = await getProfileById(params.profile_id);
         const recipient = lensProfile.ownedBy.address as `0x${string}`;
 
-        // register club
-        const createClubResponse = await registerClub(wallets.base, recipient, {
+        // register club with the caller's lens profile as the creator, and buy the initial supply
+        const wallet = IS_PRODUCTION ? wallets.base : wallets.baseSepolia;
+        const [address] = await wallet.listAddresses();
+        await approveToken(
+            USDC_CONTRACT_ADDRESS,
+            wallet,
+            address.getId() as `0x${string}`,
+            LAUNCHPAD_CONTRACT_ADDRESS,
+            CHAIN
+        );
+        const { clubId } = await registerClub(wallet, recipient, {
             pubId: params.publication_id,
-            handle: params.name.split("@")[1].split("'")[0],
+            handle: lensProfile.handle.localName,
             profileId: params.profile_id,
             tokenName: name,
-            tokenSymbol: ticker,
+            tokenSymbol: symbol.replace("$", ""),
             tokenDescription: description,
             tokenImage: imageURL,
-            initialSupply: "5000000",
+            initialSupply: parseUnits(
+                DEFAULT_INITIAL_SUPPLY,
+                DECIMALS
+            ).toString(),
+            curveType: DEFAULT_CURVE_TYPE,
         });
 
-        const reply = `Your new token has been created: https://launch.bonsai.meme/token/${createClubResponse.clubId}`;
-        await createPost(
-            wallets?.polygon,
-            wallets?.profile?.id,
-            wallets?.profile?.handle,
-            reply,
-            undefined,
-            undefined,
-            params.publication_id
-        );
+        const reply = `$${symbol} has been created\\nhttps://launch.bonsai.meme/token/${clubId}`;
+        // await createPost(
+        //     wallets?.polygon,
+        //     wallets?.profile?.id,
+        //     wallets?.profile?.handle,
+        //     reply,
+        //     undefined,
+        //     undefined,
+        //     params.publication_id
+        // );
 
         callback?.({
-            text: "",
+            text: reply,
             attachments: [],
         });
 
@@ -174,5 +239,26 @@ export const launchpadCreate: Action = {
     },
     examples: [
         // Add more examples as needed
+        [
+            {
+                user: "{{user1}}",
+                content: {
+                    address: "create $beau for dogs",
+                },
+            },
+            {
+                user: "{{user2}}",
+                content: {
+                    text: "Creating token $beau with description, for dogs",
+                    action: "CREATE_TOKEN_LAUNCHPAD",
+                },
+            },
+            {
+                user: "{{user2}}",
+                content: {
+                    text: "Token $beau created",
+                },
+            },
+        ],
     ] as ActionExample[][],
 } as Action;

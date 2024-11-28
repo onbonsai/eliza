@@ -758,7 +758,7 @@ export class TokenProvider {
                 output += `- Price USD: $${toBN(pair.priceUsd).toFixed(6)}\n`;
                 output += `- Volume (24h USD): $${toBN(pair.volume.h24).toFixed(2)}\n`;
                 output += `- Boosts Active: ${pair.boosts && pair.boosts.active}\n`;
-                output += `- Liquidity USD: $${toBN(pair.liquidity.usd).toFixed(2)}\n`;
+                output += `- Liquidity USD: $${toBN(pair.liquidity?.usd || 0).toFixed(2)}\n`;
             });
         }
         output += `\n`;
