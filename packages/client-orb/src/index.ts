@@ -373,8 +373,7 @@ export class OrbClient {
                 // get post prompt
                 let text = req.body.text || getRandomPrompt();
                 const randomNumber = Math.random();
-                // TODO: media disabled temporarily
-                if (randomNumber < 1.6) {
+                if (randomNumber < 0.6) {
                     const twitterSearchClient = new ClientBase(
                         { runtime },
                         true
@@ -468,8 +467,9 @@ export class OrbClient {
                 /* generate an image */
                 let imageUrl;
                 let videoUrl;
-                if (Math.random() < 1.15) {
-                    const imagePrompt = `Generate an image to accompany this post: ${responseMessage.content.text}`;
+                // TODO: media temporarily disabled
+                if (Math.random() < 0) {
+                    const imagePrompt = `Generate a unique image to accompany this post: ${responseMessage.content.text}. Try to make images in varied styles that are different than previous ones.`;
                     const imageResponse = await generateImage(
                         { prompt: imagePrompt, width: 1024, height: 1024 },
                         runtime
@@ -499,7 +499,7 @@ export class OrbClient {
                     if (Math.random() < 0.25) {
                         const videoPrompt = await generateText({
                             runtime,
-                            context: `Write a succinct prompt to generate a captivating 5 second video based on this message: "${responseMessage.content.text}". Write only the prompt and nothing else, don't include any text in the video, only imagery.`,
+                            context: `Write a succinct prompt to generate a captivating 5 second video based on this message: "${responseMessage.content.text}". Write only the prompt and nothing else, don't include any text in the video, only imagery. the prompt should involve some form of action taking place.`,
                             modelClass: ModelClass.SMALL,
                         });
                         console.log({
@@ -670,7 +670,10 @@ export class OrbClient {
                     const responseMessage = {
                         ...userMessage,
                         userId: runtime.agentId,
-                        content: { action: "CREATE_TOKEN_LAUNCHPAD", text: "Creating token" },
+                        content: {
+                            action: "CREATE_TOKEN_LAUNCHPAD",
+                            text: "Creating token",
+                        },
                     };
 
                     await runtime.messageManager.createMemory(responseMessage);
@@ -795,7 +798,7 @@ export class OrbClient {
                 const roomId = stringToUuid(clubId);
 
                 const wallets = await getWallets(agent.agentId, false);
-                console.log(JSON.stringify(wallets,null,2));
+                console.log(JSON.stringify(wallets, null, 2));
                 if (!wallets?.polygon) {
                     res.status(404).send("Polygon wallet not found");
                     return;
@@ -1000,7 +1003,8 @@ export class OrbClient {
                 }
                 const [polygon] = await wallets.polygon.listAddresses();
                 const [base] = await wallets?.base.listAddresses();
-                const [baseSepolia] = await wallets?.baseSepolia.listAddresses();
+                const [baseSepolia] =
+                    await wallets?.baseSepolia.listAddresses();
 
                 res.status(200).json({
                     wallets: {
