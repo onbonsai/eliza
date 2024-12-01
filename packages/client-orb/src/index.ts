@@ -387,7 +387,7 @@ export class OrbClient {
                         .join("\n");
 
                     // Add timeline context to prompt text
-                    text = `Here are some recent tweets from your timeline:\n${timelineText}\n\n Make a tweet of your own that's relevant to and contributing to the discourse.`;
+                    text = `Here are some recent tweets from your timeline:\n${timelineText}\n\n Write a tweet of your own that's directly relevant to something that someone else is saying. Try to write something totally different than previous messages you've sent.`;
                 } else if (randomNumber < 0.8) {
                     const homeTimeline = await fetchFeed(
                         wallets.polygon,
@@ -716,7 +716,12 @@ export class OrbClient {
                             // TODO: send sticker reaction from bonsai energy
                         }
 
-                        if (rating >= 6 && rating < 8) {
+                        // respond to tags
+                        if (
+                            (content.toLowerCase().includes("@bons_ai") &&
+                                rating >= 3) ||
+                            (rating >= 6 && rating < 8)
+                        ) {
                             await createPost(
                                 wallets?.polygon,
                                 wallets?.profile?.id,
@@ -729,7 +734,7 @@ export class OrbClient {
                         }
 
                         // tip with the reply
-                        if (rating >= 8) {
+                        if (rating >= 7) {
                             const tipAmount = await handleUserTips(
                                 tips,
                                 rating,

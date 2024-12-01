@@ -1,8 +1,9 @@
 const MAX_TIP_PER_DAY = 150;
 const TIP_PER_RATING = {
-  "8": 5,
-  "9": 10,
-  "10": 50
+  "7": 10,
+  "8": 30,
+  "9": 50,
+  "10": 150
 };
 
 const handleUserTips = async (tips: any, rating: number, agentId: string, profileId: string): Promise<number> => {
