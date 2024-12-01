@@ -632,7 +632,7 @@ export class OrbClient {
 
                 // if the agent was tagged, process as an action
                 if (
-                    new RegExp(`@${agent.handle}`).test(params.lens.content) &&
+                    params.lens.content.includes(`@lens/${agent.handle}`) &&
                     params.lens.content.toLowerCase().includes("create")
                 ) {
                     const userId = stringToUuid(params.profile_id);
@@ -718,7 +718,9 @@ export class OrbClient {
 
                         // respond to tags
                         if (
-                            (content.toLowerCase().includes("@bons_ai") &&
+                            (content
+                                .toLowerCase()
+                                .includes(`@lens/${agent.handle}`) &&
                                 rating >= 3) ||
                             (rating >= 6 && rating < 8)
                         ) {
