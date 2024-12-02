@@ -1,5 +1,5 @@
 {
-    "name": "@ai16z/plugin-video-generation",
+    "name": "@ai16z/plugin-video-generation-runway",
     "version": "0.0.1",
     "main": "dist/index.js",
     "type": "module",
