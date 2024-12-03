@@ -319,8 +319,8 @@ export class OrbClient {
             "/:agentId/orb/create-post",
             async (req: express.Request, res: express.Response) => {
                 console.log("OrbClient create-post");
-                // 10% chance of posting, sleep for some time
-                const shouldPost = Math.random() < 0.1 || req.body?.shouldPost;
+                // 7% chance of posting, sleep for some time
+                const shouldPost = Math.random() < 0.07 || req.body?.shouldPost;
                 if (!shouldPost) {
                     res.status(200).send("Skipped posting this time.");
                     return;
