@@ -5,6 +5,7 @@ import { DirectClientInterface } from "@ai16z/client-direct";
 import { DiscordClientInterface } from "@ai16z/client-discord";
 import { TelegramClientInterface } from "@ai16z/client-telegram";
 import { TwitterClientInterface } from "@ai16z/client-twitter";
+import { OrbClientInterface } from "@ai16z/client-orb/src/index.ts";
 import {
     AgentRuntime,
     CacheManager,
@@ -320,6 +321,11 @@ export async function initializeClients(
     if (clientTypes.includes("twitter")) {
         const twitterClients = await TwitterClientInterface.start(runtime);
         clients.push(twitterClients);
+    }
+
+    if (clientTypes.includes("orb")) {
+        const orbClients = await OrbClientInterface.start(runtime);
+        clients.push(orbClients);
     }
 
     if (character.plugins?.length > 0) {
