@@ -1,4 +1,4 @@
-import { getClient } from "../mongo.ts";
+import { getClient } from "../mongo";
 
 export const createClub = async (
     clubId: string,

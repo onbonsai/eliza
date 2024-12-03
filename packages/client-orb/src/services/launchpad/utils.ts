@@ -13,11 +13,11 @@ import {
 import { base, baseSepolia } from "viem/chains";
 import { groupBy, reduce } from "lodash/collection";
 import { Wallet } from "@coinbase/coinbase-sdk";
-import BonsaiLaunchpadAbi from "./BonsaiLaunchpad.ts";
-import { getEventFromReceipt, encodeAbi } from "../../utils/viem.ts";
-import { toHexString } from "../../utils/utils.ts";
-import { createClub } from "./database.ts";
-import { CHAIN_TO_RPC } from "../../utils/constants.ts";
+import BonsaiLaunchpadAbi from "./BonsaiLaunchpad";
+import { getEventFromReceipt, encodeAbi } from "../../utils/viem";
+import { toHexString } from "../../utils/utils";
+import { createClub } from "./database";
+import { CHAIN_TO_RPC } from "../../utils/constants";
 
 export const IS_PRODUCTION = process.env.LAUNCHPAD_CHAIN_ID === "8453";
 export const CONTRACT_CHAIN_ID = IS_PRODUCTION ? base.id : baseSepolia.id;

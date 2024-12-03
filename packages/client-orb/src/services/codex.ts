@@ -1,6 +1,6 @@
 import { request, gql } from "graphql-request";
 import { getAddress } from "viem";
-import { BONSAI_TOKEN_ADDRESS_BASE } from "../utils/constants.ts";
+import { BONSAI_TOKEN_ADDRESS_BASE } from "../utils/constants";
 
 const CODEX_API_URL = "https://graph.codex.io/graphql";
 const DEFAULT_LIQUIDITY = 100_000; // TODO: increase once bonsai is up
@@ -21,7 +21,7 @@ export const NETWORK_NAME_TO_EXPLORER_URL = {
     ethereum: "https://etherscan.io",
     solana: "https://solscan.io",
 };
-export const DEXSCREENER_URL = "https://dexscreener.com"
+export const DEXSCREENER_URL = "https://dexscreener.com";
 
 const HARDCODED_TOKENS_PER_CHAIN = {
     8453: [BONSAI_TOKEN_ADDRESS_BASE.toLowerCase()],
@@ -111,30 +111,34 @@ type TokenResult = {
         };
     };
 };
-export const searchTokens = async (phrase: string, contractAddress?: string): Promise<TokenResult[]> => {
+export const searchTokens = async (
+    phrase: string,
+    contractAddress?: string
+): Promise<TokenResult[]> => {
     try {
-      if (phrase.toLowerCase() === "bonsai") { // HACK: until we have higher mcap
-        contractAddress = getAddress(BONSAI_TOKEN_ADDRESS_BASE);
-      }
-      const data = (await query(FILTER_TOKENS, {
-          phrase: contractAddress || phrase,
-          liquidity: contractAddress ? 0 : DEFAULT_LIQUIDITY,
-          networkIds: DEFAULT_NETWORK_IDS,
-          marketCap: contractAddress ? 0 : DEFAULT_MCAP,
-      })) as { filterTokens: { results: TokenResult[] } };
+        if (phrase.toLowerCase() === "bonsai") {
+            // HACK: until we have higher mcap
+            contractAddress = getAddress(BONSAI_TOKEN_ADDRESS_BASE);
+        }
+        const data = (await query(FILTER_TOKENS, {
+            phrase: contractAddress || phrase,
+            liquidity: contractAddress ? 0 : DEFAULT_LIQUIDITY,
+            networkIds: DEFAULT_NETWORK_IDS,
+            marketCap: contractAddress ? 0 : DEFAULT_MCAP,
+        })) as { filterTokens: { results: TokenResult[] } };
 
-      const res = data.filterTokens?.results;
+        const res = data.filterTokens?.results;
 
-      // filter by hardcoded tokens
-      const filteredRes = res?.find((tokenResult) =>
-          HARDCODED_TOKENS_PER_CHAIN[tokenResult.token.networkId].includes(
-              tokenResult.token.address.toLowerCase()
-          )
-      );
+        // filter by hardcoded tokens
+        const filteredRes = res?.find((tokenResult) =>
+            HARDCODED_TOKENS_PER_CHAIN[tokenResult.token.networkId].includes(
+                tokenResult.token.address.toLowerCase()
+            )
+        );
 
-      return filteredRes ? [filteredRes] : res;
+        return filteredRes ? [filteredRes] : res;
     } catch (error) {
-      console.log(error);
-      return [];
+        console.log(error);
+        return [];
     }
 };

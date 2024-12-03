@@ -14,15 +14,17 @@ import fs from "fs";
 import gifFrames from "gif-frames";
 import os from "os";
 import path from "path";
-import models from "@ai16z/eliza/src/models.ts";
 import {
     ModelProviderName,
     ModelClass,
     IAgentRuntime,
-} from "@ai16z/eliza/src/types.ts";
-import { generateText, trimTokens } from "@ai16z/eliza/src/generation.ts";
+} from "@ai16z/eliza/src/types";
+import { generateText, models } from "@ai16z/eliza";
 
-interface Content { text: string, imageUrl: string }
+interface Content {
+    text: string;
+    imageUrl: string;
+}
 
 class ContentJudgementService {
     private static instance: ContentJudgementService | null = null;
@@ -103,30 +105,28 @@ class ContentJudgementService {
 
     async judgeContent(
         content: Content
-    ): Promise<{ rating: number, comment: string }> {
+    ): Promise<{ rating: number; comment: string }> {
         // if (this.device === "cloud") {
         //     return this.recognizeWithOpenAI(content.imageUrl);
         // } else {
-            this.queue.push(content);
-            this.processQueue();
+        this.queue.push(content);
+        this.processQueue();
 
-            return new Promise((resolve, _) => {
-                const checkQueue = () => {
-                    const index = this.queue.indexOf(content);
-                    if (index !== -1) {
-                        setTimeout(checkQueue, 100);
-                    } else {
-                        resolve(this.processContent(content));
-                    }
-                };
-                checkQueue();
-            });
+        return new Promise((resolve, _) => {
+            const checkQueue = () => {
+                const index = this.queue.indexOf(content);
+                if (index !== -1) {
+                    setTimeout(checkQueue, 100);
+                } else {
+                    resolve(this.processContent(content));
+                }
+            };
+            checkQueue();
+        });
         // }
     }
 
-    private async recognizeWithOpenAI(
-        imageUrl: string
-    ): Promise<string> {
+    private async recognizeWithOpenAI(imageUrl: string): Promise<string> {
         const isGif = imageUrl.toLowerCase().endsWith(".gif");
         let imageData: Buffer | null = null;
 
@@ -159,7 +159,7 @@ class ContentJudgementService {
                 prompt,
                 isGif
             );
-            return text
+            return text;
         } catch (error) {
             console.error("Error in recognizeWithOpenAI:", error);
             throw error;
@@ -265,22 +265,25 @@ class ContentJudgementService {
     private async processContent(
         content: Content
     ): Promise<{ rating: number; comment: string }> {
-        const { text, imageUrl } = content
+        const { text, imageUrl } = content;
 
         try {
             if (imageUrl) {
                 console.log("***** PROCESSING IMAGE", imageUrl);
-                const description = await this.recognizeWithOpenAI(imageUrl)
-                return await this.rateAndComment(text, description)
+                const description = await this.recognizeWithOpenAI(imageUrl);
+                return await this.rateAndComment(text, description);
             } else {
-                return await this.rateAndComment(text, "N/A")
+                return await this.rateAndComment(text, "N/A");
             }
         } catch (error) {
             console.error("Error in processContent:", error);
         }
     }
 
-    private async rateAndComment(text: string, detailedCaption: string): Promise<{rating: number, comment: string | undefined}> {
+    private async rateAndComment(
+        text: string,
+        detailedCaption: string
+    ): Promise<{ rating: number; comment: string | undefined }> {
         const prompt = `About ${this.runtime.character.name}:
         ${this.runtime.character.bio}
         ${this.runtime.character.lore}
@@ -293,7 +296,7 @@ class ContentJudgementService {
 
         # Task: i have some text and a description of an accompanying image. i want you rate this on a scale of 1-10 on how good of
         content this is for social media, think about whether its entertaining, interesting or informative and if it is relevant
-        for the bonsai community, which usually means its relevant to bonsais, creativity, culture, art, authenticity, memes or memecoins. 
+        for the bonsai community, which usually means its relevant to bonsais, creativity, culture, art, authenticity, memes or memecoins.
         perform this task as ${this.runtime.character.name}.
 
         post text: ${text}
@@ -302,7 +305,7 @@ class ContentJudgementService {
         format your reponse as a single number, then a period, then a reply to their post. reply with something interesting that adds to the conversation.
         if you gave it a high rating you can compliment it and if you gave it a low rating you can say why you don't like it but not in a mean way.
         Your reply should be a snappy one liner.
-        DON'T JUSTIFY YOUR RATING, ONLY RESPOND WITH RATING, PERIOD, THEN A REPLY, NOTHING ELSE. NO HASHTAGS, NO EMOJIS`
+        DON'T JUSTIFY YOUR RATING, ONLY RESPOND WITH RATING, PERIOD, THEN A REPLY, NOTHING ELSE. NO HASHTAGS, NO EMOJIS`;
 
         for (let retryAttempts = 0; retryAttempts < 3; retryAttempts++) {
             try {
@@ -318,7 +321,6 @@ class ContentJudgementService {
                 //         ],
                 //         max_tokens: 300,
                 //     });
-
 
                 // const response = await fetch(
                 //     "https://api.openai.com/v1/chat/completions",
@@ -342,14 +344,17 @@ class ContentJudgementService {
                     modelClass: ModelClass.SMALL,
                 });
 
-                const [ratingStr, ...commentParts] = reponseText.split('.');
+                const [ratingStr, ...commentParts] = reponseText.split(".");
                 const rating = parseInt(ratingStr.trim());
-                const comment = commentParts.join('.').trim();
+                const comment = commentParts.join(".").trim();
 
                 // Only return comment if it exists and isn't empty
                 return {
                     rating,
-                    comment: comment.length > 0 ? comment.replace(/^["']|["']$/g, '') : undefined
+                    comment:
+                        comment.length > 0
+                            ? comment.replace(/^["']|["']$/g, "")
+                            : undefined,
                 };
             } catch (error) {
                 console.log(

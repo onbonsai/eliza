@@ -1,4 +1,4 @@
-import { MongoClient } from 'mongodb';
+import { MongoClient } from "mongodb";
 
 let client: MongoClient;
 let connecting: Promise<MongoClient> | null = null;
@@ -17,12 +17,12 @@ const _client = async () => {
 };
 
 export const getClient = async () => {
-  const client = await _client();
-  const database = client.db("moonshot");
-  const collection = database.collection("agents");
-  const tips = database.collection("user-tips");
-  const tickers = database.collection("tickers");
-  const clubs = database.collection("clubs");
+    const client = await _client();
+    const database = client.db("moonshot");
+    const collection = database.collection("agents");
+    const tips = database.collection("user-tips");
+    const tickers = database.collection("tickers");
+    const clubs = database.collection("clubs");
 
-  return { client, collection, tips, tickers, clubs };
+    return { client, collection, tips, tickers, clubs };
 };
