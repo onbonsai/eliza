@@ -7,7 +7,7 @@ import {
     Plugin,
     State,
 } from "@ai16z/eliza/src/types.ts";
-import { generateVideo } from "@ai16z/eliza/src/generation.ts";
+import { generateVideoRunway } from "@ai16z/eliza/src/generation.ts";
 
 const videoGeneration: Action = {
     name: "GENERATE_VIDEO",
@@ -37,12 +37,10 @@ const videoGeneration: Action = {
         const res: { video: string; caption: string }[] = [];
 
         elizaLogger.log("Generating video with prompt:", videoPrompt);
-        const videos = await generateVideo(
+        const videos = await generateVideoRunway(
             {
                 prompt: videoPrompt,
                 promptImage: message.content.attachments[0].url,
-                width: 1024,
-                height: 1024,
                 count: 1,
             },
             runtime

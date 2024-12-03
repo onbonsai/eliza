@@ -1,20 +1,20 @@
 import bodyParser from "body-parser";
 import cors from "cors";
-import express, { Request as ExpressRequest } from "express";
+import express from "express";
 import { Server as HttpServer, createServer } from "http";
 import { Server as SocketIOServer } from "socket.io";
-import multer, { File } from "multer";
+import multer from "multer";
 import { v4 as uuid } from "uuid";
 import {
     generateCaption,
     generateImage,
     generateText,
-    generateVideo,
-} from "@ai16z/eliza/src/generation.ts";
-import { composeContext } from "@ai16z/eliza/src/context.ts";
-import { generateMessageResponse } from "@ai16z/eliza/src/generation.ts";
-import { messageCompletionFooter } from "@ai16z/eliza/src/parsing.ts";
-import { AgentRuntime } from "@ai16z/eliza/src/runtime.ts";
+    generateVideoRunway,
+} from "@ai16z/eliza/src/generation";
+import { composeContext } from "@ai16z/eliza/src/context";
+import { generateMessageResponse } from "@ai16z/eliza/src/generation";
+import { messageCompletionFooter } from "@ai16z/eliza/src/parsing";
+import { AgentRuntime } from "@ai16z/eliza/src/runtime";
 import {
     Content,
     Memory,
@@ -23,35 +23,34 @@ import {
     Client,
     IAgentRuntime,
     UUID,
-} from "@ai16z/eliza/src/types.ts";
-import { stringToUuid } from "@ai16z/eliza/src/uuid.ts";
-import settings from "@ai16z/eliza/src/settings.ts";
-import createPost from "./services/orb/createPost.ts";
-import { getWallets } from "./services/coinbase.ts";
-import { getRandomPrompt } from "./utils/postPrompt.ts";
-import { mintProfile } from "./services/lens/mintProfile.ts";
-import { getClient } from "./services/mongo.ts";
-import parseJwt from "./services/lens/parseJwt.ts";
-import { updateProfile } from "./services/lens/updateProfile.ts";
-// import { addDelegators } from "./services/lens/addDelegators.ts";
+} from "@ai16z/eliza/src/types";
+import { stringToUuid } from "@ai16z/eliza/src/uuid";
+import settings from "@ai16z/eliza/src/settings";
+import createPost from "./services/orb/createPost";
+import { getWallets } from "./services/coinbase";
+import { getRandomPrompt } from "./utils/postPrompt";
+import { mintProfile } from "./services/lens/mintProfile";
+import { getClient } from "./services/mongo";
+import parseJwt from "./services/lens/parseJwt";
+import { updateProfile } from "./services/lens/updateProfile";
+// import { addDelegators } from "./services/lens/addDelegators";
 import {
     downloadVideoBuffer,
     getLensImageURL,
     pinFile,
-} from "./services/lens/ipfs.ts";
-import { tipPublication } from "./services/orb/tip.ts";
-import handleUserTips from "./utils/handleUserTips.ts";
-import ContentJudgementService from "./services/critic.ts";
-import { updatePointsWithProfileId } from "./services/stack.ts";
-import createPostAction from "./actions/createPost.ts";
-import searchTokenAction from "./actions/searchToken.ts";
-import { launchpadCreate } from "./actions/launchpadCreate.ts";
-import { sendMessage } from "./services/orb/sendMessage.ts";
-import { tokenAnalysisPlugin } from "@ai16z/plugin-token-analysis/src/index.ts";
-import { ClientBase } from "@ai16z/client-twitter/src/base.ts";
-import { DEXSCREENER_URL } from "./services/codex.ts";
-import { fetchFeed } from "./services/lens/fetchFeed.ts";
-const upload = multer({ storage: multer.memoryStorage() });
+} from "./services/lens/ipfs";
+import { tipPublication } from "./services/orb/tip";
+import handleUserTips from "./utils/handleUserTips";
+import ContentJudgementService from "./services/critic";
+import { updatePointsWithProfileId } from "./services/stack";
+import createPostAction from "./actions/createPost";
+import searchTokenAction from "./actions/searchToken";
+import { launchpadCreate } from "./actions/launchpadCreate";
+import { sendMessage } from "./services/orb/sendMessage";
+import { tokenAnalysisPlugin } from "@ai16z/plugin-token-analysis/src/index";
+import { ClientBase } from "@ai16z/client-twitter/src/base";
+import { DEXSCREENER_URL } from "./services/codex";
+import { fetchFeed } from "./services/lens/fetchFeed";
 
 export const messageHandlerTemplate =
     // {{goals}}
@@ -374,10 +373,7 @@ export class OrbClient {
                 let text = req.body.text || getRandomPrompt();
                 const randomNumber = Math.random();
                 if (randomNumber < 0.6) {
-                    const twitterSearchClient = new ClientBase(
-                        { runtime },
-                        true
-                    );
+                    const twitterSearchClient = new ClientBase(runtime, true);
                     await new Promise((resolve) => setTimeout(resolve, 5000));
                     const homeTimeline =
                         await twitterSearchClient.fetchHomeTimeline(20);
@@ -506,7 +502,7 @@ export class OrbClient {
                             prompt: videoPrompt,
                             promptImage: imageUrl,
                         });
-                        const videoResponse = await generateVideo(
+                        const videoResponse = await generateVideoRunway(
                             {
                                 prompt: videoPrompt.slice(0, 510),
                                 promptImage: imageUrl,

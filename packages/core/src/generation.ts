@@ -15,7 +15,6 @@ import { encodingForModel, TiktokenModel } from "js-tiktoken";
 import Together from "together-ai";
 import { ZodSchema } from "zod";
 import { elizaLogger } from "./index.ts";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import RunwayML from "@runwayml/sdk";
 import { getModel, models } from "./models.ts";
 import {
