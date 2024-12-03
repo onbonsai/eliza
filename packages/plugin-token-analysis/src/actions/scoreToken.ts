@@ -99,7 +99,7 @@ const socialAnalysis = async (
     runtime: IAgentRuntime,
     ticker: string
 ): Promise<{ socialReport: string; tweets: any[] }> => {
-    const client = new ClientBase({ runtime }, true);
+    const client = new ClientBase(runtime);
     // Ensure ticker starts with $ for Twitter search
     if (!ticker.startsWith("$")) {
         ticker = `$${ticker}`;

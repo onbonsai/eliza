@@ -373,7 +373,7 @@ export class OrbClient {
                 let text = req.body.text || getRandomPrompt();
                 const randomNumber = Math.random();
                 if (randomNumber < 0.6) {
-                    const twitterSearchClient = new ClientBase(runtime, true);
+                    const twitterSearchClient = new ClientBase(runtime);
                     await new Promise((resolve) => setTimeout(resolve, 5000));
                     const homeTimeline =
                         await twitterSearchClient.fetchHomeTimeline(20);

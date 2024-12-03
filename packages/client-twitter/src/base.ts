@@ -94,11 +94,6 @@ export class ClientBase extends EventEmitter {
 
     profile: TwitterProfile | null;
 
-    private searchTermCache: Map<
-        string,
-        { queryResponse: QueryTweetsResponse; timestamp: number }
-    > = new Map();
-
     async cacheTweet(tweet: Tweet): Promise<void> {
         if (!tweet) {
             console.warn("Tweet is undefined, skipping cache");
@@ -139,7 +134,7 @@ export class ClientBase extends EventEmitter {
         );
     }
 
-    constructor(runtime: IAgentRuntime, searchOnly = false) {
+    constructor(runtime: IAgentRuntime) {
         super();
         this.runtime = runtime;
         const username = this.runtime.getSetting("TWITTER_USERNAME");
@@ -318,81 +313,31 @@ export class ClientBase extends EventEmitter {
         searchTerm: string,
         queryResponse: QueryTweetsResponse
     ): Promise<void> {
-        if (!queryResponse) {
-            console.warn("Query is undefined, skipping cache");
+        if (!searchTerm) {
+            console.warn("searchTerm is undefined, skipping cache");
             return;
         }
-        const cacheDir = path.join(
-            __dirname,
-            "tweetcache",
-            "searchTerms",
-            `${searchTerm}.json`
+
+        this.runtime.cacheManager.set(
+            `twitter/searchTerms/${searchTerm}`,
+            queryResponse
         );
-        const obj = { queryResponse, timestamp: Date.now() };
-        await fs.promises.mkdir(path.dirname(cacheDir), { recursive: true });
-        await fs.promises.writeFile(cacheDir, JSON.stringify(obj, null, 2));
-        this.searchTermCache.set(searchTerm, obj);
     }
 
     async getCachedSearchTerm(
         searchTerm: string
     ): Promise<QueryTweetsResponse | undefined> {
-        // Check memory cache first
-        if (this.searchTermCache.has(searchTerm)) {
-            const cachedData = this.searchTermCache.get(searchTerm);
-            const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
-            if (Date.now() - cachedData.timestamp > SIX_HOURS_MS) {
-                this.searchTermCache.delete(searchTerm);
-            } else {
-                return cachedData.queryResponse;
-            }
-        }
-
-        // Check file cache if not in memory
-        const cacheFile = path.join(
-            __dirname,
-            "tweetcache",
-            "searchTerms",
-            `${searchTerm}.json`
+        const cached = await this.runtime.cacheManager.get<QueryTweetsResponse>(
+            `twitter/searchTerms/${searchTerm}`
         );
 
-        try {
-            const files = await glob(cacheFile);
-            if (files.length > 0) {
-                const searchData = await fs.promises.readFile(
-                    files[0],
-                    "utf-8"
-                );
-                const cachedData = JSON.parse(searchData) as {
-                    queryResponse: QueryTweetsResponse;
-                    timestamp: number;
-                };
-
-                // Check if cache is still valid
-                const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
-                if (Date.now() - cachedData.timestamp > SIX_HOURS_MS) {
-                    return undefined;
-                }
-
-                // Store in memory cache and return
-                this.searchTermCache.set(searchTerm, cachedData);
-                return cachedData.queryResponse;
-            }
-        } catch (error) {
-            console.error("Error reading search term cache:", error);
-        }
-
-        return undefined;
+        return cached;
     }
 
     async searchWithDelay(
         searchTerm: string,
         count = 20
     ): Promise<QueryTweetsResponse> {
-        if (!fs.existsSync("tweetcache")) {
-            fs.mkdirSync("tweetcache");
-        }
-
         // First check cache
         const cachedResult = await this.getCachedSearchTerm(searchTerm);
         if (cachedResult) {
