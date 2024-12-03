@@ -1,13 +1,8 @@
-import fs from "fs";
-import { composeContext } from "@ai16z/eliza/src/context.ts";
-import {
-    generateText,
-    splitChunks,
-    trimTokens,
-} from "@ai16z/eliza/src/generation.ts";
-import { getActorDetails } from "@ai16z/eliza/src/messages.ts";
-import models from "@ai16z/eliza/src/models.ts";
-import { parseJSONObjectFromText } from "@ai16z/eliza/src/parsing.ts";
+import { composeContext } from "@ai16z/eliza";
+import { generateText, splitChunks, trimTokens } from "@ai16z/eliza";
+import { getActorDetails } from "@ai16z/eliza";
+import { models } from "@ai16z/eliza";
+import { parseJSONObjectFromText } from "@ai16z/eliza";
 import {
     Action,
     ActionExample,
@@ -18,7 +13,7 @@ import {
     Memory,
     ModelClass,
     State,
-} from "@ai16z/eliza/src/types.ts";
+} from "@ai16z/eliza";
 export const summarizationTemplate = `# Summarized so far (we are adding to this)
 {{currentSummary}}
 
@@ -225,7 +220,6 @@ const summarizeAction = {
         // 2. get these memories from the database
         const memories = await runtime.messageManager.getMemories({
             roomId,
-            agentId: runtime.agentId,
             // subtract start from current time
             start: parseInt(start as string),
             end: parseInt(end as string),
@@ -233,14 +227,10 @@ const summarizeAction = {
             unique: false,
         });
 
-        console.log("memories", memories);
-
         const actors = await getActorDetails({
             runtime: runtime as IAgentRuntime,
             roomId,
         });
-
-        console.log("actors", actors);
 
         const actorMap = new Map(actors.map((actor) => [actor.id, actor]));
 
@@ -260,22 +250,14 @@ const summarizeAction = {
         const model = models[runtime.character.settings.model];
         const chunkSize = model.settings.maxContextLength - 1000;
 
-        const chunks = await splitChunks(
-            runtime,
-            formattedMemories,
-            chunkSize,
-            0,
-            "gpt-4o-mini"
-        );
+        const chunks = await splitChunks(formattedMemories, chunkSize, 0);
 
-        console.log("chunks ", chunks.length);
-        const datestr = new Date().toUTCString().replace(/:/g, "-");
+        const _datestr = new Date().toUTCString().replace(/:/g, "-");
 
         state.memoriesWithAttachments = formattedMemories;
         state.objective = objective;
 
         for (let i = 0; i < chunks.length; i++) {
-            console.log("chunk", i);
             const chunk = chunks[i];
             state.currentSummary = currentSummary;
             state.currentChunk = chunk;
@@ -316,9 +298,9 @@ ${currentSummary.trim()}
 `;
             await callback(callbackData);
         } else if (currentSummary.trim()) {
-            const summaryFilename = `content_cache/conversation_summary_${Date.now()}.txt`;
+            const summaryFilename = `content/conversation_summary_${Date.now()}`;
+            await runtime.cacheManager.set(summaryFilename, currentSummary);
             // save the summary to a file
-            fs.writeFileSync(summaryFilename, currentSummary);
             await callback(
                 {
                     ...callbackData,

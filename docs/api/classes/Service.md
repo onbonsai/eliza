@@ -1,3 +1,5 @@
+[@ai16z/eliza v0.1.4-alpha.3](../index.md) / Service
+
 # Class: `abstract` Service
 
 ## Extended by
@@ -20,15 +22,37 @@
 
 [`Service`](Service.md)
 
-## Properties
+## Accessors
 
 ### serviceType
 
-> `static` **serviceType**: [`ServiceType`](../enumerations/ServiceType.md)
+#### Get Signature
+
+> **get** `static` **serviceType**(): [`ServiceType`](../enumerations/ServiceType.md)
+
+##### Returns
+
+[`ServiceType`](../enumerations/ServiceType.md)
 
 #### Defined in
 
-[packages/core/src/types.ts:507](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L507)
+[packages/core/src/types.ts:955](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L955)
+
+***
+
+### serviceType
+
+#### Get Signature
+
+> **get** **serviceType**(): [`ServiceType`](../enumerations/ServiceType.md)
+
+##### Returns
+
+[`ServiceType`](../enumerations/ServiceType.md)
+
+#### Defined in
+
+[packages/core/src/types.ts:966](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L966)
 
 ## Methods
 
@@ -46,4 +70,24 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:509](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L509)
+[packages/core/src/types.ts:959](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L959)
+
+***
+
+### initialize()
+
+> `abstract` **initialize**(`runtime`): `Promise`\<`void`\>
+
+Add abstract initialize method that must be implemented by derived classes
+
+#### Parameters
+
+• **runtime**: [`IAgentRuntime`](../interfaces/IAgentRuntime.md)
+
+#### Returns
+
+`Promise`\<`void`\>
+
+#### Defined in
+
+[packages/core/src/types.ts:971](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L971)

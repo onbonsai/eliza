@@ -1,5 +1,5 @@
-import { generateText, trimTokens } from "@ai16z/eliza/src/generation.ts";
-import { parseJSONObjectFromText } from "@ai16z/eliza/src/parsing.ts";
+import { generateText, trimTokens } from "@ai16z/eliza";
+import { parseJSONObjectFromText } from "@ai16z/eliza";
 import {
     IAgentRuntime,
     IImageDescriptionService,
@@ -9,7 +9,7 @@ import {
     Media,
     ModelClass,
     ServiceType,
-} from "@ai16z/eliza/src/types.ts";
+} from "@ai16z/eliza";
 import { Attachment, Collection } from "discord.js";
 import ffmpeg from "fluent-ffmpeg";
 import fs from "fs";
@@ -135,9 +135,16 @@ export class AttachmentManager {
                 throw new Error("Unsupported audio/video format");
             }
 
-            const transcription = await this.runtime
-                .getService<ITranscriptionService>(ServiceType.TRANSCRIPTION)
-                .transcribeAttachment(audioBuffer);
+            const transcriptionService =
+                this.runtime.getService<ITranscriptionService>(
+                    ServiceType.TRANSCRIPTION
+                );
+            if (!transcriptionService) {
+                throw new Error("Transcription service not found");
+            }
+
+            const transcription =
+                await transcriptionService.transcribeAttachment(audioBuffer);
             const { title, description } = await generateSummary(
                 this.runtime,
                 transcription
@@ -319,14 +326,19 @@ export class AttachmentManager {
     private async processVideoAttachment(
         attachment: Attachment
     ): Promise<Media> {
-        if (
-            this.runtime
-                .getService<IVideoService>(ServiceType.VIDEO)
-                .isVideoUrl(attachment.url)
-        ) {
-            const videoInfo = await this.runtime
-                .getService<IVideoService>(ServiceType.VIDEO)
-                .processVideo(attachment.url);
+        const videoService = this.runtime.getService<IVideoService>(
+            ServiceType.VIDEO
+        );
+
+        if (!videoService) {
+            throw new Error("Video service not found");
+        }
+
+        if (videoService.isVideoUrl(attachment.url)) {
+            const videoInfo = await videoService.processVideo(
+                attachment.url,
+                this.runtime
+            );
             return {
                 id: attachment.id,
                 url: attachment.url,

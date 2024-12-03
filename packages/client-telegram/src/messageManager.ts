@@ -1,8 +1,8 @@
 import { Message } from "@telegraf/types";
 import { Context, Telegraf } from "telegraf";
 
-import { composeContext } from "@ai16z/eliza/src/context.ts";
-import { embeddingZeroVector } from "@ai16z/eliza/src/memory.ts";
+import { composeContext, elizaLogger, ServiceType } from "@ai16z/eliza";
+import { getEmbeddingZeroVector } from "@ai16z/eliza";
 import {
     Content,
     HandlerCallback,
@@ -12,86 +12,85 @@ import {
     ModelClass,
     State,
     UUID,
-} from "@ai16z/eliza/src/types.ts";
-import { stringToUuid } from "@ai16z/eliza/src/uuid.ts";
+} from "@ai16z/eliza";
+import { stringToUuid } from "@ai16z/eliza";
 
-import {
-    generateMessageResponse,
-    generateShouldRespond,
-} from "@ai16z/eliza/src/generation.ts";
-import {
-    messageCompletionFooter,
-    shouldRespondFooter,
-} from "@ai16z/eliza/src/parsing.ts";
-import ImageDescriptionService from "@ai16z/plugin-node/src/services/image.ts";
+import { generateMessageResponse, generateShouldRespond } from "@ai16z/eliza";
+import { messageCompletionFooter, shouldRespondFooter } from "@ai16z/eliza";
 
 const MAX_MESSAGE_LENGTH = 4096; // Telegram's max message length
 
 const telegramShouldRespondTemplate =
-    `# Task: Decide if {{agentName}} should respond.
-About {{agentName}}:
+    `# About {{agentName}}:
 {{bio}}
 
-# INSTRUCTIONS: Determine if {{agentName}} should respond to the message and participate in the conversation. Do not comment. Just respond with "RESPOND" or "IGNORE" or "STOP".
-
 # RESPONSE EXAMPLES
-<user 1>: I just saw a really great movie
-<user 2>: Oh? Which movie?
+{{user1}}: I just saw a really great movie
+{{user2}}: Oh? Which movie?
 Result: [IGNORE]
 
 {{agentName}}: Oh, this is my favorite scene
-<user 1>: sick
-<user 2>: wait, why is it your favorite scene
+{{user1}}: sick
+{{user2}}: wait, why is it your favorite scene
 Result: [RESPOND]
 
-<user>: stfu bot
+{{user1}}: stfu bot
 Result: [STOP]
 
-<user>: Hey {{agent}}, can you help me with something
+{{user1}}: Hey {{agent}}, can you help me with something
 Result: [RESPOND]
 
-<user>: {{agentName}} stfu plz
+{{user1}}: {{agentName}} stfu plz
 Result: [STOP]
 
-<user>: i need help
+{{user1}}: i need help
 {{agentName}}: how can I help you?
-<user>: no. i need help from someone else
+{{user1}}: no. i need help from someone else
 Result: [IGNORE]
 
-<user>: Hey {{agent}}, can I ask you a question
+{{user1}}: Hey {{agent}}, can I ask you a question
 {{agentName}}: Sure, what is it
-<user>: can you ask claude to create a basic react module that demonstrates a counter
+{{user1}}: can you ask claude to create a basic react module that demonstrates a counter
 Result: [RESPOND]
 
-<user>: {{agentName}} can you tell me a story
-<user>: {about a girl named elara
-{{agentName}}: Sure.
-{{agentName}}: Once upon a time, in a quaint little village, there was a curious girl named Elara.
-{{agentName}}: Elara was known for her adventurous spirit and her knack for finding beauty in the mundane.
-<user>: I'm loving it, keep going
+{{user1}}: {{agentName}} can you tell me a story
+{{agentName}}: uhhh...
+{{user1}}: please do it
+{{agentName}}: okay
+{{agentName}}: once upon a time, in a quaint little village, there was a curious girl named elara
+{{user1}}: I'm loving it, keep going
 Result: [RESPOND]
 
-<user>: {{agentName}} stop responding plz
+{{user1}}: {{agentName}} stop responding plz
 Result: [STOP]
 
-<user>: okay, i want to test something. can you say marco?
+{{user1}}: okay, i want to test something. {{agentName}}, can you say marco?
 {{agentName}}: marco
-<user>: great. okay, now do it again
+{{user1}}: great. okay, now do it again
 Result: [RESPOND]
 
 Response options are [RESPOND], [IGNORE] and [STOP].
 
-{{agentName}} is in a room with other users and is very worried about being annoying and saying too much.
+{{agentName}} is in a room with other users and should only respond when they are being addressed, and should not respond if they are continuing a conversation that is very long.
+
 Respond with [RESPOND] to messages that are directed at {{agentName}}, or participate in conversations that are interesting or relevant to their background.
-If a message is not interesting or relevant, respond with [IGNORE]
-Unless directly responding to a user, respond with [IGNORE] to messages that are very short or do not contain much information.
+If a message is not interesting, relevant, or does not directly address {{agentName}}, respond with [IGNORE]
+
+Also, respond with [IGNORE] to messages that are very short or do not contain much information.
+
 If a user asks {{agentName}} to be quiet, respond with [STOP]
 If {{agentName}} concludes a conversation and isn't part of the conversation anymore, respond with [STOP]
 
 IMPORTANT: {{agentName}} is particularly sensitive about being annoying, so if there is any doubt, it is better to respond with [IGNORE].
 If {{agentName}} is conversing with a user and they have not asked to stop, it is better to respond with [RESPOND].
 
+The goal is to decide whether {{agentName}} should respond to the last message.
+
 {{recentMessages}}
+
+Thread of Tweets You Are Replying To:
+
+{{formattedConversation}}
 
 # INSTRUCTIONS: Choose the option that best describes {{agentName}}'s response to the last message. Ignore messages if they are addressed to someone else.
 ` + shouldRespondFooter;
@@ -101,6 +100,9 @@ const telegramMessageHandlerTemplate =
     `# Action Examples
 {{actionExamples}}
 (Action examples are for reference only. Do not use the information from them in your response.)
+
+# Knowledge
+{{knowledge}}
 
 # Task: Generate dialog and actions for the character {{agentName}}.
 About {{agentName}}:
@@ -123,64 +125,60 @@ Note that {{agentName}} is capable of reading/seeing/hearing various forms of me
 
 {{recentMessages}}
 
-# Instructions: Write the next message for {{agentName}}. Include an action, if appropriate. {{actionNames}}
+# Task: Generate a post/reply in the voice, style and perspective of {{agentName}} (@{{twitterUserName}}) while using the thread of tweets as additional context:
+Current Post:
+{{currentPost}}
+Thread of Tweets You Are Replying To:
+
+{{formattedConversation}}
 ` + messageCompletionFooter;
 
 export class MessageManager {
-    private bot: Telegraf<Context>;
+    public bot: Telegraf<Context>;
     private runtime: IAgentRuntime;
-    private imageService: IImageDescriptionService;
 
     constructor(bot: Telegraf<Context>, runtime: IAgentRuntime) {
         this.bot = bot;
         this.runtime = runtime;
-        this.imageService = ImageDescriptionService.getInstance();
     }
 
     // Process image messages and generate descriptions
     private async processImage(
         message: Message
     ): Promise<{ description: string } | null> {
-        // console.log(
-        //     "🖼️ Processing image message:",
-        //     JSON.stringify(message, null, 2)
-        // );
-
         try {
             let imageUrl: string | null = null;
 
-            // Handle photo messages
             if ("photo" in message && message.photo?.length > 0) {
                 const photo = message.photo[message.photo.length - 1];
                 const fileLink = await this.bot.telegram.getFileLink(
                     photo.file_id
                 );
                 imageUrl = fileLink.toString();
-            }
-            // Handle image documents
-            else if (
+            } else if (
                 "document" in message &&
                 message.document?.mime_type?.startsWith("image/")
             ) {
-                const doc = message.document;
                 const fileLink = await this.bot.telegram.getFileLink(
-                    doc.file_id
+                    message.document.file_id
                 );
                 imageUrl = fileLink.toString();
             }
 
             if (imageUrl) {
-                const { title, description } = await this.imageService
-                    .getInstance()
-                    .describeImage(imageUrl);
-                const fullDescription = `[Image: ${title}\n${description}]`;
-                return { description: fullDescription };
+                const imageDescriptionService =
+                    this.runtime.getService<IImageDescriptionService>(
+                        ServiceType.IMAGE_DESCRIPTION
+                    );
+                const { title, description } =
+                    await imageDescriptionService.describeImage(imageUrl);
+                return { description: `[Image: ${title}\n${description}]` };
             }
         } catch (error) {
             console.error("❌ Error processing image:", error);
         }
 
-        return null; // No image found
+        return null;
     }
 
     // Decide if the bot should respond to the message
@@ -189,7 +187,6 @@ export class MessageManager {
         state: State
     ): Promise<boolean> {
         // Respond if bot is mentioned
-
         if (
             "text" in message &&
             message.text?.includes(`@${this.bot.botInfo?.username}`)
@@ -202,7 +199,7 @@ export class MessageManager {
             return true;
         }
 
-        // Respond to images in group chats
+        // Don't respond to images in group chats
         if (
             "photo" in message ||
             ("document" in message &&
@@ -231,7 +228,7 @@ export class MessageManager {
             return response === "RESPOND";
         }
 
-        return false; // No criteria met
+        return false;
     }
 
     // Send long messages in chunks
@@ -284,7 +281,7 @@ export class MessageManager {
     // Generate a response using AI
     private async _generateResponse(
         message: Memory,
-        state: State,
+        _state: State,
         context: string
     ): Promise<Content> {
         const { userId, roomId } = message;
@@ -299,9 +296,10 @@ export class MessageManager {
             console.error("❌ No response from generateMessageResponse");
             return null;
         }
+
         await this.runtime.databaseAdapter.log({
             body: { message, context, response },
-            userId: userId,
+            userId,
             roomId,
             type: "response",
         });
@@ -315,24 +313,43 @@ export class MessageManager {
             return; // Exit if no message or sender info
         }
 
-        // TODO: Handle commands?
-        // if (ctx.message.text?.startsWith("/")) {
-        //     return;
-        // }
+        if (
+            this.runtime.character.clientConfig?.telegram
+                ?.shouldIgnoreBotMessages &&
+            ctx.from.is_bot
+        ) {
+            return;
+        }
+        if (
+            this.runtime.character.clientConfig?.telegram
+                ?.shouldIgnoreDirectMessages &&
+            ctx.chat?.type === "private"
+        ) {
+            return;
+        }
 
         const message = ctx.message;
 
         try {
             // Convert IDs to UUIDs
             const userId = stringToUuid(ctx.from.id.toString()) as UUID;
+
+            // Get user name
             const userName =
                 ctx.from.username || ctx.from.first_name || "Unknown User";
+
+            // Get chat ID
             const chatId = stringToUuid(
                 ctx.chat?.id.toString() + "-" + this.runtime.agentId
             ) as UUID;
+
+            // Get agent ID
             const agentId = this.runtime.agentId;
+
+            // Get room ID
             const roomId = chatId;
 
+            // Ensure connection
             await this.runtime.ensureConnection(
                 userId,
                 roomId,
@@ -341,6 +358,7 @@ export class MessageManager {
                 "telegram"
             );
 
+            // Get message ID
             const messageId = stringToUuid(
                 message.message_id.toString() + "-" + this.runtime.agentId
             ) as UUID;
@@ -365,6 +383,7 @@ export class MessageManager {
                 return; // Skip if no content
             }
 
+            // Create content
             const content: Content = {
                 text: fullText,
                 source: "telegram",
@@ -386,9 +405,10 @@ export class MessageManager {
                 roomId,
                 content,
                 createdAt: message.date * 1000,
-                embedding: embeddingZeroVector,
+                embedding: getEmbeddingZeroVector(),
             };
 
+            // Create memory
             await this.runtime.messageManager.createMemory(memory);
 
             // Update state with the new memory
@@ -397,85 +417,92 @@ export class MessageManager {
 
             // Decide whether to respond
             const shouldRespond = await this._shouldRespond(message, state);
+
             if (shouldRespond) {
-            // Generate response
-            const context = composeContext({
-                state,
-                template:
-                    this.runtime.character.templates
-                        ?.telegramMessageHandlerTemplate ||
-                    this.runtime.character?.templates?.messageHandlerTemplate ||
-                    telegramMessageHandlerTemplate,
-            });
+                // Generate response
+                const context = composeContext({
+                    state,
+                    template:
+                        this.runtime.character.templates
+                            ?.telegramMessageHandlerTemplate ||
+                        this.runtime.character?.templates
+                            ?.messageHandlerTemplate ||
+                        telegramMessageHandlerTemplate,
+                });
 
-            const responseContent = await this._generateResponse(
-                memory,
-                state,
-                context
-            );
-
-            if (!responseContent || !responseContent.text) return;
-
-            // Send response in chunks
-            const callback: HandlerCallback = async (content: Content) => {
-                const sentMessages = await this.sendMessageInChunks(
-                    ctx,
-                    content.text,
-                    message.message_id
+                const responseContent = await this._generateResponse(
+                    memory,
+                    state,
+                    context
                 );
 
-                const memories: Memory[] = [];
+                if (!responseContent || !responseContent.text) return;
 
-                // Create memories for each sent message
-                for (let i = 0; i < sentMessages.length; i++) {
-                    const sentMessage = sentMessages[i];
-                    const isLastMessage = i === sentMessages.length - 1;
+                // Send response in chunks
+                const callback: HandlerCallback = async (content: Content) => {
+                    const sentMessages = await this.sendMessageInChunks(
+                        ctx,
+                        content.text,
+                        message.message_id
+                    );
 
-                    const memory: Memory = {
-                        id: stringToUuid(
-                            sentMessage.message_id.toString() +
-                                "-" +
-                                this.runtime.agentId
-                        ),
-                        agentId,
-                        userId,
-                        roomId,
-                        content: {
-                            ...content,
-                            text: sentMessage.text,
-                            action: !isLastMessage ? "CONTINUE" : undefined,
-                            inReplyTo: messageId,
-                        },
-                        createdAt: sentMessage.date * 1000,
-                        embedding: embeddingZeroVector,
-                    };
+                    const memories: Memory[] = [];
 
-                    await this.runtime.messageManager.createMemory(memory);
-                    memories.push(memory);
-                }
+                    // Create memories for each sent message
+                    for (let i = 0; i < sentMessages.length; i++) {
+                        const sentMessage = sentMessages[i];
+                        const isLastMessage = i === sentMessages.length - 1;
 
-                return memories;
-            };
+                        const memory: Memory = {
+                            id: stringToUuid(
+                                sentMessage.message_id.toString() +
+                                    "-" +
+                                    this.runtime.agentId
+                            ),
+                            agentId,
+                            userId,
+                            roomId,
+                            content: {
+                                ...content,
+                                text: sentMessage.text,
+                                inReplyTo: messageId,
+                            },
+                            createdAt: sentMessage.date * 1000,
+                            embedding: getEmbeddingZeroVector(),
+                        };
 
-            // Execute callback to send messages and log memories
-            const responseMessages = await callback(responseContent);
+                        // Set action to CONTINUE for all messages except the last one
+                        // For the last message, use the original action from the response content
+                        memory.content.action = !isLastMessage
+                            ? "CONTINUE"
+                            : content.action;
 
-            // Update state after response
-            state = await this.runtime.updateRecentMessageState(state);
+                        await this.runtime.messageManager.createMemory(memory);
+                        memories.push(memory);
+                    }
 
-            // Handle any resulting actions
-            await this.runtime.processActions(
-                memory,
-                responseMessages,
-                state,
-                callback
-            );
-        }
+                    return memories;
+                };
+
+                // Execute callback to send messages and log memories
+                const responseMessages = await callback(responseContent);
+
+                // Update state after response
+                state = await this.runtime.updateRecentMessageState(state);
+
+                // Handle any resulting actions
+                await this.runtime.processActions(
+                    memory,
+                    responseMessages,
+                    state,
+                    callback
+                );
+            }
 
             await this.runtime.evaluate(memory, state, shouldRespond);
         } catch (error) {
-            console.error("❌ Error handling message:", error);
-            console.error("Error sending message:", error);
+            elizaLogger.error("❌ Error handling message:", error);
+            elizaLogger.error("Error sending message:", error);
         }
     }
 }

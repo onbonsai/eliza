@@ -1,12 +1,10 @@
-import { embed } from "@ai16z/eliza/src/embedding.ts";
-import { MemoryManager } from "@ai16z/eliza/src/memory.ts";
-import { formatMessages } from "@ai16z/eliza/src/messages.ts";
 import {
-    IAgentRuntime,
-    Memory,
-    Provider,
-    State,
-} from "@ai16z/eliza/src/types.ts";
+    embed,
+    MemoryManager,
+    formatMessages,
+    AgentRuntime as IAgentRuntime,
+} from "@ai16z/eliza";
+import type { Memory, Provider, State } from "@ai16z/eliza";
 import { formatFacts } from "../evaluators/fact.ts";
 
 const factsProvider: Provider = {
@@ -18,18 +16,14 @@ const factsProvider: Provider = {
             actors: state?.actorsData,
         });
 
-        const embedding = await embed(runtime, recentMessages);
-
-        console.log('embedding', embedding);
-        console.log('embedding length', embedding.length);
-
+        const _embedding = await embed(runtime, recentMessages);
 
         const memoryManager = new MemoryManager({
             runtime,
             tableName: "facts",
         });
 
-        const relevantFacts = []
+        const relevantFacts = [];
         //  await memoryManager.searchMemoriesByEmbedding(
         //     embedding,
         //     {
@@ -42,7 +36,8 @@ const factsProvider: Provider = {
         const recentFactsData = await memoryManager.getMemories({
             roomId: message.roomId,
             count: 10,
-            agentId: runtime.agentId,
+            start: 0,
+            end: Date.now(),
         });
 
         // join the two and deduplicate
@@ -50,6 +45,10 @@ const factsProvider: Provider = {
             (fact, index, self) =>
                 index === self.findIndex((t) => t.id === fact.id)
         );
+
+        if (allFacts.length === 0) {
+            return "";
+        }
 
         const formattedFacts = formatFacts(allFacts);
 

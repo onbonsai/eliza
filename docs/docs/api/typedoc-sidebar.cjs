@@ -36,6 +36,7 @@ const typedocSidebar = {
           id: "api/classes/MemoryManager",
           label: "MemoryManager",
         },
+        { type: "doc", id: "api/classes/Service", label: "Service" },
       ],
     },
     {
@@ -199,6 +200,11 @@ const typedocSidebar = {
         { type: "doc", id: "api/functions/embed", label: "embed" },
         {
           type: "doc",
+          id: "api/functions/findNearestEnvFile",
+          label: "findNearestEnvFile",
+        },
+        {
+          type: "doc",
           id: "api/functions/formatActionNames",
           label: "formatActionNames",
         },
@@ -320,6 +326,11 @@ const typedocSidebar = {
           type: "doc",
           id: "api/functions/getRelationships",
           label: "getRelationships",
+        },
+        {
+          type: "doc",
+          id: "api/functions/loadEnvConfig",
+          label: "loadEnvConfig",
         },
         {
           type: "doc",

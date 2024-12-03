@@ -1,3 +1,5 @@
+[@ai16z/eliza v0.1.4-alpha.3](../index.md) / generateCaption
+
 # Function: generateCaption()
 
 > **generateCaption**(`data`, `runtime`): `Promise`\<`object`\>
@@ -24,4 +26,4 @@
 
 ## Defined in
 
-[packages/core/src/generation.ts:734](https://github.com/ai16z/eliza/blob/main/packages/core/src/generation.ts#L734)
+[packages/core/src/generation.ts:975](https://github.com/ai16z/eliza/blob/main/packages/core/src/generation.ts#L975)

@@ -9,7 +9,18 @@ const sidebars = {
     {
       type: "category",
       label: "🏁 Getting Started",
-      items: ["quickstart"],  // Consolidated installation into quickstart
+      items: [
+        {
+          type: "doc",
+          id: "quickstart",
+          label: "⭐ Quick Start",
+        },
+        {
+          type: "doc",
+          id: "faq",
+          label: "❓ FAQ",
+        },
+      ],
       collapsed: false,
     },
     {
@@ -20,27 +31,27 @@ const sidebars = {
         {
           type: "doc",
           id: "core/characterfile",
-          label: "📝 Character Files"
+          label: "Character Files",
         },
         {
           type: "doc",
           id: "core/agents",
-          label: "🤖 Agents"
+          label: "Agents",
         },
         {
           type: "doc",
           id: "core/providers",
-          label: "🔌 Providers"
+          label: "Providers",
         },
         {
           type: "doc",
           id: "core/actions",
-          label: "⚡ Actions"
+          label: "Actions",
         },
         {
           type: "doc",
           id: "core/evaluators",
-          label: "📊 Evaluators"
+          label: "Evaluators",
         },
       ],
     },
@@ -52,22 +63,22 @@ const sidebars = {
         {
           type: "doc",
           id: "guides/configuration",
-          label: "⚙️ Configuration"
+          label: "Configuration",
         },
         {
           type: "doc",
           id: "guides/advanced",
-          label: "🔧 Advanced Usage"
+          label: "Advanced Usage",
         },
         {
           type: "doc",
           id: "guides/secrets-management",
-          label: "🔐 Secrets Management"
+          label: "Secrets Management",
         },
         {
           type: "doc",
           id: "guides/local-development",
-          label: "💻 Local Development"
+          label: "Local Development",
         },
       ],
     },
@@ -79,57 +90,62 @@ const sidebars = {
         {
           type: "doc",
           id: "advanced/fine-tuning",
-          label: "🎯 Fine-tuning"
+          label: "Fine-tuning",
         },
         {
           type: "doc",
           id: "advanced/infrastructure",
-          label: "🏗️ Infrastructure"
+          label: "Infrastructure",
         },
         {
           type: "doc",
           id: "advanced/trust-engine",
-          label: "🤝 Trust Engine"
+          label: "Trust Engine",
         },
         {
           type: "doc",
           id: "advanced/autonomous-trading",
-          label: "📈 Autonomous Trading"
+          label: "Autonomous Trading",
         },
       ],
     },
     {
       type: "category",
-      label: "👥 Community",
+      label: "📦 Packages",
       collapsed: false,
       items: [
         {
           type: "doc",
-          id: "community/creator-fund",
-          label: "💰 Creator Fund"
+          id: "packages/packages",
+          label: "Overview",
         },
         {
           type: "doc",
-          id: "community/stream-notes",
-          label: "📺 Stream Notes"
+          id: "packages/core",
+          label: "Core Package",
         },
         {
           type: "doc",
-          id: "community/changelog",
-          label: "📝 Changelog"
+          id: "packages/adapters",
+          label: "Database Adapters",
         },
         {
           type: "doc",
-          id: "community/faq",
-          label: "❓ FAQ"
+          id: "packages/clients",
+          label: "Client Packages",
         },
         {
           type: "doc",
-          id: "community/contributing",
-          label: "🤝 Contributing"
+          id: "packages/agent",
+          label: "Agent Package",
+        },
+        {
+          type: "doc",
+          id: "packages/plugins",
+          label: "Plugin System",
         },
       ],
-    },
+    }
   ],
 };
 

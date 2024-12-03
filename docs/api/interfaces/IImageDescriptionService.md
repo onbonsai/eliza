@@ -1,42 +1,54 @@
+[@ai16z/eliza v0.1.4-alpha.3](../index.md) / IImageDescriptionService
+
 # Interface: IImageDescriptionService
 
 ## Extends
 
 - [`Service`](../classes/Service.md)
 
-## Methods
+## Accessors
 
-### getInstance()
+### serviceType
 
-> **getInstance**(): [`IImageDescriptionService`](IImageDescriptionService.md)
+#### Get Signature
 
-#### Returns
+> **get** **serviceType**(): [`ServiceType`](../enumerations/ServiceType.md)
 
-[`IImageDescriptionService`](IImageDescriptionService.md)
+##### Returns
+
+[`ServiceType`](../enumerations/ServiceType.md)
+
+#### Inherited from
+
+[`Service`](../classes/Service.md).[`serviceType`](../classes/Service.md#serviceType-1)
 
 #### Defined in
 
-[packages/core/src/types.ts:583](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L583)
+[packages/core/src/types.ts:966](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L966)
 
-***
+## Methods
 
 ### initialize()
 
-> **initialize**(`modelId`?, `device`?): `Promise`\<`void`\>
+> `abstract` **initialize**(`runtime`): `Promise`\<`void`\>
+
+Add abstract initialize method that must be implemented by derived classes
 
 #### Parameters
 
-• **modelId?**: `string`
-
-• **device?**: `string`
+• **runtime**: [`IAgentRuntime`](IAgentRuntime.md)
 
 #### Returns
 
 `Promise`\<`void`\>
 
+#### Inherited from
+
+[`Service`](../classes/Service.md).[`initialize`](../classes/Service.md#initialize)
+
 #### Defined in
 
-[packages/core/src/types.ts:584](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L584)
+[packages/core/src/types.ts:971](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L971)
 
 ***
 
@@ -62,4 +74,4 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:585](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L585)
+[packages/core/src/types.ts:1058](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L1058)

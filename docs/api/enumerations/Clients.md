@@ -1,4 +1,8 @@
+[@ai16z/eliza v0.1.4-alpha.3](../index.md) / Clients
+
 # Enumeration: Clients
+
+Available client platforms
 
 ## Enumeration Members
 
@@ -8,7 +12,7 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:321](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L321)
+[packages/core/src/types.ts:599](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L599)
 
 ***
 
@@ -18,7 +22,7 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:322](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L322)
+[packages/core/src/types.ts:600](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L600)
 
 ***
 
@@ -28,7 +32,7 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:323](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L323)
+[packages/core/src/types.ts:601](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L601)
 
 ***
 
@@ -38,4 +42,4 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:324](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L324)
+[packages/core/src/types.ts:602](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L602)

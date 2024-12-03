@@ -1,5 +1,7 @@
-import { DatabaseAdapter } from "@ai16z/eliza/src/database.ts";
-import { embeddingZeroVector } from "@ai16z/eliza/src/memory.ts";
+export * from "./sqliteTables.ts";
+export * from "./sqlite_vec.ts";
+
+import { DatabaseAdapter, IDatabaseCacheAdapter } from "@ai16z/eliza";
 import {
     Account,
     Actor,
@@ -9,13 +11,16 @@ import {
     type Memory,
     type Relationship,
     type UUID,
-} from "@ai16z/eliza/src/types.ts";
+} from "@ai16z/eliza";
 import { Database } from "better-sqlite3";
 import { v4 } from "uuid";
 import { load } from "./sqlite_vec.ts";
 import { sqliteTables } from "./sqliteTables.ts";
 
-export class SqliteDatabaseAdapter extends DatabaseAdapter {
+export class SqliteDatabaseAdapter
+    extends DatabaseAdapter<Database>
+    implements IDatabaseCacheAdapter
+{
     async getRoom(roomId: UUID): Promise<UUID | null> {
         const sql = "SELECT id FROM rooms WHERE id = ?";
         const room = this.db.prepare(sql).get(roomId) as
@@ -68,18 +73,14 @@ export class SqliteDatabaseAdapter extends DatabaseAdapter {
         super();
         this.db = db;
         load(db);
+    }
 
-        // Check if the 'accounts' table exists as a representative table
-        const tableExists = this.db
-            .prepare(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name='accounts'"
-            )
-            .get();
+    async init() {
+        this.db.exec(sqliteTables);
+    }
 
-        if (!tableExists) {
-            // If the 'accounts' table doesn't exist, create all the tables
-            this.db.exec(sqliteTables);
-        }
+    async close() {
+        this.db.close();
     }
 
     async getAccountById(userId: UUID): Promise<Account | null> {
@@ -145,22 +146,21 @@ export class SqliteDatabaseAdapter extends DatabaseAdapter {
     }
 
     async getMemoriesByRoomIds(params: {
+        agentId: UUID;
         roomIds: UUID[];
         tableName: string;
-        agentId?: UUID;
     }): Promise<Memory[]> {
         if (!params.tableName) {
             // default to messages
             params.tableName = "messages";
         }
         const placeholders = params.roomIds.map(() => "?").join(", ");
-        let sql = `SELECT * FROM memories WHERE type = ? AND roomId IN (${placeholders})`;
-        let queryParams = [params.tableName, ...params.roomIds];
-
-        if (params.agentId) {
-            sql += ` AND agentId = ?`;
-            queryParams.push(params.agentId);
-        }
+        const sql = `SELECT * FROM memories WHERE type = ? AND agentId = ? AND roomId IN (${placeholders})`;
+        const queryParams = [
+            params.tableName,
+            params.agentId,
+            ...params.roomIds,
+        ];
 
         const stmt = this.db.prepare(sql);
         const rows = stmt.all(...queryParams) as (Memory & {
@@ -191,8 +191,8 @@ export class SqliteDatabaseAdapter extends DatabaseAdapter {
 
     async createMemory(memory: Memory, tableName: string): Promise<void> {
         // Delete any existing memory with the same ID first
-        const deleteSql = `DELETE FROM memories WHERE id = ? AND type = ?`;
-        this.db.prepare(deleteSql).run(memory.id, tableName);
+        // const deleteSql = `DELETE FROM memories WHERE id = ? AND type = ?`;
+        // this.db.prepare(deleteSql).run(memory.id, tableName);
 
         let isUnique = true;
 
@@ -202,6 +202,7 @@ export class SqliteDatabaseAdapter extends DatabaseAdapter {
                 memory.embedding,
                 {
                     tableName,
+                    agentId: memory.agentId,
                     roomId: memory.roomId,
                     match_threshold: 0.95, // 5% similarity threshold
                     count: 1,
@@ -220,7 +221,7 @@ export class SqliteDatabaseAdapter extends DatabaseAdapter {
             memory.id ?? v4(),
             tableName,
             content,
-            new Float32Array(memory.embedding ?? embeddingZeroVector), // Store as Float32Array
+            new Float32Array(memory.embedding!), // Store as Float32Array
             memory.userId,
             memory.roomId,
             memory.agentId,
@@ -238,17 +239,18 @@ export class SqliteDatabaseAdapter extends DatabaseAdapter {
         match_count: number;
         unique: boolean;
     }): Promise<Memory[]> {
+        // Build the query and parameters carefully
         const queryParams = [
             new Float32Array(params.embedding), // Ensure embedding is Float32Array
             params.tableName,
             params.roomId,
-            params.match_count,
         ];
 
         let sql = `
-      SELECT *, vec_distance_L2(embedding, ?) AS similarity
-      FROM memories
-      WHERE type = ?`;
+            SELECT *, vec_distance_L2(embedding, ?) AS similarity
+            FROM memories 
+            WHERE type = ? 
+            AND roomId = ?`;
 
         if (params.unique) {
             sql += " AND `unique` = 1";
@@ -258,13 +260,14 @@ export class SqliteDatabaseAdapter extends DatabaseAdapter {
             sql += " AND agentId = ?";
             queryParams.push(params.agentId);
         }
-
         sql += ` ORDER BY similarity ASC LIMIT ?`; // ASC for lower distance
-        // Updated queryParams order matches the placeholders
+        queryParams.push(params.match_count.toString()); // Convert number to string
 
+        // Execute the prepared statement with the correct number of parameters
         const memories = this.db.prepare(sql).all(...queryParams) as (Memory & {
             similarity: number;
         })[];
+
         return memories.map((memory) => ({
             ...memory,
             createdAt:
@@ -281,7 +284,7 @@ export class SqliteDatabaseAdapter extends DatabaseAdapter {
             match_threshold?: number;
             count?: number;
             roomId?: UUID;
-            agentId?: UUID;
+            agentId: UUID;
             unique?: boolean;
             tableName: string;
         }
@@ -290,19 +293,16 @@ export class SqliteDatabaseAdapter extends DatabaseAdapter {
             // JSON.stringify(embedding),
             new Float32Array(embedding),
             params.tableName,
+            params.agentId,
         ];
 
         let sql = `
       SELECT *, vec_distance_L2(embedding, ?) AS similarity
       FROM memories
-      WHERE type = ?`;
+      WHERE embedding IS NOT NULL AND type = ? AND agentId = ?`;
 
         if (params.unique) {
             sql += " AND `unique` = 1";
-        }
-        if (params.agentId) {
-            sql += " AND agentId = ?";
-            queryParams.push(params.agentId);
         }
 
         if (params.roomId) {
@@ -337,28 +337,53 @@ export class SqliteDatabaseAdapter extends DatabaseAdapter {
         query_field_sub_name: string;
         query_match_count: number;
     }): Promise<{ embedding: number[]; levenshtein_score: number }[]> {
+        // First get content text and calculate Levenshtein distance
         const sql = `
+            WITH content_text AS (
+                SELECT 
+                    embedding,
+                    json_extract(
+                        json(content),
+                        '$.' || ? || '.' || ?
+                    ) as content_text
+                FROM memories 
+                WHERE type = ?
+                AND json_extract(
+                    json(content),
+                    '$.' || ? || '.' || ?
+                ) IS NOT NULL
+            )
             SELECT 
                 embedding,
-                0 as levenshtein_score  -- Using 0 as placeholder score
-            FROM memories 
-            WHERE type = ?
-            AND json_extract(content, '$.' || ? || '.' || ?) IS NOT NULL
+                length(?) + length(content_text) - (
+                    length(?) + length(content_text) - (
+                        length(replace(lower(?), lower(content_text), '')) + 
+                        length(replace(lower(content_text), lower(?), ''))
+                    ) / 2
+                ) as levenshtein_score
+            FROM content_text
+            ORDER BY levenshtein_score ASC
             LIMIT ?
         `;
 
-        const params = [
-            opts.query_table_name,
-            opts.query_field_name,
-            opts.query_field_sub_name,
-            opts.query_match_count
-        ];
-
-        const rows = this.db.prepare(sql).all(...params);
+        const rows = this.db
+            .prepare(sql)
+            .all(
+                opts.query_field_name,
+                opts.query_field_sub_name,
+                opts.query_table_name,
+                opts.query_field_name,
+                opts.query_field_sub_name,
+                opts.query_input,
+                opts.query_input,
+                opts.query_input,
+                opts.query_input,
+                opts.query_match_count
+            ) as { embedding: Buffer; levenshtein_score: number }[];
 
         return rows.map((row) => ({
-            embedding: row.embedding,
-            levenshtein_score: 0
+            embedding: Array.from(new Float32Array(row.embedding as Buffer)),
+            levenshtein_score: row.levenshtein_score,
         }));
     }
 
@@ -393,7 +418,7 @@ export class SqliteDatabaseAdapter extends DatabaseAdapter {
         count?: number;
         unique?: boolean;
         tableName: string;
-        agentId?: UUID;
+        agentId: UUID;
         start?: number;
         end?: number;
     }): Promise<Memory[]> {
@@ -403,17 +428,16 @@ export class SqliteDatabaseAdapter extends DatabaseAdapter {
         if (!params.roomId) {
             throw new Error("roomId is required");
         }
-        let sql = `SELECT * FROM memories WHERE type = ? AND roomId = ?`;
+        let sql = `SELECT * FROM memories WHERE type = ? AND agentId = ? AND roomId = ?`;
 
-        const queryParams = [params.tableName, params.roomId] as any[];
+        const queryParams = [
+            params.tableName,
+            params.agentId,
+            params.roomId,
+        ] as any[];
 
         if (params.unique) {
             sql += " AND `unique` = 1";
-        }
-
-        if (params.agentId) {
-            sql += " AND agentId = ?";
-            queryParams.push(params.agentId);
         }
 
         if (params.start) {
@@ -645,5 +669,42 @@ export class SqliteDatabaseAdapter extends DatabaseAdapter {
         return this.db
             .prepare(sql)
             .all(params.userId, params.userId) as Relationship[];
+    }
+
+    async getCache(params: {
+        key: string;
+        agentId: UUID;
+    }): Promise<string | undefined> {
+        const sql = "SELECT value FROM cache WHERE (key = ? AND agentId = ?)";
+        const cached = this.db
+            .prepare<[string, UUID], { value: string }>(sql)
+            .get(params.key, params.agentId);
+
+        return cached?.value ?? undefined;
+    }
+
+    async setCache(params: {
+        key: string;
+        agentId: UUID;
+        value: string;
+    }): Promise<boolean> {
+        const sql =
+            "INSERT OR REPLACE INTO cache (key, agentId, value, createdAt) VALUES (?, ?, ?, CURRENT_TIMESTAMP)";
+        this.db.prepare(sql).run(params.key, params.agentId, params.value);
+        return true;
+    }
+
+    async deleteCache(params: {
+        key: string;
+        agentId: UUID;
+    }): Promise<boolean> {
+        try {
+            const sql = "DELETE FROM cache WHERE key = ? AND agentId = ?";
+            this.db.prepare(sql).run(params.key, params.agentId);
+            return true;
+        } catch (error) {
+            console.log("Error removing cache", error);
+            return false;
+        }
     }
 }

@@ -1,70 +1,180 @@
-import dotenv from "dotenv";
-import { zeroUuid } from "../src/test_resources/constants.ts";
-import { createRuntime } from "../src/test_resources/createRuntime.ts"; // Adjust the import path as needed
-import { getOrCreateRelationship } from "../src/test_resources/getOrCreateRelationship.ts";
-import { type User } from "../src/test_resources/types.ts";
-import { createRelationship, getRelationships } from "../src/relationships.ts"; // Adjust the import path as needed
-import { IAgentRuntime, type UUID } from "../src/types.ts";
+import {
+    createRelationship,
+    getRelationship,
+    getRelationships,
+    formatRelationships,
+} from "../relationships";
+import { IAgentRuntime, type Relationship, type UUID } from "../types";
+import { describe, expect, vi } from "vitest";
 
-dotenv.config({ path: ".dev.vars" });
+// Mock runtime and databaseAdapter
+const mockDatabaseAdapter = {
+    createRelationship: vi.fn(),
+    getRelationship: vi.fn(),
+    getRelationships: vi.fn(),
+};
+const mockRuntime: IAgentRuntime = {
+    databaseAdapter: mockDatabaseAdapter,
+} as unknown as IAgentRuntime;
 
 describe("Relationships Module", () => {
-    let runtime: IAgentRuntime;
-    let user: User;
+    // Helper function to generate random UUIDs
+    const generateRandomUUID = (): UUID => crypto.randomUUID() as UUID;
 
-    beforeAll(async () => {
-        const setup = await createRuntime({
-            env: process.env as Record<string, string>,
-        });
-        runtime = setup.runtime;
-        user = setup.session.user;
-        if (!user.id) {
-            throw new Error("User ID is undefined");
-        }
+    // Randomized UUIDs for each test run
+    const mockUserA: UUID = generateRandomUUID();
+    const mockUserB: UUID = generateRandomUUID();
+    const mockUserId: UUID = generateRandomUUID();
+
+    afterEach(() => {
+        vi.clearAllMocks();
     });
 
-    test("createRelationship creates a new relationship", async () => {
-        const userA = user.id as UUID;
-        const userB = zeroUuid;
-        if (userA === undefined) throw new Error("userA is undefined");
-        const relationship = await createRelationship({
-            runtime,
-            userA,
-            userB,
+    describe("createRelationship", () => {
+        it("should call createRelationship on the databaseAdapter with correct parameters", async () => {
+            mockDatabaseAdapter.createRelationship.mockResolvedValue(true);
+
+            const result = await createRelationship({
+                runtime: mockRuntime,
+                userA: mockUserA,
+                userB: mockUserB,
+            });
+
+            expect(mockDatabaseAdapter.createRelationship).toHaveBeenCalledWith(
+                {
+                    userA: mockUserA,
+                    userB: mockUserB,
+                }
+            );
+            expect(result).toBe(true);
         });
-        expect(relationship).toBe(true);
+
+        it("should handle errors from databaseAdapter", async () => {
+            mockDatabaseAdapter.createRelationship.mockRejectedValue(
+                new Error("Database error")
+            );
+
+            await expect(
+                createRelationship({
+                    runtime: mockRuntime,
+                    userA: mockUserA,
+                    userB: mockUserB,
+                })
+            ).rejects.toThrow("Database error");
+        });
     });
 
-    test("getRelationship retrieves an existing relationship", async () => {
-        const userA = user?.id as UUID;
-        const userB = zeroUuid;
+    describe("getRelationship", () => {
+        it("should call getRelationship on the databaseAdapter with correct parameters", async () => {
+            const mockRelationship: Relationship = {
+                userA: mockUserA,
+                userB: mockUserB,
+                id: generateRandomUUID(),
+                userId: generateRandomUUID(),
+                roomId: generateRandomUUID(),
+                status: "STATUS",
+            };
+            mockDatabaseAdapter.getRelationship.mockResolvedValue(
+                mockRelationship
+            );
 
-        await createRelationship({ runtime, userA, userB });
+            const result = await getRelationship({
+                runtime: mockRuntime,
+                userA: mockUserA,
+                userB: mockUserB,
+            });
 
-        const relationship = await getOrCreateRelationship({
-            runtime,
-            userA,
-            userB,
+            expect(mockDatabaseAdapter.getRelationship).toHaveBeenCalledWith({
+                userA: mockUserA,
+                userB: mockUserB,
+            });
+            expect(result).toEqual(mockRelationship);
         });
-        expect(relationship).toBeDefined();
-        expect(relationship?.userA).toBe(userA);
-        expect(relationship?.userB).toBe(userB);
     });
 
-    test("getRelationships retrieves all relationships for a user", async () => {
-        const userA = user?.id as UUID;
-        const userB = zeroUuid;
+    describe("getRelationships", () => {
+        it("should call getRelationships on the databaseAdapter with correct parameters", async () => {
+            const mockRelationships: Relationship[] = [
+                {
+                    userA: mockUserA,
+                    userB: mockUserB,
+                    id: generateRandomUUID(),
+                    userId: generateRandomUUID(),
+                    roomId: generateRandomUUID(),
+                    status: generateRandomUUID(),
+                },
+                {
+                    userA: mockUserB,
+                    userB: mockUserId,
+                    id: generateRandomUUID(),
+                    userId: generateRandomUUID(),
+                    roomId: generateRandomUUID(),
+                    status: "",
+                },
+            ];
+            mockDatabaseAdapter.getRelationships.mockResolvedValue(
+                mockRelationships
+            );
 
-        await createRelationship({ runtime, userA, userB });
+            const result = await getRelationships({
+                runtime: mockRuntime,
+                userId: mockUserA,
+            });
 
-        const relationships = await getRelationships({
-            runtime,
-            userId: userA,
+            expect(mockDatabaseAdapter.getRelationships).toHaveBeenCalledWith({
+                userId: mockUserA,
+            });
+            expect(result).toEqual(mockRelationships);
         });
-        expect(relationships).toBeDefined();
-        expect(relationships.length).toBeGreaterThan(0);
-        expect(
-            relationships.some((r) => r.userA === userA || r.userB === userA)
-        ).toBeTruthy();
+    });
+
+    describe("formatRelationships", () => {
+        it("should format relationships correctly", async () => {
+            const mockRelationships: Relationship[] = [
+                {
+                    userA: mockUserA,
+                    userB: mockUserB,
+                    id: generateRandomUUID(),
+                    userId: generateRandomUUID(),
+                    roomId: generateRandomUUID(),
+                    status: "STATUS",
+                },
+                {
+                    userA: mockUserB,
+                    userB: mockUserId,
+                    id: generateRandomUUID(),
+                    userId: generateRandomUUID(),
+                    roomId: generateRandomUUID(),
+                    status: "STATUS",
+                },
+            ];
+            mockDatabaseAdapter.getRelationships.mockResolvedValue(
+                mockRelationships
+            );
+
+            const result = await formatRelationships({
+                runtime: mockRuntime,
+                userId: mockUserA,
+            });
+
+            expect(mockDatabaseAdapter.getRelationships).toHaveBeenCalledWith({
+                userId: mockUserA,
+            });
+            expect(result[0]).toEqual(mockUserB);
+        });
+
+        it("should return an empty array if no relationships exist", async () => {
+            mockDatabaseAdapter.getRelationships.mockResolvedValue([]);
+
+            const result = await formatRelationships({
+                runtime: mockRuntime,
+                userId: mockUserId,
+            });
+
+            expect(mockDatabaseAdapter.getRelationships).toHaveBeenCalledWith({
+                userId: mockUserId,
+            });
+            expect(result).toEqual([]);
+        });
     });
 });

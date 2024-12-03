@@ -1,22 +1,54 @@
+[@ai16z/eliza v0.1.4-alpha.3](../index.md) / ITextGenerationService
+
 # Interface: ITextGenerationService
 
 ## Extends
 
 - [`Service`](../classes/Service.md)
 
-## Methods
+## Accessors
 
-### getInstance()
+### serviceType
 
-> **getInstance**(): [`ITextGenerationService`](ITextGenerationService.md)
+#### Get Signature
 
-#### Returns
+> **get** **serviceType**(): [`ServiceType`](../enumerations/ServiceType.md)
 
-[`ITextGenerationService`](ITextGenerationService.md)
+##### Returns
+
+[`ServiceType`](../enumerations/ServiceType.md)
+
+#### Inherited from
+
+[`Service`](../classes/Service.md).[`serviceType`](../classes/Service.md#serviceType-1)
 
 #### Defined in
 
-[packages/core/src/types.ts:607](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L607)
+[packages/core/src/types.ts:966](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L966)
+
+## Methods
+
+### initialize()
+
+> `abstract` **initialize**(`runtime`): `Promise`\<`void`\>
+
+Add abstract initialize method that must be implemented by derived classes
+
+#### Parameters
+
+• **runtime**: [`IAgentRuntime`](IAgentRuntime.md)
+
+#### Returns
+
+`Promise`\<`void`\>
+
+#### Inherited from
+
+[`Service`](../classes/Service.md).[`initialize`](../classes/Service.md#initialize)
+
+#### Defined in
+
+[packages/core/src/types.ts:971](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L971)
 
 ***
 
@@ -30,7 +62,7 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:608](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L608)
+[packages/core/src/types.ts:1080](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L1080)
 
 ***
 
@@ -58,7 +90,7 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:609](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L609)
+[packages/core/src/types.ts:1081](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L1081)
 
 ***
 
@@ -86,7 +118,7 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:617](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L617)
+[packages/core/src/types.ts:1089](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L1089)
 
 ***
 
@@ -104,4 +136,4 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:625](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L625)
+[packages/core/src/types.ts:1097](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L1097)

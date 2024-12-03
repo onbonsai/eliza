@@ -1,12 +1,16 @@
+[@ai16z/eliza v0.1.4-alpha.3](../index.md) / Provider
+
 # Interface: Provider
 
-Represents a provider, which is used to retrieve information or perform actions on behalf of the agent, such as fetching data from an external API or service.
+Provider for external data/services
 
 ## Properties
 
 ### get()
 
 > **get**: (`runtime`, `message`, `state`?) => `Promise`\<`any`\>
+
+Data retrieval function
 
 #### Parameters
 
@@ -22,4 +26,4 @@ Represents a provider, which is used to retrieve information or perform actions 
 
 #### Defined in
 
-[packages/core/src/types.ts:249](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L249)
+[packages/core/src/types.ts:457](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L457)

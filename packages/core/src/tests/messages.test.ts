@@ -1,114 +1,149 @@
-import dotenv from "dotenv";
-import { formatFacts } from "../src/evaluators/fact.ts";
-import { zeroUuid } from "../src/test_resources/constants.ts";
-import { createRuntime } from "../src/test_resources/createRuntime.ts";
-import { getOrCreateRelationship } from "../src/test_resources/getOrCreateRelationship.ts";
-import { type User } from "../src/test_resources/types.ts";
 import {
     formatActors,
     formatMessages,
     getActorDetails,
-} from "../src/messages.ts";
-import { createRelationship } from "../src/relationships.ts";
-import {
-    IAgentRuntime,
-    type Actor,
-    type Content,
-    type Memory,
-    type UUID,
-} from "../src/types.ts";
-
-dotenv.config({ path: ".dev.vars" });
+    formatTimestamp,
+} from "../messages.ts";
+import { IAgentRuntime, Actor, Content, Memory, UUID } from "../types.ts";
+import { describe, test, expect, vi, beforeAll } from "vitest";
 
 describe("Messages Library", () => {
-    let runtime: IAgentRuntime, user: User, actors: Actor[];
+    let runtime: IAgentRuntime;
+    let actors: Actor[];
+    let userId: UUID;
 
-    beforeAll(async () => {
-        const setup = await createRuntime({
-            env: process.env as Record<string, string>,
-        });
-        runtime = setup.runtime;
-        user = setup.session.user;
-        actors = await getActorDetails({
-            runtime,
-            roomId: "00000000-0000-0000-0000-000000000000",
-        });
+    beforeAll(() => {
+        // Mock runtime with necessary methods
+        runtime = {
+            databaseAdapter: {
+                // Using vi.fn() instead of jest.fn()
+                getParticipantsForRoom: vi.fn(),
+                getAccountById: vi.fn(),
+            },
+        } as unknown as IAgentRuntime;
+
+        // Mock user data with proper UUID format
+        userId = "12345678-1234-1234-1234-123456789abc" as UUID;
+        actors = [
+            {
+                id: userId,
+                name: "Test User",
+                username: "testuser",
+                details: {
+                    tagline: "A test user",
+                    summary: "This is a test user for the system.",
+                    quote: "",
+                },
+            },
+        ];
     });
 
-    test("getActorDetails should return actors based on given roomId", async () => {
-        // create a room and add a user to it
-        const userA = user?.id as UUID;
-        const userB = zeroUuid;
+    test("getActorDetails should return actors based on roomId", async () => {
+        const roomId: UUID = "room1234-1234-1234-1234-123456789abc" as UUID;
 
-        await createRelationship({
-            runtime,
-            userA,
-            userB,
+        // Using vi.mocked() type assertion instead of jest.Mock casting
+        vi.mocked(
+            runtime.databaseAdapter.getParticipantsForRoom
+        ).mockResolvedValue([userId]);
+        vi.mocked(runtime.databaseAdapter.getAccountById).mockResolvedValue({
+            id: userId,
+            name: "Test User",
+            username: "testuser",
+            details: {
+                tagline: "A test user",
+                summary: "This is a test user for the system.",
+            },
         });
 
-        const { roomId } = await getOrCreateRelationship({
-            runtime,
-            userA,
-            userB,
-        });
-
-        const result = await getActorDetails({
-            runtime,
-            roomId,
-        });
+        const result = await getActorDetails({ runtime, roomId });
 
         expect(result.length).toBeGreaterThan(0);
-        result.forEach((actor: Actor) => {
-            expect(actor).toHaveProperty("name");
-            expect(actor).toHaveProperty("details");
-            expect(actor).toHaveProperty("id");
-        });
+        expect(result[0].name).toBe("Test User");
+        expect(result[0].details?.tagline).toBe("A test user");
     });
 
     test("formatActors should format actors into a readable string", () => {
         const formattedActors = formatActors({ actors });
-        actors.forEach((actor) => {
-            expect(formattedActors).toContain(actor.name);
-        });
+
+        expect(formattedActors).toContain("Test User");
+        expect(formattedActors).toContain("A test user");
+        expect(formattedActors).toContain(
+            "This is a test user for the system."
+        );
     });
 
-    test("formatMessages should format messages into a readable string", async () => {
+    test("formatMessages should format messages into a readable string", () => {
         const messages: Memory[] = [
             {
-                content: { text: "Hello" },
-                userId: user.id as UUID,
-                roomId: "00000000-0000-0000-0000-000000000000",
-            },
-            {
-                content: { text: "How are you?" },
-                userId: "00000000-0000-0000-0000-000000000000",
-                roomId: "00000000-0000-0000-0000-000000000000",
+                content: { text: "Hello, world!" } as Content,
+                userId: userId,
+                roomId: "room1234-1234-1234-1234-123456789abc" as UUID,
+                createdAt: new Date().getTime(),
+                agentId: "" as UUID, // assuming agentId is an empty string here
             },
         ];
+
         const formattedMessages = formatMessages({ messages, actors });
-        messages.forEach((message: Memory) => {
-            expect(formattedMessages).toContain(
-                (message.content as Content).text
-            );
-        });
+
+        // Assertions
+        expect(formattedMessages).toContain("Hello, world!");
+        expect(formattedMessages).toContain("Test User");
     });
 
-    test("formatFacts should format facts into a readable string", async () => {
-        const facts: Memory[] = [
+    test("formatTimestamp should return correct time string", () => {
+        const timestamp = new Date().getTime() - 60000; // 1 minute ago
+        const result = formatTimestamp(timestamp);
+
+        // Assertions
+        expect(result).toBe("1 minute ago");
+    });
+
+    test("formatMessages should include attachments if present", () => {
+        const messages: Memory[] = [
             {
-                content: { text: "Reflecting on the day" },
-                userId: user.id as UUID,
-                roomId: "00000000-0000-0000-0000-000000000000",
-            },
-            {
-                content: { text: "Thoughts and musings" },
-                userId: "00000000-0000-0000-0000-000000000000",
-                roomId: "00000000-0000-0000-0000-000000000000room",
+                content: {
+                    text: "Check this attachment",
+                    attachments: [
+                        {
+                            id: "1",
+                            title: "Image",
+                            url: "http://example.com/image.jpg",
+                        },
+                    ],
+                } as Content,
+                userId: userId,
+                roomId: "room1234-1234-1234-1234-123456789abc" as UUID,
+                createdAt: new Date().getTime(),
+                agentId: "" as UUID, // assuming agentId is an empty string here
             },
         ];
-        const formattedFacts = formatFacts(facts);
-        facts.forEach((fact) => {
-            expect(formattedFacts).toContain(fact.content.text);
-        });
+
+        const formattedMessages = formatMessages({ messages, actors });
+
+        // Assertions
+        expect(formattedMessages).toContain("Check this attachment");
+        expect(formattedMessages).toContain(
+            "Attachments: [1 - Image (http://example.com/image.jpg)]"
+        );
+    });
+
+    test("formatMessages should handle empty attachments gracefully", () => {
+        const messages: Memory[] = [
+            {
+                content: {
+                    text: "No attachments here",
+                } as Content,
+                userId: userId,
+                roomId: "room1234-1234-1234-1234-123456789abc" as UUID,
+                createdAt: new Date().getTime(),
+                agentId: "" as UUID, // assuming agentId is an empty string here
+            },
+        ];
+
+        const formattedMessages = formatMessages({ messages, actors });
+
+        // Assertions
+        expect(formattedMessages).toContain("No attachments here");
+        expect(formattedMessages).not.toContain("Attachments");
     });
 });

@@ -15,6 +15,13 @@ export default defineConfig({
         "https",
         "http",
         "agentkeepalive",
+        "bs58",
+        "borsh",
+        "@solana/buffer-layout",
+        "stream",
+        "buffer",
+        "rpc-websockets",
+        "@solana/web3.js",
         // Add other modules you want to externalize
     ],
 });

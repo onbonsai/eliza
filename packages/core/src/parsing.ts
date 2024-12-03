@@ -2,7 +2,7 @@ const jsonBlockPattern = /```json\n([\s\S]*?)\n```/;
 
 export const messageCompletionFooter = `\nResponse format should be formatted in a JSON block like this:
 \`\`\`json
-{ "user": "{{agentName}}", "text": string, "action": "string" }
+{ "user": "{{agentName}}", "text": "string", "action": "string" }
 \`\`\``;
 
 export const shouldRespondFooter = `The available options are [RESPOND], [IGNORE], or [STOP]. Choose the most appropriate option.
@@ -14,7 +14,7 @@ export const parseShouldRespondFromText = (
     text: string
 ): "RESPOND" | "IGNORE" | "STOP" | null => {
     const match = text
-        .split('\n')[0]
+        .split("\n")[0]
         .trim()
         .replace("[", "")
         .toUpperCase()
@@ -22,7 +22,13 @@ export const parseShouldRespondFromText = (
         .match(/^(RESPOND|IGNORE|STOP)$/i);
     return match
         ? (match[0].toUpperCase() as "RESPOND" | "IGNORE" | "STOP")
-        : text.includes("RESPOND") ? "RESPOND" : text.includes("IGNORE") ? "IGNORE" : text.includes("STOP") ? "STOP" : null;
+        : text.includes("RESPOND")
+          ? "RESPOND"
+          : text.includes("IGNORE")
+            ? "IGNORE"
+            : text.includes("STOP")
+              ? "STOP"
+              : null;
 };
 
 export const booleanFooter = `Respond with a YES or a NO.`;
@@ -60,6 +66,7 @@ export function parseJsonArrayFromText(text: string) {
         try {
             jsonData = JSON.parse(jsonBlockMatch[1]);
         } catch (e) {
+            console.error("Error parsing JSON:", e);
             return null;
         }
     } else {
@@ -70,6 +77,7 @@ export function parseJsonArrayFromText(text: string) {
             try {
                 jsonData = JSON.parse(arrayMatch[0]);
             } catch (e) {
+                console.error("Error parsing JSON:", e);
                 return null;
             }
         }
@@ -103,6 +111,7 @@ export function parseJSONObjectFromText(
         try {
             jsonData = JSON.parse(jsonBlockMatch[1]);
         } catch (e) {
+            console.error("Error parsing JSON:", e);
             return null;
         }
     } else {
@@ -113,6 +122,7 @@ export function parseJSONObjectFromText(
             try {
                 jsonData = JSON.parse(objectMatch[0]);
             } catch (e) {
+                console.error("Error parsing JSON:", e);
                 return null;
             }
         }

@@ -1,3 +1,5 @@
+[@ai16z/eliza v0.1.4-alpha.3](../index.md) / ServiceType
+
 # Enumeration: ServiceType
 
 ## Enumeration Members
@@ -8,7 +10,7 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:646](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L646)
+[packages/core/src/types.ts:1136](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L1136)
 
 ***
 
@@ -18,7 +20,7 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:647](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L647)
+[packages/core/src/types.ts:1137](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L1137)
 
 ***
 
@@ -28,7 +30,7 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:648](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L648)
+[packages/core/src/types.ts:1138](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L1138)
 
 ***
 
@@ -38,7 +40,7 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:649](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L649)
+[packages/core/src/types.ts:1139](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L1139)
 
 ***
 
@@ -48,7 +50,7 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:650](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L650)
+[packages/core/src/types.ts:1140](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L1140)
 
 ***
 
@@ -58,7 +60,7 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:651](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L651)
+[packages/core/src/types.ts:1141](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L1141)
 
 ***
 
@@ -68,4 +70,14 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:652](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L652)
+[packages/core/src/types.ts:1142](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L1142)
+
+***
+
+### BUTTPLUG
+
+> **BUTTPLUG**: `"buttplug"`
+
+#### Defined in
+
+[packages/core/src/types.ts:1143](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L1143)

@@ -1,15 +1,13 @@
-import { SqliteDatabaseAdapter } from "../adapters/sqlite.ts";
-import { load } from "../../../adapter-sqlite/src/sqlite_vec.ts";
-import { SqlJsDatabaseAdapter } from "../../../adapter-sqljs/src/index.ts";
-import { SupabaseDatabaseAdapter } from "../../../adapter-supabase/src/index.ts";
-import { DatabaseAdapter } from "@ai16z/eliza/src/database.ts";
-import { AgentRuntime } from "@ai16z/eliza/src/runtime.ts";
 import {
-    Action,
-    Evaluator,
-    ModelProviderName,
-    Provider,
-} from "@ai16z/eliza/src/types.ts";
+    SqliteDatabaseAdapter,
+    loadVecExtensions,
+} from "@ai16z/adapter-sqlite";
+import { SqlJsDatabaseAdapter } from "@ai16z/adapter-sqljs";
+import { SupabaseDatabaseAdapter } from "@ai16z/adapter-supabase";
+import { DatabaseAdapter } from "../database.ts";
+import { getEndpoint } from "../models.ts";
+import { AgentRuntime } from "../runtime.ts";
+import { Action, Evaluator, ModelProviderName, Provider } from "../types.ts";
 import {
     SUPABASE_ANON_KEY,
     SUPABASE_URL,
@@ -52,14 +50,13 @@ export async function createRuntime({
                 adapter = new SqlJsDatabaseAdapter(db);
 
                 // Load sqlite-vss
-                load((adapter as SqlJsDatabaseAdapter).db);
+                loadVecExtensions((adapter as SqlJsDatabaseAdapter).db);
                 // Create a test user and session
-                user = {
-                    id: zeroUuid,
-                    email: "test@example.com",
-                } as User;
                 session = {
-                    user: user,
+                    user: {
+                        id: zeroUuid,
+                        email: "test@example.com",
+                    },
                 };
             }
             break;
@@ -107,6 +104,7 @@ export async function createRuntime({
                 env?.SUPABASE_URL ?? SUPABASE_URL,
                 env?.SUPABASE_SERVICE_API_KEY ?? SUPABASE_ANON_KEY
             );
+            break;
         }
         case "sqlite":
         default:
@@ -119,21 +117,20 @@ export async function createRuntime({
                 adapter = new SqliteDatabaseAdapter(new Database(":memory:"));
 
                 // Load sqlite-vss
-                await load((adapter as SqliteDatabaseAdapter).db);
+                await loadVecExtensions((adapter as SqliteDatabaseAdapter).db);
                 // Create a test user and session
-                user = {
-                    id: zeroUuid,
-                    email: "test@example.com",
-                } as User;
                 session = {
-                    user: user,
+                    user: {
+                        id: zeroUuid,
+                        email: "test@example.com",
+                    },
                 };
             }
             break;
     }
 
     const runtime = new AgentRuntime({
-        serverUrl: "https://api.openai.com/v1",
+        serverUrl: getEndpoint(ModelProviderName.OPENAI),
         conversationLength,
         token: env!.OPENAI_API_KEY!,
         modelProvider: ModelProviderName.OPENAI,

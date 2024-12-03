@@ -1,3 +1,5 @@
+[@ai16z/eliza v0.1.4-alpha.3](../index.md) / generateTextArray
+
 # Function: generateTextArray()
 
 > **generateTextArray**(`opts`): `Promise`\<`string`[]\>
@@ -26,4 +28,4 @@ Promise resolving to an array of strings parsed from the model's response
 
 ## Defined in
 
-[packages/core/src/generation.ts:492](https://github.com/ai16z/eliza/blob/main/packages/core/src/generation.ts#L492)
+[packages/core/src/generation.ts:630](https://github.com/ai16z/eliza/blob/main/packages/core/src/generation.ts#L630)

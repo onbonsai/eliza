@@ -1,6 +1,6 @@
 import path from "path";
-import { composeContext } from "@ai16z/eliza/src/context.ts";
-import { parseJSONObjectFromText } from "@ai16z/eliza/src/parsing.ts";
+import { composeContext } from "@ai16z/eliza";
+import { parseJSONObjectFromText } from "@ai16z/eliza";
 import {
     Action,
     ActionExample,
@@ -12,9 +12,8 @@ import {
     ModelClass,
     ServiceType,
     State,
-} from "@ai16z/eliza/src/types.ts";
-import { VideoService } from "@ai16z/plugin-node/src/services/video.ts";
-import { generateText } from "@ai16z/eliza/src/generation.ts";
+} from "@ai16z/eliza";
+import { generateText } from "@ai16z/eliza";
 
 export const mediaUrlTemplate = `# Messages we are searching for a media URL
 {{recentMessages}}
@@ -73,7 +72,11 @@ export default {
     ],
     description:
         "Downloads a video or audio file from a URL and attaches it to the response message.",
-    validate: async (runtime: IAgentRuntime, message: Memory, state: State) => {
+    validate: async (
+        runtime: IAgentRuntime,
+        message: Memory,
+        _state: State
+    ) => {
         if (message.content.source !== "discord") {
             return false;
         }
@@ -85,9 +88,9 @@ export default {
         options: any,
         callback: HandlerCallback
     ) => {
-        const videoService = runtime.getService<IVideoService>(
-            ServiceType.VIDEO
-        );
+        const videoService = runtime
+            .getService<IVideoService>(ServiceType.VIDEO)
+            .getInstance();
         if (!state) {
             state = (await runtime.composeState(message)) as State;
         }

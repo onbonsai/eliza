@@ -1,6 +1,8 @@
+[@ai16z/eliza v0.1.4-alpha.3](../index.md) / Relationship
+
 # Interface: Relationship
 
-Represents a relationship between two users, including their IDs, the status of the relationship, and the room ID in which the relationship is established.
+Represents a relationship between users
 
 ## Properties
 
@@ -8,9 +10,11 @@ Represents a relationship between two users, including their IDs, the status of 
 
 > **id**: \`$\{string\}-$\{string\}-$\{string\}-$\{string\}-$\{string\}\`
 
+Unique identifier
+
 #### Defined in
 
-[packages/core/src/types.ts:260](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L260)
+[packages/core/src/types.ts:469](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L469)
 
 ***
 
@@ -18,9 +22,11 @@ Represents a relationship between two users, including their IDs, the status of 
 
 > **userA**: \`$\{string\}-$\{string\}-$\{string\}-$\{string\}-$\{string\}\`
 
+First user ID
+
 #### Defined in
 
-[packages/core/src/types.ts:261](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L261)
+[packages/core/src/types.ts:472](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L472)
 
 ***
 
@@ -28,9 +34,11 @@ Represents a relationship between two users, including their IDs, the status of 
 
 > **userB**: \`$\{string\}-$\{string\}-$\{string\}-$\{string\}-$\{string\}\`
 
+Second user ID
+
 #### Defined in
 
-[packages/core/src/types.ts:262](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L262)
+[packages/core/src/types.ts:475](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L475)
 
 ***
 
@@ -38,9 +46,11 @@ Represents a relationship between two users, including their IDs, the status of 
 
 > **userId**: \`$\{string\}-$\{string\}-$\{string\}-$\{string\}-$\{string\}\`
 
+Primary user ID
+
 #### Defined in
 
-[packages/core/src/types.ts:263](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L263)
+[packages/core/src/types.ts:478](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L478)
 
 ***
 
@@ -48,9 +58,11 @@ Represents a relationship between two users, including their IDs, the status of 
 
 > **roomId**: \`$\{string\}-$\{string\}-$\{string\}-$\{string\}-$\{string\}\`
 
+Associated room ID
+
 #### Defined in
 
-[packages/core/src/types.ts:264](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L264)
+[packages/core/src/types.ts:481](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L481)
 
 ***
 
@@ -58,9 +70,11 @@ Represents a relationship between two users, including their IDs, the status of 
 
 > **status**: `string`
 
+Relationship status
+
 #### Defined in
 
-[packages/core/src/types.ts:265](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L265)
+[packages/core/src/types.ts:484](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L484)
 
 ***
 
@@ -68,6 +82,8 @@ Represents a relationship between two users, including their IDs, the status of 
 
 > `optional` **createdAt**: `string`
 
+Optional creation timestamp
+
 #### Defined in
 
-[packages/core/src/types.ts:266](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L266)
+[packages/core/src/types.ts:487](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L487)

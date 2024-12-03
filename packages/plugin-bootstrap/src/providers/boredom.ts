@@ -1,9 +1,4 @@
-import {
-    IAgentRuntime,
-    Memory,
-    Provider,
-    State,
-} from "@ai16z/eliza/src/types.ts";
+import { IAgentRuntime, Memory, Provider, State } from "@ai16z/eliza";
 
 const boredomLevels = [
     {
@@ -287,7 +282,6 @@ const boredomProvider: Provider = {
 
         const recentMessages = await runtime.messageManager.getMemories({
             roomId: message.roomId,
-            agentId: runtime.agentId,
             start: fifteenMinutesAgo,
             end: now,
             count: 20,
@@ -341,8 +335,6 @@ const boredomProvider: Provider = {
         );
         const selectedMessage = boredomLevel.statusMessages[randomIndex];
         return selectedMessage.replace("{{agentName}}", agentName);
-
-        return "";
     },
 };
 

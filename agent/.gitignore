@@ -1,0 +1,9 @@
+*.ts
+!index.ts
+!character.ts
+.env
+*.env
+.env*
+cache/
+/data
+/generatedImages

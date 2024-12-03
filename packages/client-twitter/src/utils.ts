@@ -1,11 +1,11 @@
 import { Tweet } from "agent-twitter-client";
-import { embeddingZeroVector } from "@ai16z/eliza/src/memory.ts";
-import { Content, Memory, UUID } from "@ai16z/eliza/src/types.ts";
-import { stringToUuid } from "@ai16z/eliza/src/uuid.ts";
-import { ClientBase } from "./base.ts";
-import { elizaLogger } from "@ai16z/eliza/src/logger.ts";
+import { getEmbeddingZeroVector } from "@ai16z/eliza";
+import { Content, Memory, UUID } from "@ai16z/eliza";
+import { stringToUuid } from "@ai16z/eliza";
+import { ClientBase } from "./base";
+import { elizaLogger } from "@ai16z/eliza";
 
-const MAX_TWEET_LENGTH = 240;
+const MAX_TWEET_LENGTH = 280; // Updated to Twitter's current character limit
 
 export const wait = (minTime: number = 1000, maxTime: number = 3000) => {
     const waitTime =
@@ -17,35 +17,48 @@ export const isValidTweet = (tweet: Tweet): boolean => {
     // Filter out tweets with too many hashtags, @s, or $ signs, probably spam or garbage
     const hashtagCount = (tweet.text?.match(/#/g) || []).length;
     const atCount = (tweet.text?.match(/@/g) || []).length;
-    const dollarSignCount = tweet.text?.match(/\$/g) || [];
-    const totalCount = hashtagCount + atCount + dollarSignCount.length;
+    const dollarSignCount = (tweet.text?.match(/\$/g) || []).length;
+    const totalCount = hashtagCount + atCount + dollarSignCount;
 
     return (
         hashtagCount <= 1 &&
         atCount <= 2 &&
-        dollarSignCount.length <= 1 &&
+        dollarSignCount <= 1 &&
         totalCount <= 3
     );
 };
 
 export async function buildConversationThread(
     tweet: Tweet,
-    client: ClientBase
-): Promise<void> {
+    client: ClientBase,
+    maxReplies: number = 10
+): Promise<Tweet[]> {
     const thread: Tweet[] = [];
     const visited: Set<string> = new Set();
 
-    async function processThread(currentTweet: Tweet) {
+    async function processThread(currentTweet: Tweet, depth: number = 0) {
+        elizaLogger.debug("Processing tweet:", {
+            id: currentTweet.id,
+            inReplyToStatusId: currentTweet.inReplyToStatusId,
+            depth: depth,
+        });
+
         if (!currentTweet) {
-            elizaLogger.log("No current tweet found");
+            elizaLogger.debug("No current tweet found for thread building");
             return;
         }
-        // check if the current tweet has already been saved
+
+        // Stop if we've reached our reply limit
+        if (depth >= maxReplies) {
+            elizaLogger.debug("Reached maximum reply depth", depth);
+            return;
+        }
+
+        // Handle memory storage
         const memory = await client.runtime.messageManager.getMemoryById(
             stringToUuid(currentTweet.id + "-" + client.runtime.agentId)
         );
         if (!memory) {
-            elizaLogger.log("Creating memory for tweet", currentTweet.id);
             const roomId = stringToUuid(
                 currentTweet.conversationId + "-" + client.runtime.agentId
             );
@@ -59,7 +72,7 @@ export async function buildConversationThread(
                 "twitter"
             );
 
-            client.runtime.messageManager.createMemory({
+            await client.runtime.messageManager.createMemory({
                 id: stringToUuid(
                     currentTweet.id + "-" + client.runtime.agentId
                 ),
@@ -79,89 +92,75 @@ export async function buildConversationThread(
                 createdAt: currentTweet.timestamp * 1000,
                 roomId,
                 userId:
-                    currentTweet.userId === client.twitterUserId
+                    currentTweet.userId === client.profile.id
                         ? client.runtime.agentId
                         : stringToUuid(currentTweet.userId),
-                embedding: embeddingZeroVector,
+                embedding: getEmbeddingZeroVector(),
             });
         }
+
         if (visited.has(currentTweet.id)) {
+            elizaLogger.debug("Already visited tweet:", currentTweet.id);
             return;
         }
-        visited.add(currentTweet.id);
 
+        visited.add(currentTweet.id);
         thread.unshift(currentTweet);
 
-        if (currentTweet.inReplyToStatus) {
-            await processThread(currentTweet.inReplyToStatus);
+        elizaLogger.debug("Current thread state:", {
+            length: thread.length,
+            currentDepth: depth,
+            tweetId: currentTweet.id,
+        });
+
+        // If there's a parent tweet, fetch and process it
+        if (currentTweet.inReplyToStatusId) {
+            elizaLogger.debug(
+                "Fetching parent tweet:",
+                currentTweet.inReplyToStatusId
+            );
+            try {
+                const parentTweet = await client.twitterClient.getTweet(
+                    currentTweet.inReplyToStatusId
+                );
+
+                if (parentTweet) {
+                    elizaLogger.debug("Found parent tweet:", {
+                        id: parentTweet.id,
+                        text: parentTweet.text?.slice(0, 50),
+                    });
+                    await processThread(parentTweet, depth + 1);
+                } else {
+                    elizaLogger.debug(
+                        "No parent tweet found for:",
+                        currentTweet.inReplyToStatusId
+                    );
+                }
+            } catch (error) {
+                elizaLogger.error("Error fetching parent tweet:", {
+                    tweetId: currentTweet.inReplyToStatusId,
+                    error,
+                });
+            }
+        } else {
+            elizaLogger.debug(
+                "Reached end of reply chain at:",
+                currentTweet.id
+            );
         }
     }
 
-    await processThread(tweet);
-}
+    await processThread(tweet, 0);
 
-export async function sendTweetChunks(
-    client: ClientBase,
-    content: Content,
-    roomId: UUID,
-    twitterUsername: string,
-    inReplyTo: string
-): Promise<Memory[]> {
-    const tweetChunks = splitTweetContent(content.text);
-    const sentTweets: Tweet[] = [];
+    elizaLogger.debug("Final thread built:", {
+        totalTweets: thread.length,
+        tweetIds: thread.map((t) => ({
+            id: t.id,
+            text: t.text?.slice(0, 50),
+        })),
+    });
 
-    for (const chunk of tweetChunks) {
-        const result = await client.requestQueue.add(
-            async () =>
-                await client.twitterClient.sendTweet(
-                    chunk.replaceAll(/\\n/g, "\n").trim(),
-                    inReplyTo
-                )
-        );
-        // console.log("send tweet result:\n", result);
-        const body = await result.json();
-        console.log("send tweet body:\n", body.data.create_tweet.tweet_results);
-        const tweetResult = body.data.create_tweet.tweet_results.result;
-
-        const finalTweet = {
-            id: tweetResult.rest_id,
-            text: tweetResult.legacy.full_text,
-            conversationId: tweetResult.legacy.conversation_id_str,
-            createdAt: tweetResult.legacy.created_at,
-            userId: tweetResult.legacy.user_id_str,
-            inReplyToStatusId: tweetResult.legacy.in_reply_to_status_id_str,
-            permanentUrl: `https://twitter.com/${twitterUsername}/status/${tweetResult.rest_id}`,
-            hashtags: [],
-            mentions: [],
-            photos: [],
-            thread: [],
-            urls: [],
-            videos: [],
-        } as Tweet;
-
-        sentTweets.push(finalTweet);
-    }
-
-    const memories: Memory[] = sentTweets.map((tweet) => ({
-        id: stringToUuid(tweet.id + "-" + client.runtime.agentId),
-        agentId: client.runtime.agentId,
-        userId: client.runtime.agentId,
-        content: {
-            text: tweet.text,
-            source: "twitter",
-            url: tweet.permanentUrl,
-            inReplyTo: tweet.inReplyToStatusId
-                ? stringToUuid(
-                      tweet.inReplyToStatusId + "-" + client.runtime.agentId
-                  )
-                : undefined,
-        },
-        roomId,
-        embedding: embeddingZeroVector,
-        createdAt: tweet.timestamp * 1000,
-    }));
-
-    return memories;
+    return thread;
 }
 
 export async function sendTweet(
@@ -171,42 +170,49 @@ export async function sendTweet(
     twitterUsername: string,
     inReplyTo: string
 ): Promise<Memory[]> {
-    if (process.env.TWITTER_DRY_RUN == "true") {
-        console.log("twitter dry run, not sending tweet")
-        return
-    }
-    const chunk = truncateTweetContent(content.text);
+    const tweetChunks = splitTweetContent(content.text);
     const sentTweets: Tweet[] = [];
+    let previousTweetId = inReplyTo;
 
-    const result = await client.requestQueue.add(
-        async () =>
-            await client.twitterClient.sendTweet(
-                chunk.replaceAll(/\\n/g, "\n").trim(),
-                inReplyTo
-            )
-    );
-    // console.log("send tweet result:\n", result);
-    const body = await result.json();
-    console.log("send tweet body:\n", body.data.create_tweet.tweet_results);
-    const tweetResult = body.data.create_tweet.tweet_results.result;
+    for (const chunk of tweetChunks) {
+        const result = await client.requestQueue.add(
+            async () =>
+                await client.twitterClient.sendTweet(
+                    chunk.trim(),
+                    previousTweetId
+                )
+        );
+        const body = await result.json();
 
-    const finalTweet = {
-        id: tweetResult.rest_id,
-        text: tweetResult.legacy.full_text,
-        conversationId: tweetResult.legacy.conversation_id_str,
-        createdAt: tweetResult.legacy.created_at,
-        userId: tweetResult.legacy.user_id_str,
-        inReplyToStatusId: tweetResult.legacy.in_reply_to_status_id_str,
-        permanentUrl: `https://twitter.com/${twitterUsername}/status/${tweetResult.rest_id}`,
-        hashtags: [],
-        mentions: [],
-        photos: [],
-        thread: [],
-        urls: [],
-        videos: [],
-    } as Tweet;
+        // if we have a response
+        if (body?.data?.create_tweet?.tweet_results?.result) {
+            // Parse the response
+            const tweetResult = body.data.create_tweet.tweet_results.result;
+            const finalTweet: Tweet = {
+                id: tweetResult.rest_id,
+                text: tweetResult.legacy.full_text,
+                conversationId: tweetResult.legacy.conversation_id_str,
+                timestamp:
+                    new Date(tweetResult.legacy.created_at).getTime() / 1000,
+                userId: tweetResult.legacy.user_id_str,
+                inReplyToStatusId: tweetResult.legacy.in_reply_to_status_id_str,
+                permanentUrl: `https://twitter.com/${twitterUsername}/status/${tweetResult.rest_id}`,
+                hashtags: [],
+                mentions: [],
+                photos: [],
+                thread: [],
+                urls: [],
+                videos: [],
+            };
+            sentTweets.push(finalTweet);
+            previousTweetId = finalTweet.id;
+        } else {
+            console.error("Error sending chunk", chunk, "repsonse:", body);
+        }
 
-    sentTweets.push(finalTweet);
+        // Wait a bit between tweets to avoid rate limiting issues
+        await wait(1000, 2000);
+    }
 
     const memories: Memory[] = sentTweets.map((tweet) => ({
         id: stringToUuid(tweet.id + "-" + client.runtime.agentId),
@@ -223,7 +229,7 @@ export async function sendTweet(
                 : undefined,
         },
         roomId,
-        embedding: embeddingZeroVector,
+        embedding: getEmbeddingZeroVector(),
         createdAt: tweet.timestamp * 1000,
     }));
 
@@ -231,56 +237,90 @@ export async function sendTweet(
 }
 
 function splitTweetContent(content: string): string[] {
-    const tweetChunks: string[] = [];
+    const maxLength = MAX_TWEET_LENGTH;
+    const paragraphs = content.split("\n\n").map((p) => p.trim());
+    const tweets: string[] = [];
+    let currentTweet = "";
+
+    for (const paragraph of paragraphs) {
+        if (!paragraph) continue;
+
+        if ((currentTweet + "\n\n" + paragraph).trim().length <= maxLength) {
+            if (currentTweet) {
+                currentTweet += "\n\n" + paragraph;
+            } else {
+                currentTweet = paragraph;
+            }
+        } else {
+            if (currentTweet) {
+                tweets.push(currentTweet.trim());
+            }
+            if (paragraph.length <= maxLength) {
+                currentTweet = paragraph;
+            } else {
+                // Split long paragraph into smaller chunks
+                const chunks = splitParagraph(paragraph, maxLength);
+                tweets.push(...chunks.slice(0, -1));
+                currentTweet = chunks[chunks.length - 1];
+            }
+        }
+    }
+
+    if (currentTweet) {
+        tweets.push(currentTweet.trim());
+    }
+
+    return tweets;
+}
+
+function splitParagraph(paragraph: string, maxLength: number): string[] {
+    // eslint-disable-next-line
+    const sentences = paragraph.match(/[^\.!\?]+[\.!\?]+|[^\.!\?]+$/g) || [
+        paragraph,
+    ];
+    const chunks: string[] = [];
     let currentChunk = "";
 
-    const words = content.split(" ");
-    for (const word of words) {
-        if (currentChunk.length + word.length + 1 <= MAX_TWEET_LENGTH) {
-            currentChunk += (currentChunk ? " " : "") + word;
+    for (const sentence of sentences) {
+        if ((currentChunk + " " + sentence).trim().length <= maxLength) {
+            if (currentChunk) {
+                currentChunk += " " + sentence;
+            } else {
+                currentChunk = sentence;
+            }
         } else {
-            tweetChunks.push(currentChunk);
-            currentChunk = word;
+            if (currentChunk) {
+                chunks.push(currentChunk.trim());
+            }
+            if (sentence.length <= maxLength) {
+                currentChunk = sentence;
+            } else {
+                // Split long sentence into smaller pieces
+                const words = sentence.split(" ");
+                currentChunk = "";
+                for (const word of words) {
+                    if (
+                        (currentChunk + " " + word).trim().length <= maxLength
+                    ) {
+                        if (currentChunk) {
+                            currentChunk += " " + word;
+                        } else {
+                            currentChunk = word;
+                        }
+                    } else {
+                        if (currentChunk) {
+                            chunks.push(currentChunk.trim());
+                        }
+                        currentChunk = word;
+                    }
+                }
+            }
         }
     }
 
     if (currentChunk) {
-        tweetChunks.push(currentChunk);
+        chunks.push(currentChunk.trim());
     }
 
-    return tweetChunks;
-}
-
-export function truncateTweetContent(content: string): string {
-    // if its 240, delete the last line
-    if (content.length === MAX_TWEET_LENGTH) {
-        return content.slice(0, content.lastIndexOf("\n"));
-    }
-
-    // if its still bigger than 240, delete everything after the last period
-    if (content.length > MAX_TWEET_LENGTH) {
-        return content.slice(0, content.lastIndexOf("."));
-    }
-
-    // while its STILL bigger than 240, find the second to last exclamation point or period and delete everything after it
-    let iterations = 0;
-    while (content.length > MAX_TWEET_LENGTH && iterations < 10) {
-        iterations++;
-        // second to last index of period or exclamation point
-        const secondToLastIndexOfPeriod = content.lastIndexOf(
-            ".",
-            content.length - 2
-        );
-        const secondToLastIndexOfExclamation = content.lastIndexOf(
-            "!",
-            content.length - 2
-        );
-        const secondToLastIndex = Math.max(
-            secondToLastIndexOfPeriod,
-            secondToLastIndexOfExclamation
-        );
-        content = content.slice(0, secondToLastIndex);
-    }
-
-    return content;
+    return chunks;
 }
