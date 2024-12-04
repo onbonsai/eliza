@@ -1036,7 +1036,9 @@ export class OrbClient {
         this.app.get(
             "/:agentId/actions",
             async (req: express.Request, res: express.Response) => {
-                const { agentId, page } = req.params;
+                // TODO: better aggregation pipeline for onlyTrades to group tokens
+                const { agentId } = req.params;
+                const { page, onlyTrades } = req.query;
                 if (!agentId) {
                     res.status(400).send();
                     return;
@@ -1044,11 +1046,12 @@ export class OrbClient {
 
                 let actions = [];
                 const { tickers } = await getClient();
+                const filter = !!onlyTrades ? { trade: { $ne: null } } : {};
                 actions = await tickers
-                    .find({ agentId })
+                    .find({ agentId, ...filter })
                     .sort({ createdAt: -1 })
                     .limit(51)
-                    .skip(parseInt(page) * 50)
+                    .skip(parseInt(page as string) * 50)
                     .toArray();
 
                 const hasMore = actions.length > 50;
@@ -1063,8 +1066,10 @@ export class OrbClient {
                         ticker: ticker.ticker,
                         chain: ticker.chain,
                         score: ticker.score,
+                        inputTokenAddress: ticker.inputTokenAddress,
                         url: `${DEXSCREENER_URL}/${ticker.chain}/${ticker.inputTokenAddress}`,
                         imageURL: ticker.imageURL,
+                        trade: onlyTrades ? ticker.trade : undefined,
                     },
                 }));
 

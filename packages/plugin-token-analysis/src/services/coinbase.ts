@@ -87,8 +87,13 @@ export const executeTrade = async (
     tokenIn: string,
     tokenOut: string,
     amount: any
-): Promise<{ link: string; toAmount: Decimal } | undefined> => {
+): Promise<{ link: string; toAmount: Decimal; txHash: string } | undefined> => {
     try {
+        console.log("executeTrade", {
+            amount,
+            fromAssetId: tokenIn,
+            toAssetId: tokenOut,
+        });
         const trade = await wallet.createTrade({
             amount,
             fromAssetId: tokenIn,
@@ -101,7 +106,11 @@ export const executeTrade = async (
         if (status === TransactionStatus.COMPLETE) {
             const tx = await trade.getTransaction();
             const toAmount = await trade.getToAmount();
-            return { link: tx.getTransactionLink(), toAmount };
+            return {
+                link: tx.getTransactionLink(),
+                toAmount,
+                txHash: tx.getTransactionHash(),
+            };
         }
     } catch (error) {
         console.log(error);

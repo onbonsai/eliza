@@ -1,18 +1,20 @@
-import { composeContext } from "@ai16z/eliza/src/context.ts";
-import { generateMessageResponse } from "@ai16z/eliza/src/generation.ts";
+import { elizaLogger } from "@ai16z/eliza/src/logger.ts";
+// import { composeContext } from "@ai16z/eliza/src/context.ts";
+// import { generateMessageResponse } from "@ai16z/eliza/src/generation.ts";
 import {
     ActionExample,
     HandlerCallback,
     IAgentRuntime,
     Memory,
-    ModelClass,
+    // ModelClass,
     State,
     type Action,
 } from "@ai16z/eliza/src/types.ts";
 import { Coinbase } from "@coinbase/coinbase-sdk";
 import { Decimal } from "decimal.js";
-// TODO: install coinbase
+import { getAddress, formatEther, formatUnits } from "viem";
 import { getWallets, executeTrade } from "./../services/coinbase.ts";
+import { getClient } from "../services/mongo.ts";
 
 const messageTemplate = `You just executed a trade. Using the following JSON payload, I want you provide with a short remark as a summary on your trade. Only respond with the remark, do not acknowledge this request. Be creative with your remark.
 
@@ -51,93 +53,135 @@ export const executeTradeAction: Action = {
         }
 
         // @ts-ignore
+        console.log("state.payload?.action", state.payload?.action);
         if ((state.payload?.action as string) !== "EXECUTE_TRADE") return;
 
         const { data } = state.payload as { data: any };
-        const { score, ticker, inputTokenAddress, chain } = data;
+        const { score, ticker, inputTokenAddress, chain, objectId } = data;
+        console.log({ score, ticker, inputTokenAddress, chain });
         if (chain.toLowerCase() !== "base") return;
 
-        const { base } = await getWallets(state.agentId);
+        const { base, adminProfileId } = await getWallets(state.agentId);
         if (!base) return;
+        // if (adminProfileId !== state.adminProfileId) {
+        //     elizaLogger.error(
+        //         `Invalid state.adminProfileId, expected: ${state.adminProfileId} to equal ${wallets?.adminProfileId}`
+        //     );
+        //     return;
+        // }
 
-        // buy or strong buy
-        let res;
-        let fromAmount;
-        let fromTicker;
-        let toTicker;
-        if ((state.score as number) >= 3) {
-            const [usdcBalance, ethBalance] = await Promise.all([
-                base.getBalance(Coinbase.assets.Usdc),
-                base.getBalance(Coinbase.assets.Eth),
-            ]);
+        try {
+            // buy or strong buy
+            let res;
+            let fromAmount;
+            let fromTicker;
+            let toTicker;
+            if (score >= 3) {
+                const [usdcBalance, ethBalance] = await Promise.all([
+                    base.getBalance(Coinbase.assets.Usdc),
+                    base.getBalance(Coinbase.assets.Eth),
+                ]);
 
-            const pctBuy = state.score === TokenScore.BUY ? 0.1 : 0.25; // TODO: config
-            let inputAsset;
-            if (usdcBalance > ethBalance) {
-                inputAsset = Coinbase.assets.Usdc;
-                fromAmount = usdcBalance.mul(new Decimal(pctBuy));
-                fromTicker = "USDC";
-            } else {
-                inputAsset = Coinbase.assets.Eth;
-                fromAmount = ethBalance.mul(new Decimal(pctBuy));
-                fromTicker = "ETH";
+                const pctBuy = state.score === TokenScore.BUY ? 0.1 : 0.25; // TODO: config
+                let inputAsset;
+                if (usdcBalance > ethBalance) {
+                    inputAsset = Coinbase.assets.Usdc;
+                    fromAmount = formatUnits(
+                        BigInt(
+                            usdcBalance
+                                .mul(new Decimal(pctBuy))
+                                .floor()
+                                .toString()
+                        ),
+                        6
+                    );
+                    fromTicker = "USDC";
+                } else {
+                    inputAsset = Coinbase.assets.Eth;
+                    fromAmount = ethBalance
+                        .mul(new Decimal(pctBuy))
+                        .toFixed(4, Decimal.ROUND_DOWN)
+                        .toString();
+                    fromTicker = "ETH";
+                }
+                toTicker = ticker;
+
+                res = await executeTrade(
+                    base,
+                    inputAsset,
+                    getAddress(inputTokenAddress),
+                    fromAmount
+                );
+            } else if (score < 2) {
+                // sell or strong sell
+                const tokenBalance = await base.getBalance(
+                    getAddress(inputTokenAddress)
+                );
+                const pctSell = state.score === TokenScore.SELL ? 0.5 : 1; // TODO: config
+                fromAmount = tokenBalance.mul(new Decimal(pctSell));
+                fromTicker = ticker;
+                toTicker = "USDC";
+
+                res = await executeTrade(
+                    base,
+                    getAddress(inputTokenAddress),
+                    Coinbase.assets.Usdc, // TODO: config
+                    formatEther(BigInt(fromAmount.floor().toString()))
+                );
             }
-            toTicker = ticker;
 
-            res = await executeTrade(
-                base,
-                inputAsset,
-                inputTokenAddress,
-                fromAmount
-            );
-        } else if (score < 2) {
-            // sell or strong sell
-            const tokenBalance = await base.getBalance(inputTokenAddress);
-            const pctSell = state.score === TokenScore.SELL ? 0.5 : 1; // TODO: config
-            fromAmount = tokenBalance.mul(new Decimal(pctSell));
-            fromTicker = ticker;
-            toTicker = "USDC";
+            // TODO: handle this error better (no need to tell the user?)
+            if (!res) {
+                return;
+            }
 
-            res = await executeTrade(
-                base,
-                inputTokenAddress,
-                Coinbase.assets.Usdc, // TODO: config
-                fromAmount
-            );
+            if (objectId) {
+                const { tickers } = await getClient();
+                await tickers.updateOne(
+                    { _id: objectId },
+                    { $set: { trade: { txHash: res.txHash } } }
+                );
+            }
+
+            state.tradeResult = {
+                action: TokenScore[score],
+                fromTicker,
+                toTicker,
+                fromAmount,
+                toAmount: res.toAmount,
+                chain,
+            };
+
+            // TODO: improve the messageTemplate
+            // const messageContext = composeContext({
+            //     state,
+            //     template: messageTemplate,
+            // });
+
+            // const response = await generateMessageResponse({
+            //     runtime,
+            //     context: messageContext,
+            //     modelClass: ModelClass.SMALL,
+            // });
+            // console.log(response);
+
+            const attachments = [
+                {
+                    button: {
+                        label: "Trade",
+                        url: res.link,
+                    },
+                },
+            ];
+
+            callback?.({
+                text: "btw, I executed a trade",
+                // @ts-expect-error attachments
+                attachments,
+            });
+        } catch (error) {
+            console.log(error);
         }
-
-        state.tradeResult = {
-            action: TokenScore[score],
-            fromTicker,
-            toTicker,
-            fromAmount,
-            toAmount: res.toAmount,
-            chain,
-        };
-
-        const messageContext = composeContext({
-            state,
-            template: messageTemplate,
-        });
-
-        const response = await generateMessageResponse({
-            runtime,
-            context: messageContext,
-            modelClass: ModelClass.SMALL,
-        });
-
-        const attachments = {
-            button: {
-                label: "Trade",
-                url: res.link,
-            },
-        };
-
-        callback?.({
-            text: response.text,
-            // @ts-expect-error attachments
-            attachments,
-        });
     },
     examples: [] as ActionExample[][],
 } as Action;

@@ -5,7 +5,8 @@ import { BONSAI_TOKEN_ADDRESS_BASE } from "../utils/constants";
 const CODEX_API_URL = "https://graph.codex.io/graphql";
 const DEFAULT_LIQUIDITY = 100_000; // TODO: increase once bonsai is up
 const DEFAULT_MCAP = 1_000_000;
-const DEFAULT_NETWORK_IDS = [1, 8453, 1399811149]; // mainnet, base, solana
+// const DEFAULT_NETWORK_IDS = [1, 8453, 1399811149]; // mainnet, base, solana
+const DEFAULT_NETWORK_IDS = [8453]; // base
 export const NETWORK_ID_TO_NAME = {
     8453: "Base",
     1: "Ethereum",

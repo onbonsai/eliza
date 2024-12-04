@@ -259,8 +259,9 @@ export const scoreToken: Action = {
 
             // score non-neutral to the db - using ticker, userAddress as the uniq id
             const { tickers } = await getClient();
+            let objectId;
             try {
-                await tickers.insertOne({
+                const result = await tickers.insertOne({
                     ticker,
                     inputTokenAddress,
                     chain,
@@ -271,6 +272,7 @@ export const scoreToken: Action = {
                     imageURL: response.imageURL,
                     createdAt: Math.floor(Date.now() / 1000),
                 });
+                objectId = result.insertedId;
             } catch (error) {
                 if (
                     !error.message.includes(
@@ -288,6 +290,7 @@ export const scoreToken: Action = {
                     ticker,
                     inputTokenAddress,
                     chain,
+                    objectId,
                 },
             };
 
