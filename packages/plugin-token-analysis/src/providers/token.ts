@@ -427,7 +427,7 @@ export class TokenProvider {
 
     async fetchHolderListEvm(): Promise<HolderData[]> {
         // TODO: birdeye top holders
-        return []
+        return [];
     }
 
     async fetchHolderListSolana(): Promise<HolderData[]> {
@@ -645,9 +645,9 @@ export class TokenProvider {
         }
     }
 
-    async shouldTradeToken(): Promise<boolean> {
+    async shouldTradeToken(data?: ProcessedTokenData): Promise<boolean> {
         try {
-            const tokenData = await this.getProcessedTokenData();
+            const tokenData = data ? data : await this.getProcessedTokenData();
             const { tradeData, security, dexScreenerData } = tokenData;
             const { ownerBalance, creatorBalance } = security;
             const { liquidity, marketCap } = dexScreenerData.pairs[0];
@@ -775,6 +775,23 @@ export class TokenProvider {
         } catch (error) {
             console.error("Error generating token report:", error);
             return "Unable to fetch token information. Please try again later.";
+        }
+    }
+
+    async getAllTokenReport(): Promise<{ formattedReport; shouldTrade }> {
+        try {
+            const processedData = await this.getProcessedTokenData();
+            const formattedReport = this.formatTokenData(processedData);
+            const shouldTrade = await this.shouldTradeToken(processedData);
+            console.log({ formattedReport, shouldTrade });
+            return { formattedReport, shouldTrade };
+        } catch (error) {
+            console.error("Error generating token report:", error);
+            return {
+                formattedReport:
+                    "Unable to fetch token information. Please try again later.",
+                shouldTrade: false,
+            };
         }
     }
 }
