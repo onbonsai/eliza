@@ -152,7 +152,7 @@ export class ClientBase extends EventEmitter {
             this.runtime.character.style.post.join();
     }
 
-    async init() {
+    async init(searchOnly = false) {
         //test
         const username = this.runtime.getSetting("TWITTER_USERNAME");
 
@@ -214,8 +214,10 @@ export class ClientBase extends EventEmitter {
             throw new Error("Failed to load profile");
         }
 
-        await this.loadLatestCheckedTweetId();
-        await this.populateTimeline();
+        if (!searchOnly) {
+            await this.loadLatestCheckedTweetId();
+            await this.populateTimeline();
+        }
     }
 
     async fetchHomeTimeline(count: number): Promise<Tweet[]> {
@@ -340,7 +342,7 @@ export class ClientBase extends EventEmitter {
     ): Promise<QueryTweetsResponse> {
         // First check cache
         const cachedResult = await this.getCachedSearchTerm(searchTerm);
-        if (cachedResult) {
+        if (cachedResult && cachedResult.tweets.length > 0) {
             console.log("cached results found for search term", searchTerm);
             return cachedResult;
         }

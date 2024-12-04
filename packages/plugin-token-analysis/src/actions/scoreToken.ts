@@ -1,5 +1,5 @@
-import { composeContext } from "@ai16z/eliza/src/context.ts";
-import { generateObject } from "@ai16z/eliza/src/generation.ts";
+import { composeContext } from "@ai16z/eliza/src/context";
+import { generateObject } from "@ai16z/eliza/src/generation";
 import {
     ActionExample,
     HandlerCallback,
@@ -8,9 +8,9 @@ import {
     ModelClass,
     State,
     type Action,
-} from "@ai16z/eliza/src/types.ts";
-import { TokenProvider } from "../providers/token.ts";
-import { ClientBase } from "@ai16z/client-twitter/src/base.ts";
+} from "@ai16z/eliza/src/types";
+import { TokenProvider } from "../providers/token";
+import { ClientBase } from "@ai16z/client-twitter/src/base";
 import { getClient } from "../services/mongo.ts";
 import { executeTradeAction } from "./executeTrade.ts";
 
@@ -100,11 +100,13 @@ const socialAnalysis = async (
     runtime: IAgentRuntime,
     ticker: string
 ): Promise<{ socialReport: string; tweets: any[] }> => {
-    const client = new ClientBase(runtime);
     // Ensure ticker starts with $ for Twitter search
     if (!ticker.startsWith("$")) {
         ticker = `$${ticker}`;
     }
+
+    const client = new ClientBase(runtime);
+    await client.init(true);
     const { tweets } = await client.searchWithDelay(ticker);
     let report = `Social Analysis Report for ${ticker}\n\n`;
 
