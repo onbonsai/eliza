@@ -27,7 +27,7 @@ import {
 import { stringToUuid } from "@ai16z/eliza/src/uuid";
 import settings from "@ai16z/eliza/src/settings";
 import createPost from "./services/orb/createPost";
-import { getWallets } from "./services/coinbase";
+import { getWallets } from "./services/coinbase.ts";
 import { getRandomPrompt } from "./utils/postPrompt";
 import { mintProfile } from "./services/lens/mintProfile";
 import { getClient } from "./services/mongo";
@@ -302,6 +302,19 @@ export class OrbClient {
                     state,
                     async (newMessages) => {
                         message = newMessages;
+
+                        if (message.action !== "NONE") {
+                            console.log("emitting to roomId", roomId);
+                            this.io.to(roomId).emit(
+                                "response",
+                                JSON.stringify({
+                                    text: message.text,
+                                    attachments: message.attachments,
+                                    action: "NONE",
+                                })
+                            );
+                        }
+
                         return [memory];
                     }
                 );

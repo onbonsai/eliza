@@ -1,8 +1,7 @@
-import { Coinbase, Wallet } from "@coinbase/coinbase-sdk";
-import { Chain, erc20Abi, maxUint256 } from "viem";
+import { Coinbase, TransactionStatus, Wallet } from "@coinbase/coinbase-sdk";
+import { Decimal } from "decimal.js";
 import { decrypt, encrypt } from "../utils/crypto.ts";
 import { getClient } from "./mongo.ts";
-import { getPublicClient } from "../utils/viem";
 
 // lens profile
 export type WalletProfile = { id: `0x${string}`; handle: string };
@@ -82,31 +81,29 @@ export const getWallets = async (
     return wallets;
 };
 
-export const approveToken = async (
-    token: string,
+// swap and return transaction link
+export const executeTrade = async (
     wallet: Wallet,
-    user: `0x${string}`,
-    spender: `0x${string}`,
-    chain: Chain
-) => {
-    const client = getPublicClient(chain);
-    const allowance = await client.readContract({
-        address: token as `0x${string}`,
-        abi: erc20Abi,
-        functionName: "allowance",
-        args: [user, spender],
-    });
-
-    if (allowance == 0n) {
-        const contractInvocation = await wallet.invokeContract({
-            contractAddress: token,
-            method: "approve",
-            args: { spender, amount: maxUint256.toString() },
-            abi: erc20Abi,
+    tokenIn: string,
+    tokenOut: string,
+    amount: any
+): Promise<{ link: string; toAmount: Decimal } | undefined> => {
+    try {
+        const trade = await wallet.createTrade({
+            amount,
+            fromAssetId: tokenIn,
+            toAssetId: tokenOut,
         });
+        console.log(`trade: ${trade.getId()}`);
+        await trade.wait();
 
-        const hash = contractInvocation.getTransactionHash();
-        console.log(`tx: ${hash}`);
-        await contractInvocation.wait();
+        const status = await trade.getStatus();
+        if (status === TransactionStatus.COMPLETE) {
+            const tx = await trade.getTransaction();
+            const toAmount = await trade.getToAmount();
+            return { link: tx.getTransactionLink(), toAmount };
+        }
+    } catch (error) {
+        console.log(error);
     }
 };

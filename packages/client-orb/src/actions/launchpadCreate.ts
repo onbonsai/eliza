@@ -71,7 +71,6 @@ example orb post body data:
   }
 */
 
-
 const DEFAULT_CURVE_TYPE = 1; // NORMAL;
 const DEFAULT_INITIAL_SUPPLY = "0"; // buy price at ~55 usdc
 

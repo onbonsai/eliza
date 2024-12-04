@@ -12,6 +12,7 @@ import {
 import { TokenProvider } from "../providers/token.ts";
 import { ClientBase } from "@ai16z/client-twitter/src/base.ts";
 import { getClient } from "../services/mongo.ts";
+import { executeTradeAction } from "./executeTrade.ts";
 
 const messageTemplate = `Respond with a JSON markdown block containing only the extracted values. Use null for any values that cannot be determined.
 
@@ -237,8 +238,24 @@ export const scoreToken: Action = {
         ) as keyof typeof TokenScore;
         const score = TokenScore[scoreString] as number;
 
-        // score non-neutral to the db - using ticker, userAddress as the uniq id
+        const attachments = socialResult.tweets.map(({ id, username }) => ({
+            button: {
+                label: `Post by @${username}`,
+                url: `https://x.com/${username}/status/${id}`,
+            },
+        }));
+
+        // take action
         if (score != 2 && inputTokenAddress && chain) {
+            // send the response as a ws message
+            callback?.({
+                text: ratingResponse.reason,
+                // @ts-expect-error attachments
+                attachments,
+                action: "EXECUTE_TRADE",
+            });
+
+            // score non-neutral to the db - using ticker, userAddress as the uniq id
             const { tickers } = await getClient();
             try {
                 await tickers.insertOne({
@@ -261,20 +278,32 @@ export const scoreToken: Action = {
                     console.log(error);
                 }
             }
+
+            state.payload = {
+                action: "EXECUTE_TRADE",
+                data: {
+                    score,
+                    ticker,
+                    inputTokenAddress,
+                    chain,
+                },
+            };
+
+            // let this action handle the final callback
+            await executeTradeAction.handler(
+                runtime,
+                message,
+                state,
+                {},
+                callback
+            );
+        } else {
+            // no action to take, handle normally
+            callback?.({
+                text: ratingResponse.reason,
+                attachments,
+            });
         }
-
-        const attachments = socialResult.tweets.map(({ id, username }) => ({
-            button: {
-                label: `Post by @${username}`,
-                url: `https://x.com/${username}/status/${id}`,
-            },
-        }));
-
-        callback?.({
-            text: ratingResponse.reason,
-            // @ts-expect-error attachments
-            attachments,
-        });
 
         return {
             score,
