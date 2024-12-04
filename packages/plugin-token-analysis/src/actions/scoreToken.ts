@@ -66,11 +66,15 @@ Social Report
 Technical Report
 {{technicalResult}}
 
+Should trade analysis (this is a boolean condition based on all of the technical report elements, defined as: isTop10Holder || isVolume24h || isPriceChange24h || isPriceChange12h || isUniqueWallet24h || isLiquidityTooLow || isMarketCapTooLow):
+{{shouldTrade}}
+
 You are an expert crypto and memecoin trader. You know how to combine charting skills with sentiment analysis to determine if a coin is under or over valued.
 
 Given the social and technical reports assign the token a TokenScore rating. Note that there may be missing data for certain metrics since this reporting is still in development. Disregard this and make your analysis solely on the data present.
 For the technical report the most important things are signs of momentum in increasing price, higher highs higher lows, increasing volume, that kind of thing.
-For the social data an active community is one of the most important signals.
+For the social data an active community is one of the most important signals. Remember that we only fetch the 20 latest tweets from search and current token holders are always going to be hyper bullish on their own bags.
+For the "should trade" result, this indicates that an action - buy or sell - is preffered to neutral. Note that if there is missing or empty data from the technical report, which may be the case for api calls that aren't supported yet, then this may not be accurate.
 
 Beyond these things interpret the data as you see fit.
 
@@ -139,10 +143,12 @@ const socialAnalysis = async (
 
 // TECHNICAL ANALYSIS
 const technicalAnalysis = async (
-    tokenProvider: TokenProvider
-): Promise<string> => {
-    const formattedReport = await tokenProvider.getFormattedTokenReport();
-    return formattedReport;
+    inputTokenAddress: string,
+    chain: string
+): Promise<{ formattedReport: string; shouldTrade: boolean }> => {
+    const tokenProvider = new TokenProvider(inputTokenAddress, chain);
+    const result = await tokenProvider.getAllTokenReport();
+    return result;
 };
 
 export const scoreToken: Action = {
@@ -212,21 +218,23 @@ export const scoreToken: Action = {
                   }),
             inputTokenAddress && chain
                 ? (async () => {
-                      const tokenProvider = new TokenProvider(
-                          inputTokenAddress,
-                          chain
-                      );
-                      return technicalAnalysis(tokenProvider);
+                      return technicalAnalysis(inputTokenAddress, chain);
                   })()
-                : Promise.resolve(
-                      "No chain or token address - skipping technical analysis"
-                  ),
+                : Promise.resolve({
+                      formattedReport:
+                          "No chain or token address - skipping technical analysis",
+                      shouldTrade: false,
+                  }),
         ]);
 
         // prompt LLM to read the results and return a TokenScore
         const context = ratingTemplate
             .replace("{{socialResult}}", socialResult.socialReport)
-            .replace("{{technicalResult}}", technicalResult);
+            .replace("{{technicalResult}}", technicalResult.formattedReport)
+            .replace(
+                "{{shouldTrade}}",
+                technicalResult.shouldTrade ? "Yes" : "No"
+            );
         const ratingResponse = await generateObject({
             runtime,
             context,
