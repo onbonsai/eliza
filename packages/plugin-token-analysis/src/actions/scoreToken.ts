@@ -301,6 +301,7 @@ export const scoreToken: Action = {
             // no action to take, handle normally
             callback?.({
                 text: ratingResponse.reason,
+                // @ts-ignore
                 attachments,
             });
         }
