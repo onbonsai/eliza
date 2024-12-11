@@ -54,7 +54,6 @@ import { fetchFeed } from "./services/lens/fetchFeed";
 import { searchLensForTerm } from "./services/lens/search.ts";
 
 export const messageHandlerTemplate =
-    // {{goals}}
     `# Action Examples
 {{actionExamples}}
 (Action examples are for reference only. Do not use the information from them in your response.)
@@ -77,9 +76,48 @@ Note that {{agentName}} is capable of reading/seeing/hearing various forms of me
 
 {{actions}}
 
-# Instructions: Write a response to the most recent message as {{agentName}}. Ignore "action". Don't say anything similar to a previous conversation message, make each thought fresh and unique. avoid posting platitudes.
-NO EMOJIS. don't take yourself to seriously, don't say 'ah' or 'oh', no questions, be brief and concise.
+# Instructions: Write a response to the most recent message as {{agentName}}. Ignore "action". Don't say anything similar to a previous conversation message, make each thought fresh and unique. avoid responding with platitudes.
+NO EMOJIS. don't take yourself to seriously, don't say 'ah' or 'oh', be brief and concise.
 ` + messageCompletionFooter;
+
+export const faqMessageHandlerTemplate =
+    `About {{agentName}}:
+{{bio}}
+{{lore}}
+
+{{providers}}
+
+{{attachments}}
+
+# Capabilities
+Note that {{agentName}} is capable of reading/seeing/hearing various forms of media, including images, videos, audio, plaintext and PDFs. Recent attachments have been included above under the "Attachments" section.
+
+{{messageDirections}}
+
+{{recentMessages}}
+
+# This agent is associated with the Bonsai meme coin project - a cross chain social token for creativity and culture. It has expanded now to encapsulate AI agents such as this one and
+will eventually allow for users to spin up their own. There is also a meme coin launchpad where users can create their own meme coin bonding curve to try and launch new tokens
+onto the blockchain. this will be on Base and require a bonding curve to reach 69k USDC before the token is minted and a uniswap pool deployed. Once uniswap v4 is released you'll be
+able to give your tokens custom hooks. Bonsai NFT holders will be first class citizens with a variety of perks including getting their token featured, and no trading or registration fees.
+You can find all info about Bonsai on their homepage: bonsai.meme.
+
+The Bonsai token can be found at these addresses:
+Polygon: 0x3d2bD0e15829AA5C362a4144FdF4A1112fa29B5c
+Base: 0x474f4cb764df9da079D94052fED39625c147C12C
+zkSync: 0xB0588f9A9cADe7CD5f194a5fe77AcD6A58250f82
+
+Bonsai started as a meme coin to bring the Lens community together. After being airdropped to top Lens profiles it expanded to Base and zkSync chains via LayerZero's OFT token standard
+to become the culture token for web3 social and creatives. More recently it has expanded with Sage (you) - the first AI agent, running on an upgraded version of the ai16z Eliza platform
+with expanded capabilities. Sage posts to X and Orb, a web3 social app, where he also responds to content he likes and will even tip the poster if its really good. This is all part of
+the Bons(ai) rebrand, taking Bonsai into the future by creating AI agents that are capable of posting online, conducting onchain transactions, talking with each other to improve decision
+making, analyze onchain data, create tokens on the launchpad and make decisions independently as autonomous entities.
+
+# Instructions: Write a response to the most recent message as {{agentName}}. Ignore "action". Be complete in your answers and say everything there is to say. Use the information
+above when asked about details around the Bonsai project.
+` +
+    messageCompletionFooter +
+    "For action just put 'NONE'";
 
 export interface Payload {
     action: string;
@@ -329,6 +367,115 @@ export class OrbClient {
                         return [memory];
                     }
                 );
+
+                if (message) {
+                    res.json([message, response]);
+                } else {
+                    res.json([response]);
+                }
+            }
+        );
+
+        this.app.post(
+            "/:agentId/faq",
+            async (req: express.Request, res: express.Response) => {
+                console.log("FAQ message");
+                const agentId = req.params.agentId;
+                const roomId =
+                    req.body.roomId || stringToUuid("default-room-" + agentId);
+                const userId = stringToUuid(req.body.userId ?? "user");
+                const payload: Payload = req.body.payload; // in order for actions to pull in preset params
+
+                let runtime = this.agents.get(agentId);
+
+                // if runtime is null, look for runtime with the same name
+                if (!runtime) {
+                    runtime = Array.from(this.agents.values()).find(
+                        (a) =>
+                            a.character.name.toLowerCase() ===
+                            agentId.toLowerCase()
+                    );
+                }
+
+                if (!runtime) {
+                    res.status(404).send("Agent not found");
+                    return;
+                }
+
+                await runtime.ensureConnection(
+                    userId,
+                    roomId,
+                    req.body.userName,
+                    req.body.name,
+                    "direct"
+                );
+
+                const text = req.body.text;
+                const messageId = stringToUuid(Date.now().toString());
+
+                const content: Content = {
+                    text,
+                    attachments: [],
+                    source: "direct",
+                    inReplyTo: undefined,
+                };
+
+                const userMessage = {
+                    content,
+                    userId,
+                    roomId,
+                    agentId: runtime.agentId,
+                };
+
+                const memory: Memory = {
+                    id: messageId,
+                    agentId: runtime.agentId,
+                    userId,
+                    roomId,
+                    content,
+                    createdAt: Date.now(),
+                };
+
+                await runtime.messageManager.createMemory(memory);
+
+                const state = (await runtime.composeState(userMessage, {
+                    agentName: runtime.character.name,
+                })) as State;
+                state.payload = {
+                    ...payload,
+                    userId: req.body.userId,
+                };
+
+                const context = composeContext({
+                    state,
+                    template: faqMessageHandlerTemplate,
+                });
+
+                const response = await generateMessageResponse({
+                    runtime: runtime,
+                    context,
+                    modelClass: ModelClass.SMALL,
+                });
+
+                // save response to memory
+                const responseMessage = {
+                    ...userMessage,
+                    userId: runtime.agentId,
+                    content: response,
+                };
+
+                await runtime.messageManager.createMemory(responseMessage);
+
+                if (!response) {
+                    res.status(500).send(
+                        "No response from generateMessageResponse"
+                    );
+                    return;
+                }
+
+                let message = null as Content | null;
+
+                await runtime.evaluate(memory, state);
 
                 if (message) {
                     res.json([message, response]);
