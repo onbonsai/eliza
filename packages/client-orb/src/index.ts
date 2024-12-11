@@ -51,6 +51,7 @@ import { tokenAnalysisPlugin } from "@ai16z/plugin-token-analysis/src/index";
 import { ClientBase } from "@ai16z/client-twitter/src/base";
 import { DEXSCREENER_URL } from "./services/codex";
 import { fetchFeed } from "./services/lens/fetchFeed";
+import { searchLensForTerm } from "./services/lens/search.ts";
 
 export const messageHandlerTemplate =
     // {{goals}}
@@ -113,6 +114,16 @@ export class OrbClient {
         this.app.use(bodyParser.urlencoded({ extended: true }));
 
         this.initializeWebSocket();
+
+        /* endpoint for search lens */
+        this.app.post(
+            "/:agentId/score-launchpad",
+            async (req: express.Request, res: express.Response) => {
+                const queryTerm = req.body.query;
+                const lensResults = await searchLensForTerm(queryTerm);
+                res.json(lensResults);
+            }
+        );
 
         /* test endpoint for token ratings */
         this.app.post(
