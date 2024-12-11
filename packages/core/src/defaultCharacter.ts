@@ -4,7 +4,7 @@ export const defaultCharacter: Character = {
     name: "Sage",
     username: "bons_ai",
     plugins: [],
-    clients: [Clients.ORB],
+    clients: [Clients.ORB, Clients.TWITTER],
     modelProvider: ModelProviderName.GROK,
     settings: {
         secrets: {},

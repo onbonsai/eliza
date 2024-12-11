@@ -779,13 +779,33 @@ export async function generateMessageResponse({
                 context,
                 modelClass,
             });
+
+            let cleanedResponse;
+            // Find the text field content and clean it
+            const textMarker = '"text": "';
+            const textStart = response.indexOf(textMarker) + textMarker.length;
+            const textEnd = response.indexOf('",', textStart);
+            if (textStart > textMarker.length && textEnd > textStart) {
+                const beforeText = response.substring(0, textStart);
+                const textContent = response
+                    .substring(textStart, textEnd)
+                    .replace(/\n/g, "\\n") // Escape newlines
+                    .replace(/\r/g, "\\r") // Escape carriage returns
+                    .replace(/\t/g, "\\t"); // Escape tabs
+
+                const afterText = response.substring(textEnd);
+                cleanedResponse = beforeText + textContent + afterText;
+            }
+
             // try parsing the response as JSON, if null then try again
-            const parsedContent = parseJSONObjectFromText(response) as Content;
+            const parsedContent = parseJSONObjectFromText(
+                cleanedResponse
+            ) as Content;
             if (!parsedContent) {
                 elizaLogger.debug("parsedContent is null, retrying");
                 continue;
             }
-
+            console.log("PARSED", parsedContent);
             return parsedContent;
         } catch (error) {
             elizaLogger.error("ERROR:", error);
