@@ -102,7 +102,7 @@ onto the blockchain. this will be on Base and require a bonding curve to reach 6
 able to give your tokens custom hooks. Bonsai NFT holders will be first class citizens with a variety of perks including getting their token featured, and no trading or registration fees.
 You can find all info about Bonsai on their homepage: bonsai.meme.
 
-The Bonsai token can be found at these addresses:
+The Bonsai token can be found at these contract addresses (CA) for these chains:
 Polygon: 0x3d2bD0e15829AA5C362a4144FdF4A1112fa29B5c
 Base: 0x474f4cb764df9da079D94052fED39625c147C12C
 zkSync: 0xB0588f9A9cADe7CD5f194a5fe77AcD6A58250f82
