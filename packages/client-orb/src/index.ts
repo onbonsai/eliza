@@ -52,6 +52,7 @@ import { ClientBase } from "@ai16z/client-twitter/src/base";
 import { DEXSCREENER_URL } from "./services/codex";
 import { fetchFeed } from "./services/lens/fetchFeed";
 import { searchLensForTerm } from "./services/lens/search.ts";
+import { AGENT_HANDLE } from "./utils/constants.ts";
 
 export const messageHandlerTemplate =
     `# Action Examples
@@ -947,6 +948,133 @@ export class OrbClient {
                         res.status(400).send(error);
                     }
                 }
+            }
+        );
+
+        // webhook endpoint to process a post from bonsai club
+        this.app.post(
+            "/orb/webhook/post-mention",
+            async (req: express.Request, res: express.Response) => {
+                // TODO: authorization
+                const params = req.body;
+                if (params.profileId == "0x088d93") {
+                    res.status(500).send("no reply to self");
+                    return;
+                }
+                if (this.responded[params.publicationId]) {
+                    const message = `already responded to publication: ${params.publicationId}`;
+                    console.log(message);
+                    res.status(500).send(message);
+                    return;
+                }
+                this.responded[params.publicationId] = true;
+                const { collection } = await getClient();
+                const agent = await collection.findOne({
+                    handle: AGENT_HANDLE,
+                });
+                if (!agent) {
+                    res.status(404).send();
+                    return;
+                }
+
+                let runtime = this.agents.get(agent.agentId);
+
+                // if runtime is null, look for runtime with the same name
+                if (!runtime) {
+                    runtime = Array.from(this.agents.values()).find(
+                        (a) =>
+                            a.character.name.toLowerCase() ===
+                            agent.agentId.toLowerCase()
+                    );
+                }
+
+                if (!runtime) {
+                    res.status(404).send("Agent not found");
+                    return;
+                }
+
+                const wallets = await getWallets(agent.agentId, false);
+                if (!wallets?.polygon) {
+                    res.status(500).send("failed to load polygon wallet");
+                    return;
+                }
+
+                const userId = stringToUuid(params.profileId);
+                const roomId = stringToUuid(params.publicationId);
+                const messageId = stringToUuid(Date.now().toString());
+                const content: Content = {
+                    text: params.publicationData.lens.content,
+                    attachments: [],
+                    source: "direct",
+                    inReplyTo: undefined,
+                };
+                const userMessage = {
+                    content,
+                    userId,
+                    roomId,
+                    agentId: runtime.agentId,
+                };
+
+                const memory: Memory = {
+                    id: messageId,
+                    agentId: runtime.agentId,
+                    userId,
+                    roomId,
+                    content: { text: params.publicationData.lens.content },
+                    createdAt: Date.now(),
+                };
+                const state = (await runtime.composeState(userMessage, {
+                    agentName: runtime.character.name,
+                })) as State;
+                state.params = params.publicationData;
+                state.userMessage = userMessage.content.text;
+
+                const context = composeContext({
+                    state,
+                    template: messageHandlerTemplate,
+                });
+
+                const response = await generateMessageResponse({
+                    runtime: runtime,
+                    context,
+                    modelClass: ModelClass.SMALL,
+                });
+
+                // save response to memory
+                const responseMessage = {
+                    ...userMessage,
+                    userId: runtime.agentId,
+                    content: response,
+                };
+
+                await runtime.messageManager.createMemory(responseMessage);
+                await runtime.evaluate(memory, state);
+
+                let message = null as Content | null;
+
+                await runtime.evaluate(memory, state);
+
+                const result = await runtime.processActions(
+                    memory,
+                    [responseMessage],
+                    state,
+                    async (newMessages) => {
+                        message = newMessages;
+                        return [memory];
+                    }
+                );
+
+                await createPost(
+                    wallets?.polygon,
+                    wallets?.profile?.id,
+                    wallets?.profile?.handle,
+                    response.text,
+                    undefined,
+                    undefined,
+                    params.publicationId
+                );
+
+                res.status(200).json({ response, message });
             }
         );
 

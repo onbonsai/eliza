@@ -90,7 +90,7 @@ export const fetchArweaveData = async (uri: string) => {
 
 export const getLensImageURL = (uri: string): string => {
     try {
-        if (!uri.includes("ipfs://")) return;
+        if (!uri.includes("ipfs://")) return uri;
         return `${LENS_IPFS_URL}/${uri.split("ipfs://")[1]}`;
     } catch (error) {
         console.error("Error fetching data:", error);

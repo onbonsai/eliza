@@ -246,6 +246,12 @@ export const launchpadCreate: Action = {
                 },
             },
             {
+                user: "{{user1}}",
+                content: {
+                    address: "create a token $beau for dogs",
+                },
+            },
+            {
                 user: "{{user2}}",
                 content: {
                     text: "Creating token $beau with description, for dogs",
