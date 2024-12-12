@@ -805,7 +805,7 @@ export class OrbClient {
 
                 // if the agent was tagged, process as an action
                 if (
-                    params.lens.content.includes(`@lens/${agent.handle}`) &&
+                    params.lens.content.includes(agent.handle) &&
                     params.lens.content.toLowerCase().includes("create")
                 ) {
                     const userId = stringToUuid(params.profile_id);
@@ -869,7 +869,7 @@ export class OrbClient {
                     res.status(200).json({ message });
                 } else {
                     try {
-                        // process content from the publication, perform the resulting action
+                        // rate the post and reply/tip
                         const content = params.lens.content;
                         const imageURL = params.lens.image?.item
                             ? getLensImageURL(params.lens.image?.item)
@@ -1026,7 +1026,12 @@ export class OrbClient {
                 const state = (await runtime.composeState(userMessage, {
                     agentName: runtime.character.name,
                 })) as State;
-                state.params = params.publicationData;
+                state.params = {
+                    ...params,
+                    lens: params.publicationData.lens,
+                    publication_id: params.publicationId,
+                    profile_id: params.profileId,
+                };
                 state.userMessage = userMessage.content.text;
 
                 const context = composeContext({
@@ -1040,11 +1045,20 @@ export class OrbClient {
                     modelClass: ModelClass.SMALL,
                 });
 
+                // HACK: hardcoding this action for now, to skip the first process message
+                const createTokenAction = params.publicationData.lens.content
+                    .toLowerCase()
+                    .includes("create")
+                    ? { action: "CREATE_TOKEN_LAUNCHPAD" }
+                    : {};
                 // save response to memory
                 const responseMessage = {
                     ...userMessage,
                     userId: runtime.agentId,
-                    content: response,
+                    content: {
+                        ...response,
+                        ...createTokenAction,
+                    },
                 };
 
                 await runtime.messageManager.createMemory(responseMessage);
@@ -1064,15 +1078,15 @@ export class OrbClient {
                     }
                 );
 
-                await createPost(
-                    wallets?.polygon,
-                    wallets?.profile?.id,
-                    wallets?.profile?.handle,
-                    response.text,
-                    undefined,
-                    undefined,
-                    params.publicationId
-                );
+                // await createPost(
+                //     wallets?.polygon,
+                //     wallets?.profile?.id,
+                //     wallets?.profile?.handle,
+                //     response.text,
+                //     undefined,
+                //     undefined,
+                //     params.publicationId
+                // );
 
                 res.status(200).json({ response, message });
             }

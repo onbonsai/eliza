@@ -128,7 +128,7 @@ export const launchpadCreate: Action = {
         const params = state?.params as any;
         if (!params?.publication_id) {
             throw new Error(
-                "no params to determine creator, image etc. Orb post body must be passed in through _options arg"
+                "no params to determine creator, image etc. Orb params must be passed in through state"
             );
         }
 
@@ -218,16 +218,17 @@ export const launchpadCreate: Action = {
             curveType: DEFAULT_CURVE_TYPE,
         });
 
-        const reply = `$${symbol} has been created\\nhttps://launch.bonsai.meme/token/${clubId}`;
-        // await createPost(
-        //     wallets?.polygon,
-        //     wallets?.profile?.id,
-        //     wallets?.profile?.handle,
-        //     reply,
-        //     undefined,
-        //     undefined,
-        //     params.publication_id
-        // );
+        const reply = `$${symbol} has been created! 👇
+https://launch.bonsai.meme/token/${clubId}`;
+        await createPost(
+            wallets?.polygon,
+            wallets?.profile?.id,
+            wallets?.profile?.handle,
+            reply,
+            undefined,
+            undefined,
+            params.publication_id
+        );
 
         callback?.({
             text: reply,
