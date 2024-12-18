@@ -951,7 +951,7 @@ export class OrbClient {
             }
         );
 
-        // webhook endpoint to process a post from bonsai club
+        // webhook endpoint to process a mention from any club (@sage_ai)
         this.app.post(
             "/orb/webhook/post-mention",
             async (req: express.Request, res: express.Response) => {
@@ -1023,6 +1023,8 @@ export class OrbClient {
                     content: { text: params.publicationData.lens.content },
                     createdAt: Date.now(),
                 };
+                await runtime.messageManager.createMemory(memory);
+
                 const state = (await runtime.composeState(userMessage, {
                     agentName: runtime.character.name,
                 })) as State;
@@ -1045,48 +1047,63 @@ export class OrbClient {
                     modelClass: ModelClass.SMALL,
                 });
 
-                // HACK: hardcoding this action for now, to skip the first process message
-                const createTokenAction = params.publicationData.lens.content
-                    .toLowerCase()
-                    .includes("create")
-                    ? { action: "CREATE_TOKEN_LAUNCHPAD" }
-                    : {};
-                // save response to memory
-                const responseMessage = {
-                    ...userMessage,
-                    userId: runtime.agentId,
-                    content: {
-                        ...response,
-                        ...createTokenAction,
-                    },
-                };
-
-                await runtime.messageManager.createMemory(responseMessage);
-                await runtime.evaluate(memory, state);
-
                 let message = null as Content | null;
 
-                await runtime.evaluate(memory, state);
+                // check if the message contains the word "create" and a $ followed by a word
+                if (
+                    state.userMessage.toLowerCase().includes("create") &&
+                    /\$\w+/.test(state.userMessage)
+                ) {
+                    // HACK: hardcoding this action for now, to skip the first process message
+                    const createTokenAction =
+                        params.publicationData.lens.content
+                            .toLowerCase()
+                            .includes("create")
+                            ? { action: "CREATE_TOKEN_LAUNCHPAD" }
+                            : {};
+                    // save response to memory
+                    const responseMessage = {
+                        ...userMessage,
+                        userId: runtime.agentId,
+                        content: {
+                            ...response,
+                            ...createTokenAction,
+                        },
+                    };
 
-                const result = await runtime.processActions(
-                    memory,
-                    [responseMessage],
-                    state,
-                    async (newMessages) => {
-                        message = newMessages;
-                        return [memory];
-                    }
-                );
+                    await runtime.messageManager.createMemory(responseMessage);
+                    await runtime.evaluate(memory, state);
 
-                // await createPost(
-                //     wallets?.polygon,
-                //     wallets?.profile?.id,
-                //     wallets?.profile?.handle,
-                //     response.text,
-                //     undefined,
-                //     undefined,
-                //     params.publicationId
-                // );
+                    const result = await runtime.processActions(
+                        memory,
+                        [responseMessage],
+                        state,
+                        async (newMessages) => {
+                            message = newMessages;
+                            return [memory];
+                        }
+                    );
+                } else {
+                    // save response to memory
+                    const responseMessage = {
+                        ...userMessage,
+                        userId: runtime.agentId,
+                        content: response,
+                    };
+
+                    await runtime.messageManager.createMemory(responseMessage);
+
+                    // simply reply
+                    await createPost(
+                        wallets?.polygon,
+                        wallets?.profile?.id,
+                        wallets?.profile?.handle,
+                        response.text,
+                        undefined,
+                        undefined,
+                        params.publicationId
+                    );
+                }
 
                 res.status(200).json({ response, message });
             }

@@ -69,7 +69,7 @@ type RegistrationParams = {
 };
 export const registerClub = async (
     wallet: Wallet,
-    recipient: `0x${string}`,
+    creator: `0x${string}`,
     params: RegistrationParams
 ): Promise<{ objectId?: string; clubId?: string }> => {
     const token = encodeAbi(
@@ -85,7 +85,7 @@ export const registerClub = async (
             token,
             initialSupply: params.initialSupply,
             curve: (params.curveType ?? 1).toString(),
-            creator: params.recipient,
+            creator,
         },
     });
     await contractInvocation.wait();
