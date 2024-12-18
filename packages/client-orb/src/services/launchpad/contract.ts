@@ -22,8 +22,8 @@ export const IS_PRODUCTION = process.env.LAUNCHPAD_CHAIN_ID === "8453";
 export const CONTRACT_CHAIN_ID = IS_PRODUCTION ? base.id : baseSepolia.id;
 export const CHAIN = IS_PRODUCTION ? base : baseSepolia;
 export const LAUNCHPAD_CONTRACT_ADDRESS = IS_PRODUCTION
-    ? "0x6031FAd66fCee00B835f91F5967Aff840AF7B3c4" // TODO: mainnet deployment
-    : "0x6031FAd66fCee00B835f91F5967Aff840AF7B3c4";
+    ? "0x60aaa60eb9a11f3e82e2ca87631d4b37e1b88891" // TODO: mainnet deployment
+    : "0x60aaa60eb9a11f3e82e2ca87631d4b37e1b88891";
 
 export const INITIAL_CHIP_SUPPLY_CAP = 10; // with 6 decimals in the contract
 export const DECIMALS = 6;
@@ -33,7 +33,7 @@ export const USDC_CONTRACT_ADDRESS = IS_PRODUCTION
     ? "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
     : "0x036CbD53842c5426634e7929541eC2318f3dCF7e";
 export const DEFAULT_HOOK_ADDRESS = IS_PRODUCTION
-    ? ""
+    ? zeroAddress
     : "0xA788031C591B6824c032a0EFe74837EE5eaeC080";
 export const BONSAI_TOKEN_ZKSYNC_ADDRESS =
     "0xB0588f9A9cADe7CD5f194a5fe77AcD6A58250f82";
@@ -85,7 +85,7 @@ export const registerClub = async (
             token,
             initialSupply: params.initialSupply,
             curve: (params.curveType ?? 1).toString(),
-            recipient: zeroAddress, // TODO: params.recipient after redeploy fix
+            creator: params.recipient,
         },
     });
     await contractInvocation.wait();
