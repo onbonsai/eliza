@@ -140,12 +140,26 @@ export default async (
     //   ? await client.publication.postOnchain({ contentURI })
     //   : await client.publication.postOnMomoka({ contentURI });
 
-    const typedDataResult = !commentOn
-        ? await client.publication.createOnchainPostTypedData({ contentURI })
-        : await client.publication.createOnchainCommentTypedData({
-              commentOn,
-              contentURI,
-          });
+    let typedDataResult;
+    if (onchain) {
+        typedDataResult = !commentOn
+            ? await client.publication.createOnchainPostTypedData({
+                  contentURI,
+              })
+            : await client.publication.createOnchainCommentTypedData({
+                  commentOn,
+                  contentURI,
+              });
+    } else {
+        typedDataResult = !commentOn
+            ? await client.publication.createMomokaPostTypedData({
+                  contentURI,
+              })
+            : await client.publication.createMomokaCommentTypedData({
+                  commentOn,
+                  contentURI,
+              });
+    }
 
     // handle authentication errors
     if (typedDataResult.isFailure()) {
@@ -170,10 +184,18 @@ export default async (
         })
     );
 
-    const result = await client.transaction.broadcastOnchain({
-        id,
-        signature: signatureTyped.getSignature(),
-    });
+    let result;
+    if (onchain) {
+        result = await client.transaction.broadcastOnchain({
+            id,
+            signature: signatureTyped.getSignature(),
+        });
+    } else {
+        result = await client.transaction.broadcastOnMomoka({
+            id,
+            signature: signatureTyped.getSignature(),
+        });
+    }
 
     return handleBroadcastResult(result);
 };
