@@ -204,23 +204,24 @@ Self as creator?: ${params.setSelfAsCreator}`
             ? address
             : (lensProfile.ownedBy.address as `0x${string}`);
 
-        const registrationFee = await getRegistrationFee(
-            DEFAULT_INITIAL_SUPPLY,
-            DEFAULT_CURVE_TYPE,
-            address
-        );
-        const balance = await getTokenBalance(address);
-        const initialSupply =
-            balance > registrationFee ? DEFAULT_INITIAL_SUPPLY : "0";
-        if (balance > registrationFee) {
-            await approveToken(
-                USDC_CONTRACT_ADDRESS,
-                wallet,
-                address,
-                LAUNCHPAD_CONTRACT_ADDRESS,
-                CHAIN
-            );
-        }
+        const initialSupply = "0"; // not buying till we have a good strategy
+        // const registrationFee = await getRegistrationFee(
+        //     DEFAULT_INITIAL_SUPPLY,
+        //     DEFAULT_CURVE_TYPE,
+        //     address
+        // );
+        // const balance = await getTokenBalance(address);
+        // const initialSupply =
+        //     balance > registrationFee ? DEFAULT_INITIAL_SUPPLY : "0";
+        // if (balance > registrationFee) {
+        //     await approveToken(
+        //         USDC_CONTRACT_ADDRESS,
+        //         wallet,
+        //         address,
+        //         LAUNCHPAD_CONTRACT_ADDRESS,
+        //         CHAIN
+        //     );
+        // }
         const handle = params.setSelfAsCreator
             ? AGENT_HANDLE
             : lensProfile.handle.localName;
