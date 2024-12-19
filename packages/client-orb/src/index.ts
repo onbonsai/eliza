@@ -1054,6 +1054,25 @@ export class OrbClient {
                     state.userMessage.toLowerCase().includes("create") &&
                     /\$\w+/.test(state.userMessage)
                 ) {
+                    // HACK: agent as the creator
+                    const setSelfAsCreator =
+                        state.userMessage
+                            .toLowerCase()
+                            .includes("yourself as creator") ||
+                        state.userMessage
+                            .toLowerCase()
+                            .includes("yourself as the creator") ||
+                        state.userMessage
+                            .toLowerCase()
+                            .includes("you as creator") ||
+                        state.userMessage
+                            .toLowerCase()
+                            .includes("you as the creator") ||
+                        state.userMessage
+                            .toLowerCase()
+                            .includes("you are the creator");
+                    // @ts-ignore
+                    state.params.setSelfAsCreator = setSelfAsCreator;
                     // HACK: hardcoding this action for now, to skip the first process message
                     const createTokenAction =
                         params.publicationData.lens.content

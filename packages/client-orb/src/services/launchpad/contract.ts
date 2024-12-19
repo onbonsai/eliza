@@ -124,11 +124,11 @@ export const registerClub = async (
 };
 
 export const getRegistrationFee = async (
-    amount: number,
+    amountEther: string,
     curve: number,
     account?: `0x${string}`
 ): Promise<bigint> => {
-    const amountWithDecimals = parseUnits(amount.toString(), DECIMALS);
+    const amountWithDecimals = parseUnits(amountEther, DECIMALS);
     const client = publicClient();
     return (await client.readContract({
         address: LAUNCHPAD_CONTRACT_ADDRESS,
@@ -136,5 +136,18 @@ export const getRegistrationFee = async (
         functionName: "getRegistrationFee",
         args: [amountWithDecimals, curve],
         account,
+    })) as bigint;
+};
+
+export const getTokenBalance = async (
+    account: `0x${string}`,
+    token = USDC_CONTRACT_ADDRESS
+): Promise<bigint> => {
+    const client = publicClient();
+    return (await client.readContract({
+        address: token,
+        abi: erc20Abi,
+        functionName: "balanceOf",
+        args: [account],
     })) as bigint;
 };

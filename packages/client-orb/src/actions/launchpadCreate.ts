@@ -19,11 +19,14 @@ import {
     USDC_CONTRACT_ADDRESS,
     LAUNCHPAD_CONTRACT_ADDRESS,
     CHAIN,
+    getRegistrationFee,
+    getTokenBalance,
 } from "../services/launchpad/contract.ts";
 import { getLensImageURL } from "../services/lens/ipfs.ts";
 import { getProfileById } from "../services/lens/profiles.ts";
 import { approveToken } from "../services/coinbase.ts";
 import createPost from "../services/orb/createPost.ts";
+import { AGENT_HANDLE } from "../utils/constants.ts";
 
 /*
 example orb post body data:
@@ -72,7 +75,7 @@ example orb post body data:
 */
 
 const DEFAULT_CURVE_TYPE = 1; // NORMAL;
-const DEFAULT_INITIAL_SUPPLY = "0"; // buy price at ~55 usdc
+const DEFAULT_INITIAL_SUPPLY = !IS_PRODUCTION ? "1" : "15"; // buy price at ~200 usdc
 
 const messageTemplate = `Respond with a JSON markdown block containing only the extracted values. Use null for any values that cannot be determined.
 
@@ -165,7 +168,8 @@ export const launchpadCreate: Action = {
         symbol = symbol.replace("$", "");
         name = name || symbol.charAt(0).toUpperCase() + symbol.slice(1);
         console.log(
-            `Parsed token details - Name: ${name}, Symbol: ${symbol}, Description: ${description || "None provided"}`
+            `Parsed token details - Name: ${name}, Symbol: ${symbol}, Description: ${description || "None provided"}
+Self as creator?: ${params.setSelfAsCreator}`
         );
 
         const imageURL = params.lens.image?.item
@@ -191,30 +195,44 @@ export const launchpadCreate: Action = {
 
         // get info from the orb post that triggered it
         const lensProfile = await getProfileById(params.profile_id);
-        const recipient = lensProfile.ownedBy.address as `0x${string}`;
 
-        // register club with the caller's lens profile as the creator, and buy the initial supply
+        // register club with the caller's lens profile as the creator, and buy the initial supply (if possible)
         const wallet = IS_PRODUCTION ? wallets.base : wallets.baseSepolia;
-        const [address] = await wallet.listAddresses();
-        await approveToken(
-            USDC_CONTRACT_ADDRESS,
-            wallet,
-            address.getId() as `0x${string}`,
-            LAUNCHPAD_CONTRACT_ADDRESS,
-            CHAIN
+        const [_address] = await wallet.listAddresses();
+        const address = _address.getId() as `0x${string}`;
+        const creator = params.setSelfAsCreator
+            ? address
+            : (lensProfile.ownedBy.address as `0x${string}`);
+
+        const registrationFee = await getRegistrationFee(
+            DEFAULT_INITIAL_SUPPLY,
+            DEFAULT_CURVE_TYPE,
+            address
         );
-        const { clubId } = await registerClub(wallet, recipient, {
+        const balance = await getTokenBalance(address);
+        const initialSupply =
+            balance > registrationFee ? DEFAULT_INITIAL_SUPPLY : "0";
+        if (balance > registrationFee) {
+            await approveToken(
+                USDC_CONTRACT_ADDRESS,
+                wallet,
+                address,
+                LAUNCHPAD_CONTRACT_ADDRESS,
+                CHAIN
+            );
+        }
+        const handle = params.setSelfAsCreator
+            ? AGENT_HANDLE
+            : lensProfile.handle.localName;
+        const { clubId } = await registerClub(wallet, creator, {
             pubId: params.publication_id,
-            handle: lensProfile.handle.localName,
+            handle,
             profileId: params.profile_id,
             tokenName: name,
             tokenSymbol: symbol.replace("$", ""),
             tokenDescription: description,
             tokenImage: imageURL,
-            initialSupply: parseUnits(
-                DEFAULT_INITIAL_SUPPLY,
-                DECIMALS
-            ).toString(),
+            initialSupply: parseUnits(initialSupply, DECIMALS).toString(),
             curveType: DEFAULT_CURVE_TYPE,
         });
 
