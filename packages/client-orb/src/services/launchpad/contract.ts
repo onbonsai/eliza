@@ -22,7 +22,7 @@ export const IS_PRODUCTION = process.env.LAUNCHPAD_CHAIN_ID === "8453";
 export const CONTRACT_CHAIN_ID = IS_PRODUCTION ? base.id : baseSepolia.id;
 export const CHAIN = IS_PRODUCTION ? base : baseSepolia;
 export const LAUNCHPAD_CONTRACT_ADDRESS = IS_PRODUCTION
-    ? "0x60aaa60eb9a11f3e82e2ca87631d4b37e1b88891" // TODO: mainnet deployment
+    ? "0xA44dD13Bd66C4C4aDF8F70c3DFA26334764C1d64"
     : "0x60aaa60eb9a11f3e82e2ca87631d4b37e1b88891";
 
 export const INITIAL_CHIP_SUPPLY_CAP = 10; // with 6 decimals in the contract
