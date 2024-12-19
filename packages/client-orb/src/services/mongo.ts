@@ -22,7 +22,7 @@ export const getClient = async () => {
     const collection = database.collection("agents");
     const tips = database.collection("user-tips");
     const tickers = database.collection("tickers");
-    const clubs = database.collection("clubs");
+    const clubs = database.collection("clubs-prod");
 
     return { client, collection, tips, tickers, clubs };
 };
