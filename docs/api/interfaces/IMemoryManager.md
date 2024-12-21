@@ -1,4 +1,4 @@
-[@ai16z/eliza v0.1.4-alpha.3](../index.md) / IMemoryManager
+[@ai16z/eliza v0.1.5-alpha.0](../index.md) / IMemoryManager
 
 # Interface: IMemoryManager
 
@@ -10,7 +10,7 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:903](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L903)
+[packages/core/src/types.ts:906](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L906)
 
 ***
 
@@ -20,7 +20,7 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:904](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L904)
+[packages/core/src/types.ts:907](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L907)
 
 ***
 
@@ -30,7 +30,7 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:905](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L905)
+[packages/core/src/types.ts:908](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L908)
 
 ## Methods
 
@@ -48,7 +48,7 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:907](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L907)
+[packages/core/src/types.ts:910](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L910)
 
 ***
 
@@ -76,7 +76,7 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:909](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L909)
+[packages/core/src/types.ts:912](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L912)
 
 ***
 
@@ -94,7 +94,7 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:917](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L917)
+[packages/core/src/types.ts:920](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L920)
 
 ***
 
@@ -112,7 +112,7 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:921](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L921)
+[packages/core/src/types.ts:924](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L924)
 
 ***
 
@@ -132,7 +132,7 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:922](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L922)
+[packages/core/src/types.ts:925](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L925)
 
 ***
 
@@ -160,7 +160,7 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:923](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L923)
+[packages/core/src/types.ts:926](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L926)
 
 ***
 
@@ -180,7 +180,7 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:933](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L933)
+[packages/core/src/types.ts:936](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L936)
 
 ***
 
@@ -198,7 +198,7 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:935](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L935)
+[packages/core/src/types.ts:938](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L938)
 
 ***
 
@@ -216,7 +216,7 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:937](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L937)
+[packages/core/src/types.ts:940](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L940)
 
 ***
 
@@ -236,4 +236,4 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:939](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L939)
+[packages/core/src/types.ts:942](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L942)

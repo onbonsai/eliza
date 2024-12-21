@@ -34,4 +34,4 @@
 
 ## Defined in
 
-[packages/core/src/generation.ts:1031](https://github.com/mad-finance/eliza/blob/main/packages/core/src/generation.ts#L1031)
+[packages/core/src/generation.ts:1051](https://github.com/mad-finance/eliza/blob/main/packages/core/src/generation.ts#L1051)

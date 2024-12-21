@@ -1,4 +1,4 @@
-# @ai16z/eliza v0.1.4-alpha.3
+# @ai16z/eliza v0.1.5-alpha.0
 
 ## Enumerations
 
@@ -116,6 +116,7 @@
 - [generateMessageResponse](functions/generateMessageResponse.md)
 - [generateImage](functions/generateImage.md)
 - [generateCaption](functions/generateCaption.md)
+- [generateVideoRunway](functions/generateVideoRunway.md)
 - [generateWebSearch](functions/generateWebSearch.md)
 - [generateObjectV2](functions/generateObjectV2.md)
 - [handleProvider](functions/handleProvider.md)
