@@ -282,6 +282,40 @@ export const subgraphClient = () => {
     return new GraphQLClient(uri);
 };
 
+export const getTrendingClub = async () => {
+    try {
+        const trades = await getLatestTrades();
+        const grouped = groupBy(trades, "club.clubId");
+        const trendingClubId = Object.keys(grouped).reduce((a, b) =>
+            grouped[a].length > grouped[b].length ? a : b
+        );
+
+        const club = await getRegisteredClubById(trendingClubId);
+        const [name, symbol, image] = decodeAbiParameters(
+            [
+                { name: "name", type: "string" },
+                { name: "symbol", type: "string" },
+                { name: "uri", type: "string" },
+            ],
+            club.tokenInfo
+        );
+        club.marketCap = formatUnits(
+            BigInt(club.supply) * BigInt(club.currentPrice),
+            DECIMALS
+        ).split(".")[0];
+
+        club.token = {
+            name,
+            symbol,
+            image,
+        };
+
+        return club;
+    } catch (e) {
+        console.log(e);
+    }
+};
+
 export const getRegisteredClubById = async (clubId: string) => {
     const id = toHexString(parseInt(clubId));
     const now = Date.now();

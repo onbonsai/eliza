@@ -53,6 +53,10 @@ import { DEXSCREENER_URL } from "./services/codex";
 import { fetchFeed } from "./services/lens/fetchFeed";
 import { searchLensForTerm } from "./services/lens/search.ts";
 import { AGENT_HANDLE } from "./utils/constants.ts";
+import {
+    createTrendingClubReport,
+    formatTrendingClubReport,
+} from "./services/launchpad/trending.ts";
 
 export const messageHandlerTemplate =
     `# Action Examples
@@ -159,9 +163,67 @@ export class OrbClient {
 
         this.initializeWebSocket();
 
+        /* endpoint for get and rating a trending club */
+        this.app.post(
+            "/:agentId/trending-club",
+            async (req: express.Request, res: express.Response) => {
+                // get agent
+                const agentId = req.params.agentId;
+                const roomId = stringToUuid(
+                    req.body.roomId ?? "default-room-" + agentId
+                );
+                const userId = stringToUuid(req.body.userId ?? "user");
+
+                let runtime = this.agents.get(agentId);
+
+                // if runtime is null, look for runtime with the same name
+                if (!runtime) {
+                    runtime = Array.from(this.agents.values()).find(
+                        (a) =>
+                            a.character.name.toLowerCase() ===
+                            agentId.toLowerCase()
+                    );
+                }
+
+                if (!runtime) {
+                    res.status(404).send("Agent not found");
+                    return;
+                }
+
+                await runtime.ensureConnection(
+                    userId,
+                    roomId,
+                    req.body?.userName,
+                    req.body?.name,
+                    "direct"
+                );
+
+                const wallets = await getWallets(agentId);
+                if (!wallets?.polygon) {
+                    res.status(404).send("Polygon wallet not found");
+                    return;
+                }
+
+                // get trending token report
+                const clubResult = await createTrendingClubReport();
+                const formatted = formatTrendingClubReport(clubResult);
+
+                // create orb post
+                await createPost(
+                    wallets.polygon,
+                    wallets.profile.id,
+                    wallets.profile.handle,
+                    formatted,
+                    clubResult.trendingClub.token.image
+                );
+
+                res.json({ clubResult, formatted });
+            }
+        );
+
         /* endpoint for search lens */
         this.app.post(
-            "/:agentId/score-launchpad",
+            "/search-lens",
             async (req: express.Request, res: express.Response) => {
                 const queryTerm = req.body.query;
                 const lensResults = await searchLensForTerm(queryTerm);
