@@ -1113,8 +1113,9 @@ export class OrbClient {
 
                 // check if the message contains the word "create" and a $ followed by a word
                 if (
-                    state.userMessage.toLowerCase().includes("create") &&
-                    /\$\w+/.test(state.userMessage)
+                    state.userMessage
+                        .toLowerCase()
+                        .includes(`@${AGENT_HANDLE} create $`)
                 ) {
                     // HACK: agent as the creator
                     const setSelfAsCreator =
