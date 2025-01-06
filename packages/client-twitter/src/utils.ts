@@ -1,11 +1,12 @@
 import { Tweet } from "agent-twitter-client";
-import { getEmbeddingZeroVector } from "@ai16z/eliza";
-import { Content, Memory, UUID } from "@ai16z/eliza";
-import { stringToUuid } from "@ai16z/eliza";
+import { getEmbeddingZeroVector } from "@elizaos/core";
+import { Content, Memory, UUID } from "@elizaos/core";
+import { stringToUuid } from "@elizaos/core";
 import { ClientBase } from "./base";
-import { elizaLogger } from "@ai16z/eliza";
-
-const MAX_TWEET_LENGTH = 280; // Updated to Twitter's current character limit
+import { elizaLogger } from "@elizaos/core";
+import { Media } from "@elizaos/core";
+import fs from "fs";
+import path from "path";
 
 export const wait = (minTime: number = 1000, maxTime: number = 3000) => {
     const waitTime =
@@ -170,24 +171,61 @@ export async function sendTweet(
     twitterUsername: string,
     inReplyTo: string
 ): Promise<Memory[]> {
-    const tweetChunks = splitTweetContent(content.text);
+    const maxTweetLength = client.twitterConfig.MAX_TWEET_LENGTH;
+    const isLongTweet = maxTweetLength > 280;
+
+    const tweetChunks = splitTweetContent(content.text, maxTweetLength);
     const sentTweets: Tweet[] = [];
     let previousTweetId = inReplyTo;
 
     for (const chunk of tweetChunks) {
-        const result = await client.requestQueue.add(
-            async () =>
-                await client.twitterClient.sendTweet(
-                    chunk.trim(),
-                    previousTweetId
-                )
+        let mediaData: { data: Buffer; mediaType: string }[] | undefined;
+
+        if (content.attachments && content.attachments.length > 0) {
+            mediaData = await Promise.all(
+                content.attachments.map(async (attachment: Media) => {
+                    if (/^(http|https):\/\//.test(attachment.url)) {
+                        // Handle HTTP URLs
+                        const response = await fetch(attachment.url);
+                        if (!response.ok) {
+                            throw new Error(
+                                `Failed to fetch file: ${attachment.url}`
+                            );
+                        }
+                        const mediaBuffer = Buffer.from(
+                            await response.arrayBuffer()
+                        );
+                        const mediaType = attachment.contentType;
+                        return { data: mediaBuffer, mediaType };
+                    } else if (fs.existsSync(attachment.url)) {
+                        // Handle local file paths
+                        const mediaBuffer = await fs.promises.readFile(
+                            path.resolve(attachment.url)
+                        );
+                        const mediaType = attachment.contentType;
+                        return { data: mediaBuffer, mediaType };
+                    } else {
+                        throw new Error(
+                            `File not found: ${attachment.url}. Make sure the path is correct.`
+                        );
+                    }
+                })
+            );
+        }
+        const result = await client.requestQueue.add(async () =>
+            isLongTweet
+                ? client.twitterClient.sendLongTweet(chunk.trim(), previousTweetId, mediaData)
+                : client.twitterClient.sendTweet(chunk.trim(), previousTweetId, mediaData)
         );
+
         const body = await result.json();
+        const tweetResult = isLongTweet
+            ? body.data.notetweet_create.tweet_results.result
+            : body.data.create_tweet.tweet_results.result;
 
         // if we have a response
-        if (body?.data?.create_tweet?.tweet_results?.result) {
+        if (tweetResult) {
             // Parse the response
-            const tweetResult = body.data.create_tweet.tweet_results.result;
             const finalTweet: Tweet = {
                 id: tweetResult.rest_id,
                 text: tweetResult.legacy.full_text,
@@ -207,7 +245,7 @@ export async function sendTweet(
             sentTweets.push(finalTweet);
             previousTweetId = finalTweet.id;
         } else {
-            console.error("Error sending chunk", chunk, "repsonse:", body);
+            elizaLogger.error("Error sending tweet chunk:", { chunk, response: body });
         }
 
         // Wait a bit between tweets to avoid rate limiting issues
@@ -236,8 +274,7 @@ export async function sendTweet(
     return memories;
 }
 
-function splitTweetContent(content: string): string[] {
-    const maxLength = MAX_TWEET_LENGTH;
+function splitTweetContent(content: string, maxLength: number): string[] {
     const paragraphs = content.split("\n\n").map((p) => p.trim());
     const tweets: string[] = [];
     let currentTweet = "";

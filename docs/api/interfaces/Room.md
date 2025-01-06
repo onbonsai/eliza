@@ -1,4 +1,4 @@
-[@ai16z/eliza v0.1.5-alpha.0](../index.md) / Room
+[@elizaos/core v0.1.7-alpha.1](../index.md) / Room
 
 # Interface: Room
 
@@ -14,7 +14,7 @@ Unique identifier
 
 #### Defined in
 
-[packages/core/src/types.ts:531](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L531)
+[packages/core/src/types.ts:539](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L539)
 
 ***
 
@@ -26,4 +26,4 @@ Room participants
 
 #### Defined in
 
-[packages/core/src/types.ts:534](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L534)
+[packages/core/src/types.ts:542](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L542)

@@ -1,4 +1,4 @@
-[@ai16z/eliza v0.1.5-alpha.0](../index.md) / Service
+[@elizaos/core v0.1.7-alpha.1](../index.md) / Service
 
 # Class: `abstract` Service
 
@@ -11,6 +11,8 @@
 - [`IBrowserService`](../interfaces/IBrowserService.md)
 - [`ISpeechService`](../interfaces/ISpeechService.md)
 - [`IPdfService`](../interfaces/IPdfService.md)
+- [`IAwsS3Service`](../interfaces/IAwsS3Service.md)
+- [`ISlackService`](../interfaces/ISlackService.md)
 
 ## Constructors
 
@@ -36,7 +38,7 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:958](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L958)
+[packages/core/src/types.ts:1025](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L1025)
 
 ***
 
@@ -52,7 +54,7 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:969](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L969)
+[packages/core/src/types.ts:1036](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L1036)
 
 ## Methods
 
@@ -70,7 +72,7 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:962](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L962)
+[packages/core/src/types.ts:1029](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L1029)
 
 ***
 
@@ -90,4 +92,4 @@ Add abstract initialize method that must be implemented by derived classes
 
 #### Defined in
 
-[packages/core/src/types.ts:974](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L974)
+[packages/core/src/types.ts:1041](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L1041)

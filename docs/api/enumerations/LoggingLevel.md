@@ -1,4 +1,4 @@
-[@ai16z/eliza v0.1.5-alpha.0](../index.md) / LoggingLevel
+[@elizaos/core v0.1.7-alpha.1](../index.md) / LoggingLevel
 
 # Enumeration: LoggingLevel
 
@@ -10,7 +10,7 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:1150](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L1150)
+[packages/core/src/types.ts:1240](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L1240)
 
 ***
 
@@ -20,7 +20,7 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:1151](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L1151)
+[packages/core/src/types.ts:1241](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L1241)
 
 ***
 
@@ -30,4 +30,4 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:1152](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L1152)
+[packages/core/src/types.ts:1242](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L1242)

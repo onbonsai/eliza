@@ -28,7 +28,7 @@ function HomepageHeader() {
               </a>
               <div className={styles.githubButton}>
                 <iframe
-                  src="https://ghbtns.com/github-btn.html?user=ai16z&repo=eliza&type=star&count=true&size=large"
+                  src="https://ghbtns.com/github-btn.html?user=elizaos&repo=eliza&type=star&count=true&size=large"
                   frameborder="0"
                   scrolling="0"
                   width="135"
@@ -45,7 +45,7 @@ function HomepageHeader() {
               alt="blurred"
             />
             <pre className={styles.codeBlock}>
-              <code className="language-bash">{`npm install @ai16z/eliza`}</code>
+              <code className="language-bash">{`npm install @elizaos/core`}</code>
             </pre>
           </div>
         </div>

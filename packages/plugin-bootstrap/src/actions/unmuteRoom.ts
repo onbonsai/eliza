@@ -1,6 +1,6 @@
-import { composeContext } from "@ai16z/eliza";
-import { generateTrueOrFalse } from "@ai16z/eliza";
-import { booleanFooter } from "@ai16z/eliza";
+import { composeContext } from "@elizaos/core";
+import { generateTrueOrFalse } from "@elizaos/core";
+import { booleanFooter } from "@elizaos/core";
 import {
     Action,
     ActionExample,
@@ -8,15 +8,15 @@ import {
     Memory,
     ModelClass,
     State,
-} from "@ai16z/eliza";
+} from "@elizaos/core";
 
 export const shouldUnmuteTemplate =
     `Based on the conversation so far:
 
-{{recentMessages}}  
+{{recentMessages}}
 
 Should {{agentName}} unmute this previously muted room and start considering it for responses again?
-Respond with YES if:  
+Respond with YES if:
 - The user has explicitly asked {{agentName}} to start responding again
 - The user seems to want to re-engage with {{agentName}} in a respectful manner
 - The tone of the conversation has improved and {{agentName}}'s input would be welcome
@@ -52,7 +52,7 @@ export const unmuteRoomAction: Action = {
             const response = generateTrueOrFalse({
                 context: shouldUnmuteContext,
                 runtime,
-                modelClass: ModelClass.SMALL,
+                modelClass: ModelClass.LARGE,
             });
 
             return response;

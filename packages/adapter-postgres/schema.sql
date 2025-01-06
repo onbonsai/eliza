@@ -24,6 +24,9 @@ BEGIN
     -- Then check for Ollama
     ELSIF current_setting('app.use_ollama_embedding', TRUE) = 'true' THEN
         RETURN 1024;  -- Ollama mxbai-embed-large dimension
+    -- Then check for GAIANET
+    ELSIF current_setting('app.use_gaianet_embedding', TRUE) = 'true' THEN
+        RETURN 768;  -- Gaianet nomic-embed dimension
     ELSE
         RETURN 384;   -- BGE/Other embedding dimension
     END IF;
@@ -47,20 +50,28 @@ CREATE TABLE IF NOT EXISTS rooms (
     "createdAt" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS memories (
-    "id" UUID PRIMARY KEY,
-    "type" TEXT NOT NULL,
-    "createdAt" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    "content" JSONB NOT NULL,
-    "embedding" vector(get_embedding_dimension()),  -- Dynamic vector size
-    "userId" UUID REFERENCES accounts("id"),
-    "agentId" UUID REFERENCES accounts("id"),
-    "roomId" UUID REFERENCES rooms("id"),
-    "unique" BOOLEAN DEFAULT true NOT NULL,
-    CONSTRAINT fk_room FOREIGN KEY ("roomId") REFERENCES rooms("id") ON DELETE CASCADE,
-    CONSTRAINT fk_user FOREIGN KEY ("userId") REFERENCES accounts("id") ON DELETE CASCADE,
-    CONSTRAINT fk_agent FOREIGN KEY ("agentId") REFERENCES accounts("id") ON DELETE CASCADE
-);
+DO $$
+DECLARE
+    vector_dim INTEGER;
+BEGIN
+    vector_dim := get_embedding_dimension();
+
+    EXECUTE format('
+        CREATE TABLE IF NOT EXISTS memories (
+            "id" UUID PRIMARY KEY,
+            "type" TEXT NOT NULL,
+            "createdAt" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+            "content" JSONB NOT NULL,
+            "embedding" vector(%s),
+            "userId" UUID REFERENCES accounts("id"),
+            "agentId" UUID REFERENCES accounts("id"),
+            "roomId" UUID REFERENCES rooms("id"),
+            "unique" BOOLEAN DEFAULT true NOT NULL,
+            CONSTRAINT fk_room FOREIGN KEY ("roomId") REFERENCES rooms("id") ON DELETE CASCADE,
+            CONSTRAINT fk_user FOREIGN KEY ("userId") REFERENCES accounts("id") ON DELETE CASCADE,
+            CONSTRAINT fk_agent FOREIGN KEY ("agentId") REFERENCES accounts("id") ON DELETE CASCADE
+        )', vector_dim);
+END $$;
 
 CREATE TABLE IF NOT EXISTS  goals (
     "id" UUID PRIMARY KEY,

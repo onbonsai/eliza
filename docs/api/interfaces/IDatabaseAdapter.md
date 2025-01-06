@@ -1,4 +1,4 @@
-[@ai16z/eliza v0.1.5-alpha.0](../index.md) / IDatabaseAdapter
+[@elizaos/core v0.1.7-alpha.1](../index.md) / IDatabaseAdapter
 
 # Interface: IDatabaseAdapter
 
@@ -14,7 +14,7 @@ Database instance
 
 #### Defined in
 
-[packages/core/src/types.ts:741](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L741)
+[packages/core/src/types.ts:802](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L802)
 
 ## Methods
 
@@ -30,7 +30,7 @@ Optional initialization
 
 #### Defined in
 
-[packages/core/src/types.ts:744](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L744)
+[packages/core/src/types.ts:805](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L805)
 
 ***
 
@@ -46,7 +46,7 @@ Close database connection
 
 #### Defined in
 
-[packages/core/src/types.ts:747](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L747)
+[packages/core/src/types.ts:808](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L808)
 
 ***
 
@@ -66,7 +66,7 @@ Get account by ID
 
 #### Defined in
 
-[packages/core/src/types.ts:750](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L750)
+[packages/core/src/types.ts:811](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L811)
 
 ***
 
@@ -86,7 +86,7 @@ Create new account
 
 #### Defined in
 
-[packages/core/src/types.ts:753](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L753)
+[packages/core/src/types.ts:814](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L814)
 
 ***
 
@@ -120,7 +120,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:756](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L756)
+[packages/core/src/types.ts:817](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L817)
 
 ***
 
@@ -138,7 +138,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:766](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L766)
+[packages/core/src/types.ts:827](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L827)
 
 ***
 
@@ -162,7 +162,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:768](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L768)
+[packages/core/src/types.ts:829](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L829)
 
 ***
 
@@ -192,7 +192,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:774](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L774)
+[packages/core/src/types.ts:835](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L835)
 
 ***
 
@@ -218,7 +218,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:783](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L783)
+[packages/core/src/types.ts:844](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L844)
 
 ***
 
@@ -238,7 +238,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:790](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L790)
+[packages/core/src/types.ts:851](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L851)
 
 ***
 
@@ -270,7 +270,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:792](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L792)
+[packages/core/src/types.ts:853](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L853)
 
 ***
 
@@ -292,7 +292,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:802](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L802)
+[packages/core/src/types.ts:863](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L863)
 
 ***
 
@@ -324,7 +324,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:807](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L807)
+[packages/core/src/types.ts:868](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L868)
 
 ***
 
@@ -346,7 +346,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:819](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L819)
+[packages/core/src/types.ts:880](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L880)
 
 ***
 
@@ -366,7 +366,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:825](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L825)
+[packages/core/src/types.ts:886](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L886)
 
 ***
 
@@ -386,7 +386,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:827](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L827)
+[packages/core/src/types.ts:888](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L888)
 
 ***
 
@@ -408,7 +408,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:829](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L829)
+[packages/core/src/types.ts:890](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L890)
 
 ***
 
@@ -436,7 +436,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:835](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L835)
+[packages/core/src/types.ts:896](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L896)
 
 ***
 
@@ -454,7 +454,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:843](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L843)
+[packages/core/src/types.ts:904](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L904)
 
 ***
 
@@ -472,7 +472,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:845](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L845)
+[packages/core/src/types.ts:906](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L906)
 
 ***
 
@@ -490,7 +490,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:847](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L847)
+[packages/core/src/types.ts:908](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L908)
 
 ***
 
@@ -508,7 +508,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:849](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L849)
+[packages/core/src/types.ts:910](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L910)
 
 ***
 
@@ -526,7 +526,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:851](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L851)
+[packages/core/src/types.ts:912](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L912)
 
 ***
 
@@ -544,7 +544,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:853](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L853)
+[packages/core/src/types.ts:914](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L914)
 
 ***
 
@@ -562,7 +562,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:855](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L855)
+[packages/core/src/types.ts:916](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L916)
 
 ***
 
@@ -580,7 +580,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:857](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L857)
+[packages/core/src/types.ts:918](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L918)
 
 ***
 
@@ -598,7 +598,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:859](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L859)
+[packages/core/src/types.ts:920](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L920)
 
 ***
 
@@ -618,7 +618,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:861](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L861)
+[packages/core/src/types.ts:922](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L922)
 
 ***
 
@@ -638,7 +638,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:863](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L863)
+[packages/core/src/types.ts:924](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L924)
 
 ***
 
@@ -656,7 +656,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:865](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L865)
+[packages/core/src/types.ts:926](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L926)
 
 ***
 
@@ -674,7 +674,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:867](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L867)
+[packages/core/src/types.ts:928](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L928)
 
 ***
 
@@ -694,7 +694,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:869](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L869)
+[packages/core/src/types.ts:930](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L930)
 
 ***
 
@@ -716,7 +716,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:874](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L874)
+[packages/core/src/types.ts:935](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L935)
 
 ***
 
@@ -738,7 +738,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:880](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L880)
+[packages/core/src/types.ts:941](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L941)
 
 ***
 
@@ -760,7 +760,7 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:882](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L882)
+[packages/core/src/types.ts:943](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L943)
 
 ***
 
@@ -780,4 +780,4 @@ Get memories matching criteria
 
 #### Defined in
 
-[packages/core/src/types.ts:887](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L887)
+[packages/core/src/types.ts:948](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L948)

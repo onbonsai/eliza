@@ -1,4 +1,4 @@
-[@ai16z/eliza v0.1.5-alpha.0](../index.md) / formatActors
+[@elizaos/core v0.1.7-alpha.1](../index.md) / formatActors
 
 # Function: formatActors()
 
@@ -22,4 +22,4 @@ string
 
 ## Defined in
 
-[packages/core/src/messages.ts:45](https://github.com/mad-finance/eliza/blob/main/packages/core/src/messages.ts#L45)
+[packages/core/src/messages.ts:45](https://github.com/elizaOS/eliza/blob/main/packages/core/src/messages.ts#L45)

@@ -1,21 +1,23 @@
 import {
+    ActionExample,
+    booleanFooter,
     composeContext,
+    Content,
+    elizaLogger,
+    Evaluator,
     generateObjectArray,
     generateTrueOrFalse,
-    MemoryManager,
-    booleanFooter,
-    ActionExample,
-    Content,
     IAgentRuntime,
     Memory,
+    MemoryManager,
     ModelClass,
-    Evaluator,
-} from "@ai16z/eliza";
-import { TrustScoreManager } from "../providers/trustScoreProvider.ts";
+} from "@elizaos/core";
+import { TrustScoreDatabase } from "@elizaos/plugin-trustdb";
+import { Connection } from "@solana/web3.js";
+import { getWalletKey } from "../keypairUtils.ts";
 import { TokenProvider } from "../providers/token.ts";
+import { TrustScoreManager } from "../providers/trustScoreProvider.ts";
 import { WalletProvider } from "../providers/wallet.ts";
-import { TrustScoreDatabase } from "@ai16z/plugin-trustdb";
-import { Connection, PublicKey } from "@solana/web3.js";
 
 const shouldProcessTemplate =
     `# Task: Decide if the recent messages should be processed for token recommendations.
@@ -81,6 +83,12 @@ async function handler(runtime: IAgentRuntime, message: Memory) {
     console.log("Evaluating for trust");
     const state = await runtime.composeState(message);
 
+    // if the database type is postgres, we don't want to run this because it relies on sql queries that are currently specific to sqlite. This check can be removed once the trust score provider is updated to work with postgres.
+    if (runtime.getSetting("POSTGRES_URL")) {
+        elizaLogger.warn("skipping trust evaluator because db is postgres");
+        return [];
+    }
+
     const { agentId, roomId } = state;
 
     // Check if we should process the messages
@@ -144,6 +152,8 @@ async function handler(runtime: IAgentRuntime, message: Memory) {
         );
     });
 
+    const { publicKey } = await getWalletKey(runtime, false);
+
     for (const rec of filteredRecommendations) {
         // create the wallet provider and token provider
         const walletProvider = new WalletProvider(
@@ -151,10 +161,7 @@ async function handler(runtime: IAgentRuntime, message: Memory) {
                 runtime.getSetting("RPC_URL") ||
                     "https://api.mainnet-beta.solana.com"
             ),
-            new PublicKey(
-                runtime.getSetting("SOLANA_PUBLIC_KEY") ??
-                    runtime.getSetting("WALLET_PUBLIC_KEY")
-            )
+            publicKey
         );
         const tokenProvider = new TokenProvider(
             rec.contractAddress,

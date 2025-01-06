@@ -1,24 +1,24 @@
-[@ai16z/eliza v0.1.5-alpha.0](../index.md) / findNearestEnvFile
+[@elizaos/core v0.1.7-alpha.1](../index.md) / findNearestEnvFile
 
 # Function: findNearestEnvFile()
 
-> **findNearestEnvFile**(`startDir`?): `string`
+> **findNearestEnvFile**(`startDir`?): `any`
 
 Recursively searches for a .env file starting from the current directory
 and moving up through parent directories (Node.js only)
 
 ## Parameters
 
-• **startDir?**: `string` = `...`
+• **startDir?**: `any` = `...`
 
 Starting directory for the search
 
 ## Returns
 
-`string`
+`any`
 
 Path to the nearest .env file or null if not found
 
 ## Defined in
 
-[packages/core/src/settings.ts:43](https://github.com/mad-finance/eliza/blob/main/packages/core/src/settings.ts#L43)
+[packages/core/src/settings.ts:43](https://github.com/elizaOS/eliza/blob/main/packages/core/src/settings.ts#L43)

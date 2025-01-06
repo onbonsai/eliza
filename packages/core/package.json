@@ -1,13 +1,27 @@
 {
-    "name": "@ai16z/eliza",
-    "version": "0.1.5-alpha.0",
+    "name": "@elizaos/core",
+    "version": "0.1.7",
     "description": "",
-    "main": "dist/index.js",
     "type": "module",
+    "main": "dist/index.js",
+    "module": "dist/index.js",
     "types": "dist/index.d.ts",
+    "exports": {
+        "./package.json": "./package.json",
+        ".": {
+            "import": {
+                "@elizaos/source": "./src/index.ts",
+                "types": "./dist/index.d.ts",
+                "default": "./dist/index.js"
+            }
+        }
+    },
+    "files": [
+        "dist"
+    ],
     "scripts": {
         "build": "tsup --format esm --dts",
-        "lint": "eslint . --fix",
+        "lint": "eslint --fix  --cache .",
         "watch": "tsc --watch",
         "dev": "tsup --format esm --dts --watch",
         "build:docs": "cd docs && pnpm run build",
@@ -25,7 +39,8 @@
         "@rollup/plugin-replace": "5.0.7",
         "@rollup/plugin-terser": "0.1.0",
         "@rollup/plugin-typescript": "11.1.6",
-        "@solana/web3.js": "1.95.5",
+        "@solana/web3.js": "1.95.8",
+        "@tavily/core": "^0.0.2",
         "@types/fluent-ffmpeg": "2.1.27",
         "@types/jest": "29.5.14",
         "@types/mocha": "10.0.10",
@@ -65,6 +80,7 @@
         "fastestsmallesttextencoderdecoder": "1.0.22",
         "gaxios": "6.7.1",
         "glob": "11.0.0",
+        "handlebars": "^4.7.8",
         "js-sha1": "0.7.0",
         "js-tiktoken": "1.0.15",
         "langchain": "0.3.6",

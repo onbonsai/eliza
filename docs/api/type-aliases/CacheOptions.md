@@ -1,4 +1,4 @@
-[@ai16z/eliza v0.1.5-alpha.0](../index.md) / CacheOptions
+[@elizaos/core v0.1.7-alpha.1](../index.md) / CacheOptions
 
 # Type Alias: CacheOptions
 
@@ -12,4 +12,4 @@
 
 ## Defined in
 
-[packages/core/src/types.ts:945](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L945)
+[packages/core/src/types.ts:1006](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L1006)

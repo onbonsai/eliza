@@ -1,4 +1,4 @@
-[@ai16z/eliza v0.1.5-alpha.0](../index.md) / IPdfService
+[@elizaos/core v0.1.7-alpha.1](../index.md) / IPdfService
 
 # Interface: IPdfService
 
@@ -24,7 +24,7 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:969](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L969)
+[packages/core/src/types.ts:1036](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L1036)
 
 ## Methods
 
@@ -48,7 +48,7 @@ Add abstract initialize method that must be implemented by derived classes
 
 #### Defined in
 
-[packages/core/src/types.ts:974](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L974)
+[packages/core/src/types.ts:1041](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L1041)
 
 ***
 
@@ -62,7 +62,7 @@ Add abstract initialize method that must be implemented by derived classes
 
 #### Defined in
 
-[packages/core/src/types.ts:1117](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L1117)
+[packages/core/src/types.ts:1190](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L1190)
 
 ***
 
@@ -80,4 +80,4 @@ Add abstract initialize method that must be implemented by derived classes
 
 #### Defined in
 
-[packages/core/src/types.ts:1118](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L1118)
+[packages/core/src/types.ts:1191](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L1191)

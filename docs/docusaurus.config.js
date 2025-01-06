@@ -1,12 +1,15 @@
 import { themes as prismThemes } from "prism-react-renderer";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const config = {
   title: "eliza",
   tagline: "Flexible, scalable AI agents for everyone",
   favicon: "img/favicon.ico",
-  url: "https://ai16z.github.io",
+  url: "https://elizaos.github.io",
   baseUrl: "/eliza/",
-  organizationName: "ai16z",
+  organizationName: "elizaos",
   projectName: "eliza",
   deploymentBranch: "gh-pages",
   trailingSlash: true,
@@ -99,7 +102,7 @@ const config = {
         treatValidationWarningsAsErrors: true,
         searchInComments: true,
         navigationLinks: {
-          GitHub: "https://github.com/ai16z/eliza",
+          GitHub: "https://github.com/elizaos/eliza",
           Documentation: "/docs/intro",
         },
       },
@@ -120,9 +123,11 @@ const config = {
       {
         docs: {
           sidebarPath: "./sidebars.js",
-          editUrl: "https://github.com/ai16z/eliza/tree/main/docs/",
+          editUrl: "https://github.com/elizaos/eliza/tree/main/docs/",
           routeBasePath: "docs",
           exclude: ["**/_media/**"],
+	  showLastUpdateAuthor: true,
+          showLastUpdateTime: true
         },
         theme: {
           customCss: "./src/css/custom.css",
@@ -170,7 +175,7 @@ const config = {
           docId: "index",
         },
         {
-          href: "https://github.com/ai16z/eliza",
+          href: "https://github.com/elizaos/eliza",
           label: "GitHub",
           position: "right",
         },
@@ -206,17 +211,19 @@ const config = {
           items: [
             {
               label: "GitHub",
-              href: "https://github.com/ai16z/eliza",
+              href: "https://github.com/elizaos/eliza",
             },
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} ai16z.ai`,
     },
     prism: {
       theme: prismThemes.github,
       darkTheme: prismThemes.dracula,
     },
+  },
+  customFields: {
+    GITHUB_ACCESS_TOKEN: process.env.GITHUB_ACCESS_TOKEN,
   },
 };
 

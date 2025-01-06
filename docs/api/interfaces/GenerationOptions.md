@@ -1,4 +1,4 @@
-[@ai16z/eliza v0.1.5-alpha.0](../index.md) / GenerationOptions
+[@elizaos/core v0.1.7-alpha.1](../index.md) / GenerationOptions
 
 # Interface: GenerationOptions
 
@@ -12,7 +12,7 @@ Configuration options for generating objects with a model.
 
 #### Defined in
 
-[packages/core/src/generation.ts:1138](https://github.com/mad-finance/eliza/blob/main/packages/core/src/generation.ts#L1138)
+[packages/core/src/generation.ts:1266](https://github.com/elizaOS/eliza/blob/main/packages/core/src/generation.ts#L1266)
 
 ***
 
@@ -22,7 +22,7 @@ Configuration options for generating objects with a model.
 
 #### Defined in
 
-[packages/core/src/generation.ts:1139](https://github.com/mad-finance/eliza/blob/main/packages/core/src/generation.ts#L1139)
+[packages/core/src/generation.ts:1267](https://github.com/elizaOS/eliza/blob/main/packages/core/src/generation.ts#L1267)
 
 ***
 
@@ -32,17 +32,17 @@ Configuration options for generating objects with a model.
 
 #### Defined in
 
-[packages/core/src/generation.ts:1140](https://github.com/mad-finance/eliza/blob/main/packages/core/src/generation.ts#L1140)
+[packages/core/src/generation.ts:1268](https://github.com/elizaOS/eliza/blob/main/packages/core/src/generation.ts#L1268)
 
 ***
 
 ### schema?
 
-> `optional` **schema**: `ZodType`\<`any`, `ZodTypeDef`, `any`\>
+> `optional` **schema**: `ZodSchema`
 
 #### Defined in
 
-[packages/core/src/generation.ts:1141](https://github.com/mad-finance/eliza/blob/main/packages/core/src/generation.ts#L1141)
+[packages/core/src/generation.ts:1269](https://github.com/elizaOS/eliza/blob/main/packages/core/src/generation.ts#L1269)
 
 ***
 
@@ -52,7 +52,7 @@ Configuration options for generating objects with a model.
 
 #### Defined in
 
-[packages/core/src/generation.ts:1142](https://github.com/mad-finance/eliza/blob/main/packages/core/src/generation.ts#L1142)
+[packages/core/src/generation.ts:1270](https://github.com/elizaOS/eliza/blob/main/packages/core/src/generation.ts#L1270)
 
 ***
 
@@ -62,7 +62,7 @@ Configuration options for generating objects with a model.
 
 #### Defined in
 
-[packages/core/src/generation.ts:1143](https://github.com/mad-finance/eliza/blob/main/packages/core/src/generation.ts#L1143)
+[packages/core/src/generation.ts:1271](https://github.com/elizaOS/eliza/blob/main/packages/core/src/generation.ts#L1271)
 
 ***
 
@@ -72,7 +72,7 @@ Configuration options for generating objects with a model.
 
 #### Defined in
 
-[packages/core/src/generation.ts:1144](https://github.com/mad-finance/eliza/blob/main/packages/core/src/generation.ts#L1144)
+[packages/core/src/generation.ts:1272](https://github.com/elizaOS/eliza/blob/main/packages/core/src/generation.ts#L1272)
 
 ***
 
@@ -82,7 +82,7 @@ Configuration options for generating objects with a model.
 
 #### Defined in
 
-[packages/core/src/generation.ts:1145](https://github.com/mad-finance/eliza/blob/main/packages/core/src/generation.ts#L1145)
+[packages/core/src/generation.ts:1273](https://github.com/elizaOS/eliza/blob/main/packages/core/src/generation.ts#L1273)
 
 ***
 
@@ -92,4 +92,4 @@ Configuration options for generating objects with a model.
 
 #### Defined in
 
-[packages/core/src/generation.ts:1146](https://github.com/mad-finance/eliza/blob/main/packages/core/src/generation.ts#L1146)
+[packages/core/src/generation.ts:1274](https://github.com/elizaOS/eliza/blob/main/packages/core/src/generation.ts#L1274)

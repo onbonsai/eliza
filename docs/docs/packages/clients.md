@@ -134,7 +134,6 @@ The Twitter client enables posting, searching, and interacting with Twitter user
 
 ```typescript
 import { TwitterClientInterface } from "@eliza/client-twitter";
-
 // Initialize client
 const client = await TwitterClientInterface.start(runtime);
 
@@ -142,7 +141,6 @@ const client = await TwitterClientInterface.start(runtime);
 TWITTER_USERNAME = your_username;
 TWITTER_PASSWORD = your_password;
 TWITTER_EMAIL = your_email;
-TWITTER_COOKIES = your_cookies;
 ```
 
 ### Components

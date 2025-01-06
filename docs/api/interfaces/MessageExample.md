@@ -1,4 +1,4 @@
-[@ai16z/eliza v0.1.5-alpha.0](../index.md) / MessageExample
+[@elizaos/core v0.1.7-alpha.1](../index.md) / MessageExample
 
 # Interface: MessageExample
 
@@ -14,7 +14,7 @@ Associated user
 
 #### Defined in
 
-[packages/core/src/types.ts:357](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L357)
+[packages/core/src/types.ts:365](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L365)
 
 ***
 
@@ -26,4 +26,4 @@ Message content
 
 #### Defined in
 
-[packages/core/src/types.ts:360](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L360)
+[packages/core/src/types.ts:368](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L368)

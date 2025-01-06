@@ -7,11 +7,11 @@ import {
     ModelClass,
     Content,
     ActionExample,
-    generateObjectV2,
-} from "@ai16z/eliza";
+    generateObject,
+} from "@elizaos/core";
 import { Indexer, ZgFile, getFlowContract } from "@0glabs/0g-ts-sdk";
 import { ethers } from "ethers";
-import { composeContext } from "@ai16z/eliza";
+import { composeContext } from "@elizaos/core";
 import { promises as fs } from "fs";
 
 import { uploadTemplate } from "../templates/upload";
@@ -68,10 +68,10 @@ export const zgUpload: Action = {
         });
 
         // Generate upload content
-        const content = await generateObjectV2({
+        const content = await generateObject({
             runtime,
             context: uploadContext,
-            modelClass: ModelClass.SMALL,
+            modelClass: ModelClass.LARGE,
         });
 
         // Validate upload content

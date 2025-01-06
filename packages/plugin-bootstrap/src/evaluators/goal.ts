@@ -1,7 +1,7 @@
-import { composeContext } from "@ai16z/eliza";
-import { generateText } from "@ai16z/eliza";
-import { getGoals } from "@ai16z/eliza";
-import { parseJsonArrayFromText } from "@ai16z/eliza";
+import { composeContext } from "@elizaos/core";
+import { generateText } from "@elizaos/core";
+import { getGoals } from "@elizaos/core";
+import { parseJsonArrayFromText } from "@elizaos/core";
 import {
     IAgentRuntime,
     Memory,
@@ -10,7 +10,7 @@ import {
     type Goal,
     type State,
     Evaluator,
-} from "@ai16z/eliza";
+} from "@elizaos/core";
 
 const goalsTemplate = `TASK: Update Goal
 Analyze the conversation and update the status of the goals based on the new information provided.
@@ -55,12 +55,6 @@ async function handler(
     state: State | undefined,
     options: { [key: string]: unknown } = { onlyInProgress: true }
 ): Promise<Goal[]> {
-    // get goals
-    let goalsData = await getGoals({
-        runtime,
-        roomId: message.roomId,
-        onlyInProgress: options.onlyInProgress as boolean,
-    });
 
     state = (await runtime.composeState(message)) as State;
     const context = composeContext({
@@ -72,17 +66,17 @@ async function handler(
     const response = await generateText({
         runtime,
         context,
-        modelClass: ModelClass.SMALL,
+        modelClass: ModelClass.LARGE,
     });
 
     // Parse the JSON response to extract goal updates
     const updates = parseJsonArrayFromText(response);
 
     // get goals
-    goalsData = await getGoals({
+    const goalsData = await getGoals({
         runtime,
         roomId: message.roomId,
-        onlyInProgress: true,
+        onlyInProgress: options.onlyInProgress as boolean,
     });
 
     // Apply the updates to the goals
@@ -160,12 +154,12 @@ export const goalEvaluator: Evaluator = {
             context: `Actors in the scene:
   {{user1}}: An avid reader and member of a book club.
   {{user2}}: The organizer of the book club.
-  
+
   Goals:
   - Name: Finish reading "War and Peace"
     id: 12345-67890-12345-67890
     Status: IN_PROGRESS
-    Objectives: 
+    Objectives:
       - Read up to chapter 20 by the end of the month
       - Discuss the first part in the next meeting`,
 
@@ -206,12 +200,12 @@ export const goalEvaluator: Evaluator = {
             context: `Actors in the scene:
   {{user1}}: A fitness enthusiast working towards a marathon.
   {{user2}}: A personal trainer.
-  
+
   Goals:
   - Name: Complete a marathon
     id: 23456-78901-23456-78901
     Status: IN_PROGRESS
-    Objectives: 
+    Objectives:
       - Increase running distance to 30 miles a week
       - Complete a half-marathon as practice`,
 
@@ -249,12 +243,12 @@ export const goalEvaluator: Evaluator = {
             context: `Actors in the scene:
   {{user1}}: A student working on a final year project.
   {{user2}}: The project supervisor.
-  
+
   Goals:
   - Name: Finish the final year project
     id: 34567-89012-34567-89012
     Status: IN_PROGRESS
-    Objectives: 
+    Objectives:
       - Submit the first draft of the thesis
       - Complete the project prototype`,
 
@@ -294,12 +288,12 @@ export const goalEvaluator: Evaluator = {
             context: `Actors in the scene:
         {{user1}}: A project manager working on a software development project.
         {{user2}}: A software developer in the project team.
-        
+
         Goals:
         - Name: Launch the new software version
           id: 45678-90123-45678-90123
           Status: IN_PROGRESS
-          Objectives: 
+          Objectives:
             - Complete the coding for the new features
             - Perform comprehensive testing of the software`,
 

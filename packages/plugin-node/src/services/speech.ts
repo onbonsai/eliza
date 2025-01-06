@@ -1,10 +1,12 @@
-import { PassThrough, Readable } from "stream";
-import { IAgentRuntime, ISpeechService, ServiceType } from "@ai16z/eliza";
+import { PassThrough } from "stream";
+import { Readable } from "node:stream";
+import { ReadableStream } from "node:stream/web";
+import { IAgentRuntime, ISpeechService, ServiceType } from "@elizaos/core";
 import { getWavHeader } from "./audioUtils.ts";
-import { Service } from "@ai16z/eliza";
+import { Service } from "@elizaos/core";
 import { validateNodeConfig } from "../environment.ts";
 import * as Echogarden from "echogarden";
-import { elizaLogger } from "@ai16z/eliza";
+import { elizaLogger } from "@elizaos/core";
 
 function prependWavHeader(
     readable: Readable,
@@ -123,17 +125,20 @@ async function textToSpeech(runtime: IAgentRuntime, text: string) {
         }
 
         if (response) {
-            const reader = response.body?.getReader();
+            const webStream = ReadableStream.from(
+                response.body as ReadableStream
+            );
+            const reader = webStream.getReader();
+
             const readable = new Readable({
                 read() {
-                    reader && // eslint-disable-line
-                        reader.read().then(({ done, value }) => {
-                            if (done) {
-                                this.push(null);
-                            } else {
-                                this.push(value);
-                            }
-                        });
+                    reader.read().then(({ done, value }) => {
+                        if (done) {
+                            this.push(null);
+                        } else {
+                            this.push(value);
+                        }
+                    });
                 },
             });
 

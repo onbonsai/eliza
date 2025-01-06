@@ -1,4 +1,4 @@
-[@ai16z/eliza v0.1.5-alpha.0](../index.md) / validateEnv
+[@elizaos/core v0.1.7-alpha.1](../index.md) / validateEnv
 
 # Function: validateEnv()
 
@@ -12,4 +12,4 @@ Validation function
 
 ## Defined in
 
-[packages/core/src/environment.ts:26](https://github.com/mad-finance/eliza/blob/main/packages/core/src/environment.ts#L26)
+[packages/core/src/environment.ts:26](https://github.com/elizaOS/eliza/blob/main/packages/core/src/environment.ts#L26)

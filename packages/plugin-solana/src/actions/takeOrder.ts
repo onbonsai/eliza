@@ -4,9 +4,9 @@ import {
     Memory,
     Content,
     ModelClass,
-} from "@ai16z/eliza";
-import { composeContext } from "@ai16z/eliza";
-import { generateText } from "@ai16z/eliza";
+} from "@elizaos/core";
+import { composeContext } from "@elizaos/core";
+import { generateText } from "@elizaos/core";
 
 interface Order {
     userId: string;
@@ -78,7 +78,7 @@ Determine if the user is trying to shill the ticker. if they are, respond with e
         const convictionResponse = await generateText({
             runtime,
             context: context,
-            modelClass: ModelClass.SMALL,
+            modelClass: ModelClass.LARGE,
         });
 
         // TODOL parse and validate the JSON

@@ -1,4 +1,4 @@
-[@ai16z/eliza v0.1.5-alpha.0](../index.md) / Clients
+[@elizaos/core v0.1.7-alpha.1](../index.md) / Clients
 
 # Enumeration: Clients
 
@@ -12,7 +12,7 @@ Available client platforms
 
 #### Defined in
 
-[packages/core/src/types.ts:601](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L601)
+[packages/core/src/types.ts:612](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L612)
 
 ***
 
@@ -22,7 +22,7 @@ Available client platforms
 
 #### Defined in
 
-[packages/core/src/types.ts:602](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L602)
+[packages/core/src/types.ts:613](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L613)
 
 ***
 
@@ -32,7 +32,7 @@ Available client platforms
 
 #### Defined in
 
-[packages/core/src/types.ts:603](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L603)
+[packages/core/src/types.ts:614](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L614)
 
 ***
 
@@ -42,14 +42,44 @@ Available client platforms
 
 #### Defined in
 
-[packages/core/src/types.ts:604](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L604)
+[packages/core/src/types.ts:615](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L615)
 
 ***
 
-### ORB
+### FARCASTER
 
-> **ORB**: `"orb"`
+> **FARCASTER**: `"farcaster"`
 
 #### Defined in
 
-[packages/core/src/types.ts:605](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L605)
+[packages/core/src/types.ts:616](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L616)
+
+***
+
+### LENS
+
+> **LENS**: `"lens"`
+
+#### Defined in
+
+[packages/core/src/types.ts:617](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L617)
+
+***
+
+### AUTO
+
+> **AUTO**: `"auto"`
+
+#### Defined in
+
+[packages/core/src/types.ts:618](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L618)
+
+***
+
+### SLACK
+
+> **SLACK**: `"slack"`
+
+#### Defined in
+
+[packages/core/src/types.ts:619](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L619)

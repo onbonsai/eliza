@@ -1,4 +1,4 @@
-[@ai16z/eliza v0.1.5-alpha.0](../index.md) / generateText
+[@elizaos/core v0.1.7-alpha.1](../index.md) / generateText
 
 # Function: generateText()
 
@@ -32,4 +32,4 @@ The completed message.
 
 ## Defined in
 
-[packages/core/src/generation.ts:52](https://github.com/mad-finance/eliza/blob/main/packages/core/src/generation.ts#L52)
+[packages/core/src/generation.ts:53](https://github.com/elizaOS/eliza/blob/main/packages/core/src/generation.ts#L53)

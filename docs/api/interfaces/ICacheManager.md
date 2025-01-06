@@ -1,4 +1,4 @@
-[@ai16z/eliza v0.1.5-alpha.0](../index.md) / ICacheManager
+[@elizaos/core v0.1.7-alpha.1](../index.md) / ICacheManager
 
 # Interface: ICacheManager
 
@@ -22,7 +22,7 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:950](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L950)
+[packages/core/src/types.ts:1017](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L1017)
 
 ***
 
@@ -48,7 +48,7 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:951](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L951)
+[packages/core/src/types.ts:1018](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L1018)
 
 ***
 
@@ -66,4 +66,4 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:952](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L952)
+[packages/core/src/types.ts:1019](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L1019)

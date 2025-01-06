@@ -1,14 +1,14 @@
-import { Signer } from "@farcaster/hub-nodejs";
 import {
     composeContext,
     generateText,
     IAgentRuntime,
     ModelClass,
     stringToUuid,
-} from "@ai16z/eliza";
+    elizaLogger,
+} from "@elizaos/core";
 import { FarcasterClient } from "./client";
 import { formatTimeline, postTemplate } from "./prompts";
-import { castUuid } from "./utils";
+import { castUuid, MAX_CAST_LENGTH } from "./utils";
 import { createCastMemory } from "./memory";
 import { sendCast } from "./actions";
 
@@ -18,7 +18,7 @@ export class FarcasterPostManager {
     constructor(
         public client: FarcasterClient,
         public runtime: IAgentRuntime,
-        private signer: Signer,
+        private signerUuid: string,
         public cache: Map<string, any>
     ) {}
 
@@ -27,7 +27,7 @@ export class FarcasterPostManager {
             try {
                 await this.generateNewCast();
             } catch (error) {
-                console.error(error);
+                elizaLogger.error(error);
                 return;
             }
 
@@ -45,14 +45,11 @@ export class FarcasterPostManager {
     }
 
     private async generateNewCast() {
-        console.log("Generating new cast");
+        elizaLogger.info("Generating new cast");
         try {
             const fid = Number(this.runtime.getSetting("FARCASTER_FID")!);
-            // const farcasterUserName =
-            //     this.runtime.getSetting("FARCASTER_USERNAME")!;
 
             const profile = await this.client.getProfile(fid);
-
             await this.runtime.ensureUserExists(
                 this.runtime.agentId,
                 profile.username,
@@ -87,7 +84,7 @@ export class FarcasterPostManager {
                 }
             );
 
-            // Generate new tweet
+            // Generate new cast
             const context = composeContext({
                 state,
                 template:
@@ -103,30 +100,33 @@ export class FarcasterPostManager {
 
             const slice = newContent.replaceAll(/\\n/g, "\n").trim();
 
-            const contentLength = 240;
+            let content = slice.slice(0, MAX_CAST_LENGTH);
 
-            let content = slice.slice(0, contentLength);
-            // if its bigger than 280, delete the last line
-            if (content.length > 280) {
+            // if it's bigger than the max limit, delete the last line
+            if (content.length > MAX_CAST_LENGTH) {
                 content = content.slice(0, content.lastIndexOf("\n"));
             }
 
-            if (content.length > contentLength) {
+            if (content.length > MAX_CAST_LENGTH) {
                 // slice at the last period
                 content = content.slice(0, content.lastIndexOf("."));
             }
 
             // if it's still too long, get the period before the last period
-            if (content.length > contentLength) {
+            if (content.length > MAX_CAST_LENGTH) {
                 content = content.slice(0, content.lastIndexOf("."));
             }
 
+            if (this.runtime.getSetting("FARCASTER_DRY_RUN") === "true") {
+                elizaLogger.info(`Dry run: would have cast: ${content}`);
+                return;
+            }
+
             try {
-                // TODO: handle all the casts?
                 const [{ cast }] = await sendCast({
                     client: this.client,
                     runtime: this.runtime,
-                    signer: this.signer,
+                    signerUuid: this.signerUuid,
                     roomId: generateRoomId,
                     content: { text: content },
                     profile,
@@ -134,7 +134,7 @@ export class FarcasterPostManager {
 
                 const roomId = castUuid({
                     agentId: this.runtime.agentId,
-                    hash: cast.id,
+                    hash: cast.hash,
                 });
 
                 await this.runtime.ensureRoomExists(roomId);
@@ -142,6 +142,10 @@ export class FarcasterPostManager {
                 await this.runtime.ensureParticipantInRoom(
                     this.runtime.agentId,
                     roomId
+                );
+
+                elizaLogger.info(
+                    `[Farcaster Neynar Client] Published cast ${cast.hash}`
                 );
 
                 await this.runtime.messageManager.createMemory(
@@ -152,10 +156,10 @@ export class FarcasterPostManager {
                     })
                 );
             } catch (error) {
-                console.error("Error sending tweet:", error);
+                elizaLogger.error("Error sending cast:", error);
             }
         } catch (error) {
-            console.error("Error generating new tweet:", error);
+            elizaLogger.error("Error generating new cast:", error);
         }
     }
 }

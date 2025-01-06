@@ -1,6 +1,6 @@
-import { composeContext } from "@ai16z/eliza";
-import { generateTrueOrFalse } from "@ai16z/eliza";
-import { booleanFooter } from "@ai16z/eliza";
+import { composeContext } from "@elizaos/core";
+import { generateTrueOrFalse } from "@elizaos/core";
+import { booleanFooter } from "@elizaos/core";
 import {
     Action,
     ActionExample,
@@ -8,7 +8,7 @@ import {
     Memory,
     ModelClass,
     State,
-} from "@ai16z/eliza";
+} from "@elizaos/core";
 
 const shouldUnfollowTemplate =
     `Based on the conversation so far:
@@ -17,7 +17,7 @@ const shouldUnfollowTemplate =
 
 Should {{agentName}} stop closely following this previously followed room and only respond when mentioned?
 Respond with YES if:
-- The user has suggested that {{agentName}} is over-participating or being disruptive  
+- The user has suggested that {{agentName}} is over-participating or being disruptive
 - {{agentName}}'s eagerness to contribute is not well-received by the users
 - The conversation has shifted to a topic where {{agentName}} has less to add
 
@@ -52,7 +52,7 @@ export const unfollowRoomAction: Action = {
             const response = await generateTrueOrFalse({
                 runtime,
                 context: shouldUnfollowContext,
-                modelClass: ModelClass.SMALL,
+                modelClass: ModelClass.LARGE,
             });
 
             return response;

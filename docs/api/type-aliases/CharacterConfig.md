@@ -1,4 +1,4 @@
-[@ai16z/eliza v0.1.5-alpha.0](../index.md) / CharacterConfig
+[@elizaos/core v0.1.7-alpha.1](../index.md) / CharacterConfig
 
 # Type Alias: CharacterConfig
 
@@ -8,4 +8,4 @@ Type inference
 
 ## Defined in
 
-[packages/core/src/environment.ts:130](https://github.com/mad-finance/eliza/blob/main/packages/core/src/environment.ts#L130)
+[packages/core/src/environment.ts:135](https://github.com/elizaOS/eliza/blob/main/packages/core/src/environment.ts#L135)

@@ -1,4 +1,4 @@
-[@ai16z/eliza v0.1.5-alpha.0](../index.md) / generateImage
+[@elizaos/core v0.1.7-alpha.1](../index.md) / generateImage
 
 # Function: generateImage()
 
@@ -28,6 +28,10 @@
 
 • **data.jobId?**: `string`
 
+• **data.stylePreset?**: `string`
+
+• **data.hideWatermark?**: `boolean`
+
 • **runtime**: [`IAgentRuntime`](../interfaces/IAgentRuntime.md)
 
 ## Returns
@@ -48,4 +52,4 @@
 
 ## Defined in
 
-[packages/core/src/generation.ts:820](https://github.com/mad-finance/eliza/blob/main/packages/core/src/generation.ts#L820)
+[packages/core/src/generation.ts:926](https://github.com/elizaOS/eliza/blob/main/packages/core/src/generation.ts#L926)

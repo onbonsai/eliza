@@ -1,4 +1,4 @@
-[@ai16z/eliza v0.1.5-alpha.0](../index.md) / ActionExample
+[@elizaos/core v0.1.7-alpha.1](../index.md) / ActionExample
 
 # Interface: ActionExample
 
@@ -14,7 +14,7 @@ User associated with the example
 
 #### Defined in
 
-[packages/core/src/types.ts:39](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L39)
+[packages/core/src/types.ts:39](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L39)
 
 ***
 
@@ -26,4 +26,4 @@ Content of the example
 
 #### Defined in
 
-[packages/core/src/types.ts:42](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L42)
+[packages/core/src/types.ts:42](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L42)

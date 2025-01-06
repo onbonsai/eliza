@@ -1,27 +1,13 @@
-[@ai16z/eliza v0.1.5-alpha.0](../index.md) / getEmbeddingConfig
+[@elizaos/core v0.1.7-alpha.1](../index.md) / getEmbeddingConfig
 
 # Function: getEmbeddingConfig()
 
-> **getEmbeddingConfig**(): `object`
-
-Add the embedding configuration
+> **getEmbeddingConfig**(): [`EmbeddingConfig`](../type-aliases/EmbeddingConfig.md)
 
 ## Returns
 
-`object`
-
-### dimensions
-
-> **dimensions**: `number`
-
-### model
-
-> **model**: `string`
-
-### provider
-
-> **provider**: `string`
+[`EmbeddingConfig`](../type-aliases/EmbeddingConfig.md)
 
 ## Defined in
 
-[packages/core/src/embedding.ts:18](https://github.com/mad-finance/eliza/blob/main/packages/core/src/embedding.ts#L18)
+[packages/core/src/embedding.ts:40](https://github.com/elizaOS/eliza/blob/main/packages/core/src/embedding.ts#L40)

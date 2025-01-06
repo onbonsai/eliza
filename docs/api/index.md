@@ -1,4 +1,8 @@
-# @ai16z/eliza v0.1.5-alpha.0
+# @elizaos/core v0.1.7-alpha.1
+
+## Namespaces
+
+- [EmbeddingProvider](namespaces/EmbeddingProvider/index.md)
 
 ## Enumerations
 
@@ -6,6 +10,7 @@
 - [ModelClass](enumerations/ModelClass.md)
 - [ModelProviderName](enumerations/ModelProviderName.md)
 - [Clients](enumerations/Clients.md)
+- [CacheStore](enumerations/CacheStore.md)
 - [ServiceType](enumerations/ServiceType.md)
 - [LoggingLevel](enumerations/LoggingLevel.md)
 
@@ -41,6 +46,7 @@
 - [Account](interfaces/Account.md)
 - [Participant](interfaces/Participant.md)
 - [Room](interfaces/Room.md)
+- [IAgentConfig](interfaces/IAgentConfig.md)
 - [IDatabaseAdapter](interfaces/IDatabaseAdapter.md)
 - [IDatabaseCacheAdapter](interfaces/IDatabaseCacheAdapter.md)
 - [IMemoryManager](interfaces/IMemoryManager.md)
@@ -53,9 +59,14 @@
 - [IBrowserService](interfaces/IBrowserService.md)
 - [ISpeechService](interfaces/ISpeechService.md)
 - [IPdfService](interfaces/IPdfService.md)
+- [IAwsS3Service](interfaces/IAwsS3Service.md)
+- [ActionResponse](interfaces/ActionResponse.md)
+- [ISlackService](interfaces/ISlackService.md)
 
 ## Type Aliases
 
+- [EmbeddingProvider](type-aliases/EmbeddingProvider.md)
+- [EmbeddingConfig](type-aliases/EmbeddingConfig.md)
 - [EnvConfig](type-aliases/EnvConfig.md)
 - [CharacterConfig](type-aliases/CharacterConfig.md)
 - [UUID](type-aliases/UUID.md)
@@ -76,6 +87,7 @@
 ## Variables
 
 - [defaultCharacter](variables/defaultCharacter.md)
+- [EmbeddingProvider](variables/EmbeddingProvider.md)
 - [envSchema](variables/envSchema.md)
 - [CharacterSchema](variables/CharacterSchema.md)
 - [evaluationTemplate](variables/evaluationTemplate.md)
@@ -86,6 +98,7 @@
 - [shouldRespondFooter](variables/shouldRespondFooter.md)
 - [booleanFooter](variables/booleanFooter.md)
 - [stringArrayFooter](variables/stringArrayFooter.md)
+- [postActionResponseFooter](variables/postActionResponseFooter.md)
 - [settings](variables/settings.md)
 
 ## Functions
@@ -95,6 +108,7 @@
 - [formatActions](functions/formatActions.md)
 - [composeContext](functions/composeContext.md)
 - [addHeader](functions/addHeader.md)
+- [composeRandomUser](functions/composeRandomUser.md)
 - [getEmbeddingConfig](functions/getEmbeddingConfig.md)
 - [getEmbeddingType](functions/getEmbeddingType.md)
 - [getEmbeddingZeroVector](functions/getEmbeddingZeroVector.md)
@@ -111,15 +125,15 @@
 - [splitChunks](functions/splitChunks.md)
 - [generateTrueOrFalse](functions/generateTrueOrFalse.md)
 - [generateTextArray](functions/generateTextArray.md)
-- [generateObject](functions/generateObject.md)
+- [generateObjectDeprecated](functions/generateObjectDeprecated.md)
 - [generateObjectArray](functions/generateObjectArray.md)
 - [generateMessageResponse](functions/generateMessageResponse.md)
 - [generateImage](functions/generateImage.md)
 - [generateCaption](functions/generateCaption.md)
-- [generateVideoRunway](functions/generateVideoRunway.md)
 - [generateWebSearch](functions/generateWebSearch.md)
-- [generateObjectV2](functions/generateObjectV2.md)
+- [generateObject](functions/generateObject.md)
 - [handleProvider](functions/handleProvider.md)
+- [generateTweetActions](functions/generateTweetActions.md)
 - [getGoals](functions/getGoals.md)
 - [formatGoalsAsString](functions/formatGoalsAsString.md)
 - [updateGoal](functions/updateGoal.md)
@@ -134,6 +148,7 @@
 - [parseBooleanFromText](functions/parseBooleanFromText.md)
 - [parseJsonArrayFromText](functions/parseJsonArrayFromText.md)
 - [parseJSONObjectFromText](functions/parseJSONObjectFromText.md)
+- [parseActionResponseFromText](functions/parseActionResponseFromText.md)
 - [formatPosts](functions/formatPosts.md)
 - [getProviders](functions/getProviders.md)
 - [createRelationship](functions/createRelationship.md)

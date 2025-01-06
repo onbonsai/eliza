@@ -1,9 +1,9 @@
 import {
     SqliteDatabaseAdapter,
     loadVecExtensions,
-} from "@ai16z/adapter-sqlite";
-import { SqlJsDatabaseAdapter } from "@ai16z/adapter-sqljs";
-import { SupabaseDatabaseAdapter } from "@ai16z/adapter-supabase";
+} from "@elizaos/adapter-sqlite";
+import { SqlJsDatabaseAdapter } from "@elizaos/adapter-sqljs";
+import { SupabaseDatabaseAdapter } from "@elizaos/adapter-supabase";
 import { DatabaseAdapter } from "../database.ts";
 import { getEndpoint } from "../models.ts";
 import { AgentRuntime } from "../runtime.ts";
@@ -17,6 +17,17 @@ import {
 } from "./constants.ts";
 import { User } from "./types.ts";
 
+/**
+ * Creates a runtime environment for the agent.
+ * 
+ * @param {Object} param - The parameters for creating the runtime.
+ * @param {Record<string, string> | NodeJS.ProcessEnv} [param.env] - The environment variables.
+ * @param {number} [param.conversationLength] - The length of the conversation.
+ * @param {Evaluator[]} [param.evaluators] - The evaluators to be used.
+ * @param {Action[]} [param.actions] - The actions to be used.
+ * @param {Provider[]} [param.providers] - The providers to be used.
+ * @returns {Object} An object containing the created user, session, and runtime.
+ */
 export async function createRuntime({
     env,
     conversationLength,

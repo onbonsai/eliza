@@ -1,4 +1,4 @@
-[@ai16z/eliza v0.1.5-alpha.0](../index.md) / ISpeechService
+[@elizaos/core v0.1.7-alpha.1](../index.md) / ISpeechService
 
 # Interface: ISpeechService
 
@@ -24,7 +24,7 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:969](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L969)
+[packages/core/src/types.ts:1036](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L1036)
 
 ## Methods
 
@@ -48,7 +48,7 @@ Add abstract initialize method that must be implemented by derived classes
 
 #### Defined in
 
-[packages/core/src/types.ts:974](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L974)
+[packages/core/src/types.ts:1041](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L1041)
 
 ***
 
@@ -62,7 +62,7 @@ Add abstract initialize method that must be implemented by derived classes
 
 #### Defined in
 
-[packages/core/src/types.ts:1112](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L1112)
+[packages/core/src/types.ts:1185](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L1185)
 
 ***
 
@@ -82,4 +82,4 @@ Add abstract initialize method that must be implemented by derived classes
 
 #### Defined in
 
-[packages/core/src/types.ts:1113](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L1113)
+[packages/core/src/types.ts:1186](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L1186)

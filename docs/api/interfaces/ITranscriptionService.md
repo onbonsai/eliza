@@ -1,4 +1,4 @@
-[@ai16z/eliza v0.1.5-alpha.0](../index.md) / ITranscriptionService
+[@elizaos/core v0.1.7-alpha.1](../index.md) / ITranscriptionService
 
 # Interface: ITranscriptionService
 
@@ -24,7 +24,7 @@
 
 #### Defined in
 
-[packages/core/src/types.ts:969](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L969)
+[packages/core/src/types.ts:1036](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L1036)
 
 ## Methods
 
@@ -48,7 +48,7 @@ Add abstract initialize method that must be implemented by derived classes
 
 #### Defined in
 
-[packages/core/src/types.ts:974](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L974)
+[packages/core/src/types.ts:1041](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L1041)
 
 ***
 
@@ -66,7 +66,7 @@ Add abstract initialize method that must be implemented by derived classes
 
 #### Defined in
 
-[packages/core/src/types.ts:1067](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L1067)
+[packages/core/src/types.ts:1140](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L1140)
 
 ***
 
@@ -84,7 +84,7 @@ Add abstract initialize method that must be implemented by derived classes
 
 #### Defined in
 
-[packages/core/src/types.ts:1068](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L1068)
+[packages/core/src/types.ts:1141](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L1141)
 
 ***
 
@@ -102,7 +102,7 @@ Add abstract initialize method that must be implemented by derived classes
 
 #### Defined in
 
-[packages/core/src/types.ts:1071](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L1071)
+[packages/core/src/types.ts:1144](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L1144)
 
 ***
 
@@ -120,4 +120,4 @@ Add abstract initialize method that must be implemented by derived classes
 
 #### Defined in
 
-[packages/core/src/types.ts:1072](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L1072)
+[packages/core/src/types.ts:1145](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L1145)

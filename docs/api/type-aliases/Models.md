@@ -1,4 +1,4 @@
-[@ai16z/eliza v0.1.5-alpha.0](../index.md) / Models
+[@elizaos/core v0.1.7-alpha.1](../index.md) / Models
 
 # Type Alias: Models
 
@@ -84,6 +84,26 @@ Model configurations by provider
 
 > **volengine**: [`Model`](Model.md)
 
+### nanogpt
+
+> **nanogpt**: [`Model`](Model.md)
+
+### hyperbolic
+
+> **hyperbolic**: [`Model`](Model.md)
+
+### venice
+
+> **venice**: [`Model`](Model.md)
+
+### akash\_chat\_api
+
+> **akash\_chat\_api**: [`Model`](Model.md)
+
+### livepeer
+
+> **livepeer**: [`Model`](Model.md)
+
 ## Defined in
 
-[packages/core/src/types.ts:188](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L188)
+[packages/core/src/types.ts:188](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L188)

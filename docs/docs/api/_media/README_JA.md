@@ -96,7 +96,6 @@ TWITTER_DRY_RUN=false
 TWITTER_USERNAME= # アカウントのユーザー名
 TWITTER_PASSWORD= # アカウントのパスワード
 TWITTER_EMAIL= # アカウントのメール
-TWITTER_COOKIES= # アカウントのクッキー
 
 X_SERVER_URL=
 XAI_API_KEY=

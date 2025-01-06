@@ -9,7 +9,7 @@ import {
     TokenAmount,
     VersionedTransaction,
 } from "@solana/web3.js";
-import { settings } from "@ai16z/eliza";
+import { settings } from "@elizaos/core";
 
 const solAddress = settings.SOL_ADDRESS;
 const SLIPPAGE = settings.SLIPPAGE;

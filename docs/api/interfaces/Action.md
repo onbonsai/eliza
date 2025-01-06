@@ -1,4 +1,4 @@
-[@ai16z/eliza v0.1.5-alpha.0](../index.md) / Action
+[@elizaos/core v0.1.7-alpha.1](../index.md) / Action
 
 # Interface: Action
 
@@ -14,7 +14,7 @@ Similar action descriptions
 
 #### Defined in
 
-[packages/core/src/types.ts:396](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L396)
+[packages/core/src/types.ts:404](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L404)
 
 ***
 
@@ -26,7 +26,7 @@ Detailed description
 
 #### Defined in
 
-[packages/core/src/types.ts:399](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L399)
+[packages/core/src/types.ts:407](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L407)
 
 ***
 
@@ -38,7 +38,7 @@ Example usages
 
 #### Defined in
 
-[packages/core/src/types.ts:402](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L402)
+[packages/core/src/types.ts:410](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L410)
 
 ***
 
@@ -50,7 +50,7 @@ Handler function
 
 #### Defined in
 
-[packages/core/src/types.ts:405](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L405)
+[packages/core/src/types.ts:413](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L413)
 
 ***
 
@@ -62,7 +62,7 @@ Action name
 
 #### Defined in
 
-[packages/core/src/types.ts:408](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L408)
+[packages/core/src/types.ts:416](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L416)
 
 ***
 
@@ -74,4 +74,4 @@ Validation function
 
 #### Defined in
 
-[packages/core/src/types.ts:411](https://github.com/mad-finance/eliza/blob/main/packages/core/src/types.ts#L411)
+[packages/core/src/types.ts:419](https://github.com/elizaOS/eliza/blob/main/packages/core/src/types.ts#L419)

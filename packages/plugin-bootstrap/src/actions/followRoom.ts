@@ -1,6 +1,6 @@
-import { composeContext } from "@ai16z/eliza";
-import { generateTrueOrFalse } from "@ai16z/eliza";
-import { booleanFooter } from "@ai16z/eliza";
+import { composeContext } from "@elizaos/core";
+import { generateTrueOrFalse } from "@elizaos/core";
+import { booleanFooter } from "@elizaos/core";
 import {
     Action,
     ActionExample,
@@ -8,16 +8,16 @@ import {
     Memory,
     ModelClass,
     State,
-} from "@ai16z/eliza";
+} from "@elizaos/core";
 
 export const shouldFollowTemplate =
     `Based on the conversation so far:
 
 {{recentMessages}}
 
-Should {{agentName}} start following this room, eagerly participating without explicit mentions?  
+Should {{agentName}} start following this room, eagerly participating without explicit mentions?
 Respond with YES if:
-- The user has directly asked {{agentName}} to follow the conversation or participate more actively  
+- The user has directly asked {{agentName}} to follow the conversation or participate more actively
 - The conversation topic is highly engaging and {{agentName}}'s input would add significant value
 - {{agentName}} has unique insights to contribute and the users seem receptive
 
@@ -67,7 +67,7 @@ export const followRoomAction: Action = {
             const response = await generateTrueOrFalse({
                 runtime,
                 context: shouldFollowContext,
-                modelClass: ModelClass.SMALL,
+                modelClass: ModelClass.LARGE,
             });
 
             return response;

@@ -1,53 +1,54 @@
-import { useState } from "react";
-import { useParams } from "react-router-dom";
-import { useMutation } from "@tanstack/react-query";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import type { TextResponse } from "@/api";
+import { useSendMessageMutation } from "@/api";
+import { ImageIcon } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { useParams } from "react-router-dom";
 import "./App.css";
-
-type TextResponse = {
-    text: string;
-    user: string;
-};
 
 export default function Chat() {
     const { agentId } = useParams();
     const [input, setInput] = useState("");
     const [messages, setMessages] = useState<TextResponse[]>([]);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const { mutate: sendMessage, isPending } = useSendMessageMutation({ setMessages, setSelectedFile });
 
-    const mutation = useMutation({
-        mutationFn: async (text: string) => {
-            const res = await fetch(`/api/${agentId}/message`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    text,
-                    userId: "user",
-                    roomId: `default-room-${agentId}`,
-                }),
-            });
-            return res.json() as Promise<TextResponse[]>;
-        },
-        onSuccess: (data) => {
-            setMessages((prev) => [...prev, ...data]);
-        },
-    });
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
+
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!input.trim()) return;
+        if ((!input.trim() && !selectedFile) || !agentId) return;
 
         // Add user message immediately to state
         const userMessage: TextResponse = {
             text: input,
             user: "user",
+            attachments: selectedFile ? [{ url: URL.createObjectURL(selectedFile), contentType: selectedFile.type, title: selectedFile.name }] : undefined,
         };
         setMessages((prev) => [...prev, userMessage]);
 
-        mutation.mutate(input);
+        sendMessage({ text: input, agentId, selectedFile });
         setInput("");
+    };
+
+    const handleFileSelect = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file && file.type.startsWith('image/')) {
+            setSelectedFile(file);
+        }
     };
 
     return (
@@ -58,21 +59,36 @@ export default function Chat() {
                         messages.map((message, index) => (
                             <div
                                 key={index}
-                                className={`flex ${
+                                className={`text-left flex ${
                                     message.user === "user"
                                         ? "justify-end"
                                         : "justify-start"
                                 }`}
                             >
-                                <div
-                                    className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                                <pre
+                                    className={`max-w-[80%] rounded-lg px-4 py-2 whitespace-pre-wrap ${
                                         message.user === "user"
                                             ? "bg-primary text-primary-foreground"
                                             : "bg-muted"
                                     }`}
                                 >
                                     {message.text}
-                                </div>
+                                    {message.attachments?.map((attachment, i) => (
+                                        attachment.contentType.startsWith('image/') && (
+                                            <img
+                                                key={i}
+                                                src={message.user === "user"
+                                                    ? attachment.url
+                                                    : attachment.url.startsWith('http')
+                                                        ? attachment.url
+                                                        : `http://localhost:3000/media/generated/${attachment.url.split('/').pop()}`
+                                                }
+                                                alt={attachment.title || "Attached image"}
+                                                className="mt-2 max-w-full rounded-lg"
+                                            />
+                                        )
+                                    ))}
+                                 </pre>
                             </div>
                         ))
                     ) : (
@@ -80,23 +96,45 @@ export default function Chat() {
                             No messages yet. Start a conversation!
                         </div>
                     )}
+                    <div ref={messagesEndRef} />
                 </div>
             </div>
 
             <div className="border-t p-4 bg-background">
                 <div className="max-w-3xl mx-auto">
                     <form onSubmit={handleSubmit} className="flex gap-2">
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleFileChange}
+                            accept="image/*"
+                            className="hidden"
+                        />
                         <Input
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             placeholder="Type a message..."
                             className="flex-1"
-                            disabled={mutation.isPending}
+                            disabled={isPending}
                         />
-                        <Button type="submit" disabled={mutation.isPending}>
-                            {mutation.isPending ? "..." : "Send"}
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={handleFileSelect}
+                            disabled={isPending}
+                        >
+                            <ImageIcon className="h-4 w-4" />
+                        </Button>
+                        <Button type="submit" disabled={isPending}>
+                            {isPending ? "..." : "Send"}
                         </Button>
                     </form>
+                    {selectedFile && (
+                        <div className="mt-2 text-sm text-muted-foreground">
+                            Selected file: {selectedFile.name}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
