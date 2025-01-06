@@ -213,8 +213,7 @@ export class OrbClient {
                     wallets.polygon,
                     wallets.profile.id,
                     wallets.profile.handle,
-                    formatted,
-                    clubResult.trendingClub.token.image
+                    formatted
                 );
 
                 res.json({ clubResult, formatted });
