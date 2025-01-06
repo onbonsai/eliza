@@ -1,6 +1,6 @@
-import { elizaLogger } from "@ai16z/eliza/src/logger.ts";
-// import { composeContext } from "@ai16z/eliza/src/context.ts";
-// import { generateMessageResponse } from "@ai16z/eliza/src/generation.ts";
+import { elizaLogger } from "@elizaos/eliza/src/logger.ts";
+// import { composeContext } from "@elizaos/eliza/src/context.ts";
+// import { generateMessageResponse } from "@elizaos/eliza/src/generation.ts";
 import {
     ActionExample,
     HandlerCallback,
@@ -9,7 +9,7 @@ import {
     // ModelClass,
     State,
     type Action,
-} from "@ai16z/eliza/src/types.ts";
+} from "@elizaos/eliza/src/types.ts";
 import { Coinbase } from "@coinbase/coinbase-sdk";
 import { Decimal } from "decimal.js";
 import { getAddress, formatEther, formatUnits } from "viem";

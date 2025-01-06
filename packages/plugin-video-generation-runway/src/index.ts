@@ -1,4 +1,4 @@
-import { elizaLogger } from "@ai16z/eliza/src/logger.ts";
+import { elizaLogger } from "@elizaos/eliza/src/logger.ts";
 import {
     Action,
     HandlerCallback,
@@ -6,8 +6,8 @@ import {
     Memory,
     Plugin,
     State,
-} from "@ai16z/eliza/src/types.ts";
-import { generateVideoRunway } from "@ai16z/eliza/src/generation.ts";
+} from "@elizaos/eliza/src/types.ts";
+import { generateVideoRunway } from "@elizaos/eliza/src/generation.ts";
 
 const videoGeneration: Action = {
     name: "GENERATE_VIDEO",

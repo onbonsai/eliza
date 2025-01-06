@@ -1,10 +1,10 @@
-import settings from "@ai16z/eliza/src/settings.ts";
+import settings from "@elizaos/eliza/src/settings.ts";
 import {
     IAgentRuntime,
     Memory,
     Provider,
     State,
-} from "@ai16z/eliza/src/types.ts";
+} from "@elizaos/eliza/src/types.ts";
 import {
     DexScreenerData,
     DexScreenerPair,

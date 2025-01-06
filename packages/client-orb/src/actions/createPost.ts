@@ -1,11 +1,11 @@
-import { elizaLogger } from "@ai16z/eliza/src/logger.ts";
+import { elizaLogger } from "@elizaos/eliza/src/logger.ts";
 import {
     Action,
     HandlerCallback,
     IAgentRuntime,
     Memory,
     State,
-} from "@ai16z/eliza/src/types.ts";
+} from "@elizaos/eliza/src/types.ts";
 import { getWallets } from "../services/coinbase.ts";
 import createPost from "./../services/orb/createPost.ts";
 

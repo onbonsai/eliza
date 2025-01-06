@@ -10,11 +10,11 @@ import {
     generateImage,
     generateText,
     generateVideoRunway,
-} from "@ai16z/eliza/src/generation";
-import { composeContext } from "@ai16z/eliza/src/context";
-import { generateMessageResponse } from "@ai16z/eliza/src/generation";
-import { messageCompletionFooter } from "@ai16z/eliza/src/parsing";
-import { AgentRuntime } from "@ai16z/eliza/src/runtime";
+} from "@elizaos/eliza/src/generation";
+import { composeContext } from "@elizaos/eliza/src/context";
+import { generateMessageResponse } from "@elizaos/eliza/src/generation";
+import { messageCompletionFooter } from "@elizaos/eliza/src/parsing";
+import { AgentRuntime } from "@elizaos/eliza/src/runtime";
 import {
     Content,
     Memory,
@@ -23,9 +23,9 @@ import {
     Client,
     IAgentRuntime,
     UUID,
-} from "@ai16z/eliza/src/types";
-import { stringToUuid } from "@ai16z/eliza/src/uuid";
-import settings from "@ai16z/eliza/src/settings";
+} from "@elizaos/eliza/src/types";
+import { stringToUuid } from "@elizaos/eliza/src/uuid";
+import settings from "@elizaos/eliza/src/settings";
 import createPost from "./services/orb/createPost";
 import { getWallets } from "./services/coinbase.ts";
 import { getRandomPrompt } from "./utils/postPrompt";
@@ -47,8 +47,8 @@ import createPostAction from "./actions/createPost";
 import searchTokenAction from "./actions/searchToken";
 import { launchpadCreate } from "./actions/launchpadCreate";
 import { sendMessage } from "./services/orb/sendMessage";
-import { tokenAnalysisPlugin } from "@ai16z/plugin-token-analysis/src/index";
-import { ClientBase } from "@ai16z/client-twitter/src/base";
+import { tokenAnalysisPlugin } from "@elizaos/plugin-token-analysis/src/index";
+import { ClientBase } from "@elizaos/client-twitter/src/base";
 import { DEXSCREENER_URL } from "./services/codex";
 import { fetchFeed } from "./services/lens/fetchFeed";
 import { searchLensForTerm } from "./services/lens/search.ts";

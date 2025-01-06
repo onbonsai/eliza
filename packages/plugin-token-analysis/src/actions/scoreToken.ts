@@ -1,5 +1,5 @@
-import { composeContext } from "@ai16z/eliza/src/context";
-import { generateObject } from "@ai16z/eliza/src/generation";
+import { composeContext } from "@elizaos/eliza/src/context";
+import { generateObject } from "@elizaos/eliza/src/generation";
 import {
     ActionExample,
     HandlerCallback,
@@ -8,9 +8,9 @@ import {
     ModelClass,
     State,
     type Action,
-} from "@ai16z/eliza/src/types";
+} from "@elizaos/eliza/src/types";
 import { TokenProvider } from "../providers/token";
-import { ClientBase } from "@ai16z/client-twitter/src/base";
+import { ClientBase } from "@elizaos/client-twitter/src/base";
 import { getClient } from "../services/mongo.ts";
 import { executeTradeAction } from "./executeTrade.ts";
 

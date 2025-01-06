@@ -1,5 +1,5 @@
-import { composeContext } from "@ai16z/eliza/src/context.ts";
-import { generateObject } from "@ai16z/eliza/src/generation.ts";
+import { composeContext } from "@elizaos/eliza/src/context.ts";
+import { generateObject } from "@elizaos/eliza/src/generation.ts";
 import {
     ActionExample,
     HandlerCallback,
@@ -8,7 +8,7 @@ import {
     State,
     type Action,
     ModelClass,
-} from "@ai16z/eliza/src/types.ts";
+} from "@elizaos/eliza/src/types.ts";
 import { parseUnits } from "viem";
 import { getClient } from "../services/mongo.ts";
 import { getWallets } from "../services/coinbase.ts";

@@ -18,8 +18,8 @@ import {
     ModelProviderName,
     ModelClass,
     IAgentRuntime,
-} from "@ai16z/eliza/src/types";
-import { generateText, models } from "@ai16z/eliza";
+} from "@elizaos/eliza/src/types";
+import { generateText, models } from "@elizaos/eliza";
 
 interface Content {
     text: string;

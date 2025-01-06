@@ -1,6 +1,6 @@
-import { elizaLogger } from "@ai16z/eliza/src/logger.ts";
-import { composeContext } from "@ai16z/eliza/src/context.ts";
-import { generateText, trimTokens } from "@ai16z/eliza/src/generation.ts";
+import { elizaLogger } from "@elizaos/eliza/src/logger.ts";
+import { composeContext } from "@elizaos/eliza/src/context.ts";
+import { generateText, trimTokens } from "@elizaos/eliza/src/generation.ts";
 import {
     Action,
     HandlerCallback,
@@ -8,7 +8,7 @@ import {
     Memory,
     State,
     ModelClass,
-} from "@ai16z/eliza/src/types.ts";
+} from "@elizaos/eliza/src/types.ts";
 import {
     searchTokens,
     NETWORK_ID_TO_NAME,
@@ -121,7 +121,7 @@ const searchTokenAction = {
                 attachments = tokens.map(({ token }) => ({
                     button: {
                         label: `${token.name} ($${token.symbol})`,
-                        text: `Find the token with ticker ${token.symbol} and contract address ${token.address} on chain ${NETWORK_ID_TO_NAME[token.networkId]}`
+                        text: `Find the token with ticker ${token.symbol} and contract address ${token.address} on chain ${NETWORK_ID_TO_NAME[token.networkId]}`,
                     },
                 }));
             } else {
