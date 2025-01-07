@@ -17,13 +17,13 @@ import {
     TradePerformance,
     TokenRecommendation,
 } from "../adapters/trustScoreDatabase.ts";
-import settings from "@elizaos/eliza/src/settings.ts";
 import {
+    settings,
     IAgentRuntime,
     Memory,
     Provider,
     State,
-} from "@elizaos/eliza/src/types.ts";
+} from "@elizaos/core";
 
 const Wallet = settings.MAIN_WALLET_ADDRESS;
 interface TradeData {

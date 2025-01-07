@@ -1,4 +1,4 @@
-import { Plugin } from "@elizaos/eliza/src/types.ts";
+import { Plugin } from "@elizaos/core";
 import { walletProvider } from "./providers/wallet.ts";
 import { trustScoreProvider } from "./providers/trustScoreProvider.ts";
 import { scoreToken } from "./actions/scoreToken.ts";

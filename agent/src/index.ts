@@ -7,7 +7,7 @@ import { LensAgentClient } from "@elizaos/client-lens";
 import { SlackClientInterface } from "@elizaos/client-slack";
 import { TelegramClientInterface } from "@elizaos/client-telegram";
 import { TwitterClientInterface } from "@elizaos/client-twitter";
-import { OrbClientInterface } from "@elizaos/client-orb/src/index.ts";
+import { OrbClientInterface } from "@elizaos/client-orb";
 import {
     AgentRuntime,
     CacheManager,
@@ -444,6 +444,11 @@ export async function initializeClients(
         if (slackClient) clients.slack = slackClient; // Use object property instead of push
     }
 
+    if (clientTypes.includes("orb")) {
+        const orbClient = await OrbClientInterface.start(runtime);
+        if (orbClient) clients.orb = orbClient; // Use object property instead of push
+    }
+
     function determineClientType(client: Client): string {
         // Check if client has a direct type identifier
         if ("type" in client) {
@@ -458,11 +463,6 @@ export async function initializeClients(
 
         // Fallback: Generate a unique identifier
         return `client_${Date.now()}`;
-    }
-
-    if (clientTypes.includes("orb")) {
-        const orbClients = await OrbClientInterface.start(runtime);
-        clients.push(orbClients);
     }
 
     if (character.plugins?.length > 0) {

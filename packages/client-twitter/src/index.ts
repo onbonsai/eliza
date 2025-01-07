@@ -1,14 +1,18 @@
-import {
-    Client,
-    elizaLogger,
-    IAgentRuntime,
-} from "@elizaos/core";
+import { Client, elizaLogger, IAgentRuntime } from "@elizaos/core";
 import { ClientBase } from "./base.ts";
 import { validateTwitterConfig, TwitterConfig } from "./environment.ts";
 import { TwitterInteractionClient } from "./interactions.ts";
 import { TwitterPostClient } from "./post.ts";
 import { TwitterSearchClient } from "./search.ts";
 import { TwitterSpaceClient } from "./spaces.ts";
+
+export const createClientBase = async (
+    runtime: IAgentRuntime
+): Promise<ClientBase> => {
+    const twitterConfig: TwitterConfig = await validateTwitterConfig(runtime);
+    const client = new ClientBase(runtime, twitterConfig);
+    return client;
+};
 
 /**
  * A manager that orchestrates all specialized Twitter logic:
@@ -54,7 +58,8 @@ class TwitterManager {
 
 export const TwitterClientInterface: Client = {
     async start(runtime: IAgentRuntime) {
-        const twitterConfig: TwitterConfig = await validateTwitterConfig(runtime);
+        const twitterConfig: TwitterConfig =
+            await validateTwitterConfig(runtime);
 
         elizaLogger.log("Twitter client started");
 

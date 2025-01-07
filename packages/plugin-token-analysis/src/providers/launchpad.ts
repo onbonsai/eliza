@@ -1,10 +1,5 @@
-import settings from "@elizaos/eliza/src/settings.ts";
-import {
-    IAgentRuntime,
-    Memory,
-    Provider,
-    State,
-} from "@elizaos/eliza/src/types.ts";
+import { settings } from "@elizaos/core";
+import { IAgentRuntime, Memory, Provider, State } from "@elizaos/core";
 import {
     DexScreenerData,
     DexScreenerPair,

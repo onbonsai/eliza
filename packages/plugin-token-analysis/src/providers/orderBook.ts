@@ -3,9 +3,9 @@ import {
     Memory,
     Provider,
     State,
-} from "@elizaos/eliza/src/types.ts";
+} from "@elizaos/core/src/types.ts";
 import * as fs from "fs";
-import settings from "@elizaos/eliza/src/settings.ts";
+import settings from "@elizaos/core/src/settings.ts";
 
 interface Order {
     userId: string;

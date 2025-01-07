@@ -1,6 +1,6 @@
-import { composeContext } from "@elizaos/eliza/src/context.ts";
-import { generateObject } from "@elizaos/eliza/src/generation.ts";
 import {
+    composeContext,
+    generateObject,
     ActionExample,
     HandlerCallback,
     IAgentRuntime,
@@ -8,7 +8,7 @@ import {
     State,
     type Action,
     ModelClass,
-} from "@elizaos/eliza/src/types.ts";
+} from "@elizaos/core";
 import { parseUnits } from "viem";
 import { getClient } from "../services/mongo.ts";
 import { getWallets } from "../services/coinbase.ts";

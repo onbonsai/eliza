@@ -1,6 +1,6 @@
-import { elizaLogger } from "@elizaos/eliza/src/logger.ts";
-import { composeContext } from "@elizaos/eliza/src/context.ts";
-import { generateText, trimTokens } from "@elizaos/eliza/src/generation.ts";
+import { elizaLogger } from "@elizaos/core";
+import { composeContext } from "@elizaos/core";
+import { generateText, trimTokens } from "@elizaos/core";
 import {
     Action,
     HandlerCallback,
@@ -8,7 +8,7 @@ import {
     Memory,
     State,
     ModelClass,
-} from "@elizaos/eliza/src/types.ts";
+} from "@elizaos/core";
 import {
     searchTokens,
     NETWORK_ID_TO_NAME,

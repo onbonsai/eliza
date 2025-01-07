@@ -1,5 +1,5 @@
-import { composeContext } from "@elizaos/eliza/src/context";
-import { generateObject } from "@elizaos/eliza/src/generation";
+import { composeContext } from "@elizaos/core";
+import { generateObject } from "@elizaos/core";
 import {
     ActionExample,
     HandlerCallback,
@@ -8,9 +8,9 @@ import {
     ModelClass,
     State,
     type Action,
-} from "@elizaos/eliza/src/types";
+} from "@elizaos/core";
 import { TokenProvider } from "../providers/token";
-import { ClientBase } from "@elizaos/client-twitter/src/base";
+import { createClientBase } from "@elizaos/client-twitter";
 import { getClient } from "../services/mongo.ts";
 import { executeTradeAction } from "./executeTrade.ts";
 
@@ -109,7 +109,7 @@ const socialAnalysis = async (
         ticker = `$${ticker}`;
     }
 
-    const client = new ClientBase(runtime);
+    const client = await createClientBase(runtime);
     await client.init(true);
     const { tweets } = await client.searchWithDelay(ticker);
     let report = `Social Analysis Report for ${ticker}\n\n`;

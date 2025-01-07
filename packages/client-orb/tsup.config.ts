@@ -14,7 +14,13 @@ export default defineConfig({
         "@node-llama-cpp",
         "https",
         "http",
+        "util",
+        "form-data",
+        "axios",
         "agentkeepalive",
+        "follow-redirects",
+        "url",
+        "proxy-from-env"
         // Add other modules you want to externalize
     ],
 });

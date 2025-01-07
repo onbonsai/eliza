@@ -1,21 +1,13 @@
 import bodyParser from "body-parser";
 import cors from "cors";
-import express from "express";
+import express, { Request as ExpressRequest } from "express";
 import { Server as HttpServer, createServer } from "http";
-import { Server as SocketIOServer } from "socket.io";
-import multer from "multer";
+import { Server as SocketIOServer, ServerOptions } from "socket.io";
 import { v4 as uuid } from "uuid";
 import {
-    generateCaption,
     generateImage,
     generateText,
     generateVideoRunway,
-} from "@elizaos/eliza/src/generation";
-import { composeContext } from "@elizaos/eliza/src/context";
-import { generateMessageResponse } from "@elizaos/eliza/src/generation";
-import { messageCompletionFooter } from "@elizaos/eliza/src/parsing";
-import { AgentRuntime } from "@elizaos/eliza/src/runtime";
-import {
     Content,
     Memory,
     ModelClass,
@@ -23,9 +15,13 @@ import {
     Client,
     IAgentRuntime,
     UUID,
-} from "@elizaos/eliza/src/types";
-import { stringToUuid } from "@elizaos/eliza/src/uuid";
-import settings from "@elizaos/eliza/src/settings";
+    composeContext,
+    generateMessageResponse,
+    messageCompletionFooter,
+    AgentRuntime,
+    stringToUuid,
+    settings,
+} from "@elizaos/core";
 import createPost from "./services/orb/createPost";
 import { getWallets } from "./services/coinbase.ts";
 import { getRandomPrompt } from "./utils/postPrompt";
@@ -47,8 +43,8 @@ import createPostAction from "./actions/createPost";
 import searchTokenAction from "./actions/searchToken";
 import { launchpadCreate } from "./actions/launchpadCreate";
 import { sendMessage } from "./services/orb/sendMessage";
-import { tokenAnalysisPlugin } from "@elizaos/plugin-token-analysis/src/index";
-import { ClientBase } from "@elizaos/client-twitter/src/base";
+import { tokenAnalysisPlugin } from "@elizaos/plugin-token-analysis";
+import { createClientBase } from "@elizaos/client-twitter";
 import { DEXSCREENER_URL } from "./services/codex";
 import { fetchFeed } from "./services/lens/fetchFeed";
 import { searchLensForTerm } from "./services/lens/search.ts";
@@ -137,8 +133,8 @@ export interface SimliClientConfig {
     apiKey: string;
     faceID: string;
     handleSilence: boolean;
-    videoRef: any;
-    audioRef: any;
+    videoRef: HTMLVideoElement;
+    audioRef: HTMLAudioElement;
 }
 export class OrbClient {
     private app: express.Application;
@@ -151,7 +147,7 @@ export class OrbClient {
         console.log("OrbClient constructor");
         this.app = express();
         this.server = createServer(this.app);
-        this.io = new SocketIOServer(this.server, {
+        this.io = new SocketIOServer<ServerOptions>(this.server, {
             cors: { origin: "*", methods: ["GET", "POST"] },
         });
         this.app.use(cors());
@@ -611,7 +607,7 @@ export class OrbClient {
                 let text = req.body.text || getRandomPrompt();
                 const randomNumber = Math.random();
                 if (randomNumber < 0.6) {
-                    const twitterSearchClient = new ClientBase(runtime);
+                    const twitterSearchClient = await createClientBase(runtime);
                     await new Promise((resolve) => setTimeout(resolve, 5000));
                     const homeTimeline =
                         await twitterSearchClient.fetchHomeTimeline(20);
@@ -1112,25 +1108,25 @@ export class OrbClient {
 
                 // check if the message contains the word "create" and a $ followed by a word
                 if (
-                    state.userMessage
+                    (state.userMessage as string)
                         .toLowerCase()
                         .includes(`@${AGENT_HANDLE} create $`)
                 ) {
                     // HACK: agent as the creator
                     const setSelfAsCreator =
-                        state.userMessage
+                        (state.userMessage as string)
                             .toLowerCase()
                             .includes("yourself as creator") ||
-                        state.userMessage
+                        (state.userMessage as string)
                             .toLowerCase()
                             .includes("yourself as the creator") ||
-                        state.userMessage
+                        (state.userMessage as string)
                             .toLowerCase()
                             .includes("you as creator") ||
-                        state.userMessage
+                        (state.userMessage as string)
                             .toLowerCase()
                             .includes("you as the creator") ||
-                        state.userMessage
+                        (state.userMessage as string)
                             .toLowerCase()
                             .includes("you are the creator");
                     // @ts-ignore

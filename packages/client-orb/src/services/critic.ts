@@ -1,25 +1,9 @@
-// Current image recognition service -- local recognition working, no openai recognition
-import {
-    AutoProcessor,
-    AutoTokenizer,
-    env,
-    Florence2ForConditionalGeneration,
-    Florence2Processor,
-    PreTrainedModel,
-    PreTrainedTokenizer,
-    RawImage,
-    type Tensor,
-} from "@huggingface/transformers";
 import fs from "fs";
 import gifFrames from "gif-frames";
 import os from "os";
 import path from "path";
-import {
-    ModelProviderName,
-    ModelClass,
-    IAgentRuntime,
-} from "@elizaos/eliza/src/types";
-import { generateText, models } from "@elizaos/eliza";
+import { ModelClass, IAgentRuntime } from "@elizaos/core";
+import { generateText } from "@elizaos/core";
 
 interface Content {
     text: string;
@@ -28,12 +12,6 @@ interface Content {
 
 class ContentJudgementService {
     private static instance: ContentJudgementService | null = null;
-    private modelId: string = "onnx-community/Florence-2-base-ft";
-    private device: string = "gpu";
-    private model: PreTrainedModel | null = null;
-    private processor: Florence2Processor | null = null;
-    private tokenizer: PreTrainedTokenizer | null = null;
-    private initialized: boolean = false;
     runtime: IAgentRuntime;
 
     private queue: Content[] = [];
@@ -41,7 +19,6 @@ class ContentJudgementService {
 
     private constructor(runtime: IAgentRuntime) {
         this.runtime = runtime;
-        this.initialize();
     }
 
     public static getInstance(runtime: IAgentRuntime): ContentJudgementService {
@@ -51,56 +28,6 @@ class ContentJudgementService {
             );
         }
         return ContentJudgementService.instance;
-    }
-
-    async initialize(
-        modelId: string | null = null,
-        device: string | null = null
-    ): Promise<void> {
-        if (this.initialized) {
-            return;
-        }
-
-        const model = models[this.runtime.character.settings.model];
-
-        if (model === ModelProviderName.LLAMALOCAL) {
-            this.modelId = modelId || "onnx-community/Florence-2-base-ft";
-
-            env.allowLocalModels = false;
-            env.allowRemoteModels = true;
-            env.backends.onnx.logLevel = "fatal";
-            env.backends.onnx.wasm.proxy = false;
-            env.backends.onnx.wasm.numThreads = 1;
-
-            console.log("Downloading model...");
-
-            this.model =
-                await Florence2ForConditionalGeneration.from_pretrained(
-                    this.modelId,
-                    {
-                        device: "gpu",
-                        progress_callback: (progress) => {
-                            if (progress.status === "downloading") {
-                                console.log(
-                                    `Model download progress: ${JSON.stringify(progress)}`
-                                );
-                            }
-                        },
-                    }
-                );
-
-            console.log("Model downloaded successfully.");
-
-            this.processor = (await AutoProcessor.from_pretrained(
-                this.modelId
-            )) as Florence2Processor;
-            this.tokenizer = await AutoTokenizer.from_pretrained(this.modelId);
-        } else {
-            this.modelId = "gpt-4o-mini";
-            this.device = "cloud";
-        }
-
-        this.initialized = true;
     }
 
     async judgeContent(
