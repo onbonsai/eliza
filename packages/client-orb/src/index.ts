@@ -701,8 +701,7 @@ export class OrbClient {
                 /* generate an image */
                 let imageUrl;
                 let videoUrl;
-                // TODO: media temporarily disabled
-                if (Math.random() < 0) {
+                if (Math.random() < 0.3) {
                     const imagePrompt = `Generate a unique image to accompany this post: ${responseMessage.content.text}. Try to make images in varied styles that are different than previous ones.`;
                     const imageResponse = await generateImage(
                         { prompt: imagePrompt, width: 1024, height: 1024 },

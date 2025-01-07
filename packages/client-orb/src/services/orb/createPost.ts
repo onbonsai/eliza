@@ -25,19 +25,7 @@ export default async (
 ) => {
     const client = new LensClient({ environment: production });
 
-    // TODO: testing with personal wallet for posting
     const [address] = await wallet.listAddresses();
-    // const { profileId, handle, privateKey } = {
-    //   profileId: "0x0e76",
-    //   privateKey: process.env.TEST_PERSONAL_PRIVATE_KEY!,
-    //   handle: 'natem'
-    // };
-    // const account = privateKeyToAccount(privateKey as `0x${string}`);
-    // const wallet = createWalletClient({
-    //   account,
-    //   chain: polygon,
-    //   transport: http(process.env.POLYGON_RPC_URL!)
-    // });
     const challenge = await client.authentication.generateChallenge({
         signedBy: address.getId(),
         for: profileId,
@@ -93,7 +81,7 @@ export default async (
                   ],
               }
             : undefined;
-    const isPrivate = false; // TODO: all posts going to the bonsai club will be private
+    const isPrivate = false; // TODO: accept input param
     const accessTokenResult = await client.authentication.getAccessToken();
     const accessToken = accessTokenResult.unwrap();
     const { data } = await axios.post(
@@ -130,7 +118,7 @@ export default async (
 
     const {
         status,
-        data: { contentURI },
+        data: { contentURI, openActionModules },
         onchain,
     } = data;
     if (status !== "SUCCESS") return false;
@@ -145,10 +133,12 @@ export default async (
         typedDataResult = !commentOn
             ? await client.publication.createOnchainPostTypedData({
                   contentURI,
+                  openActionModules,
               })
             : await client.publication.createOnchainCommentTypedData({
                   commentOn,
                   contentURI,
+                  openActionModules,
               });
     } else {
         typedDataResult = !commentOn
