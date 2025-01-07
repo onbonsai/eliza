@@ -15,8 +15,8 @@ import { Wallet } from "@coinbase/coinbase-sdk";
 import BonsaiLaunchpadAbi from "./BonsaiLaunchpad";
 import { getEventFromReceipt, encodeAbi } from "../../utils/viem";
 import { toHexString } from "../../utils/utils";
-import { createClub } from "./database";
 import { CHAIN_TO_RPC } from "../../utils/constants";
+import { elizaLogger } from "@ai16z/eliza";
 
 export const IS_PRODUCTION = process.env.LAUNCHPAD_CHAIN_ID === "8453";
 export const CONTRACT_CHAIN_ID = IS_PRODUCTION ? base.id : baseSepolia.id;
@@ -35,13 +35,9 @@ export const USDC_CONTRACT_ADDRESS = IS_PRODUCTION
 export const DEFAULT_HOOK_ADDRESS = IS_PRODUCTION
     ? zeroAddress
     : "0xA788031C591B6824c032a0EFe74837EE5eaeC080";
-export const BONSAI_TOKEN_ZKSYNC_ADDRESS =
-    "0xB0588f9A9cADe7CD5f194a5fe77AcD6A58250f82";
-export const BONSAI_TOKEN_BASE_ADDRESS = IS_PRODUCTION
+export const BONSAI_TOKEN_ADDRESS_BASE = IS_PRODUCTION
     ? "0x474f4cb764df9da079D94052fED39625c147C12C"
     : "0x3d2bD0e15829AA5C362a4144FdF4A1112fa29B5c";
-export const BONSAI_NFT_ZKSYNC_ADDRESS =
-    "0x40df0F8C263885093DCCEb4698DE3580FC0C9D49";
 export const BONSAI_NFT_BASE_ADDRESS = IS_PRODUCTION
     ? "0xf060fd6b66B13421c1E514e9f10BedAD52cF241e"
     : "0xE9d2FA815B95A9d087862a09079549F351DaB9bd";
@@ -65,7 +61,6 @@ type RegistrationParams = {
     initialSupply: string;
     curveType?: number; // default to 1
     strategy?: string; // default to "lens"
-    featureStartAt?: number; // if the caller has a bonsai nft, Date.now()
 };
 export const registerClub = async (
     wallet: Wallet,
@@ -95,32 +90,20 @@ export const registerClub = async (
         await publicClient().waitForTransactionReceipt({
             hash: hash as `0x${string}`,
         });
-    const event = getEventFromReceipt({
-        contractAddress: LAUNCHPAD_CONTRACT_ADDRESS,
-        transactionReceipt: receipt,
-        abi: BonsaiLaunchpadAbi,
-        eventName: "RegisteredClub",
-    });
     let clubId;
-    let objectId;
     if (receipt.status === "success") {
-        clubId = event.args.clubId;
-        objectId = await createClub(clubId, {
-            pubId: params.pubId,
-            handle: params.handle,
-            profileId: params.profileId,
-            strategy: params.strategy ?? "lens",
-            token: {
-                name: params.tokenName,
-                symbol: params.tokenSymbol,
-                image: params.tokenImage,
-                description: params.tokenDescription,
-            },
-            featureStartAt: params.featureStartAt,
+        const event = getEventFromReceipt({
+            contractAddress: LAUNCHPAD_CONTRACT_ADDRESS,
+            transactionReceipt: receipt,
+            abi: BonsaiLaunchpadAbi,
+            eventName: "RegisteredClub",
         });
+        clubId = event.args.clubId;
+    } else {
+        elizaLogger.error("contract::registerClub ERROR - TX FAILED");
     }
 
-    return { objectId, clubId };
+    return { clubId };
 };
 
 export const getRegistrationFee = async (
@@ -145,7 +128,7 @@ export const getTokenBalance = async (
 ): Promise<bigint> => {
     const client = publicClient();
     return (await client.readContract({
-        address: token,
+        address: token as `0x${string}`,
         abi: erc20Abi,
         functionName: "balanceOf",
         args: [account],
