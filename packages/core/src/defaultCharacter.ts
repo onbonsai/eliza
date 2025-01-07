@@ -6,6 +6,7 @@ export const defaultCharacter: Character = {
     plugins: [],
     clients: [Clients.ORB],
     modelProvider: ModelProviderName.GROK,
+    imageModelProvider: ModelProviderName.OPENAI,
     settings: {
         secrets: {},
         voice: {

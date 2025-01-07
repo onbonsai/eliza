@@ -9,7 +9,7 @@ import {
     type Action,
     ModelClass,
 } from "@elizaos/core";
-import { parseUnits } from "viem";
+import { parseEther, parseUnits } from "viem";
 import { getClient } from "../services/mongo.ts";
 import { getWallets } from "../services/coinbase.ts";
 import {
@@ -17,62 +17,19 @@ import {
     IS_PRODUCTION,
     DECIMALS,
     USDC_CONTRACT_ADDRESS,
+    BONSAI_TOKEN_ADDRESS_BASE,
     LAUNCHPAD_CONTRACT_ADDRESS,
     CHAIN,
     getRegistrationFee,
     getTokenBalance,
 } from "../services/launchpad/contract.ts";
+import { createClub } from "../services/launchpad/database.ts";
 import { getLensImageURL } from "../services/lens/ipfs.ts";
 import { getProfileById } from "../services/lens/profiles.ts";
 import { approveToken } from "../services/coinbase.ts";
 import createPost from "../services/orb/createPost.ts";
 import { AGENT_HANDLE } from "../utils/constants.ts";
-
-/*
-example orb post body data:
-
-{
-    publication_id: '0x0e76-0x03bc-DA-9884c2d8',
-    profile_id: '0x0e76',
-    action_modules: [],
-    action_modules_init_datas: [],
-    reference_module: null,
-    reference_module_init_data: null,
-    content_uri: 'ar://x2sj1Fv5njh3zvCIQrPLvePkGswj34DTwU-GSW-sXTo',
-    timestamp: 1732740118000,
-    action_modules_init_return_datas: [],
-    reference_module_init_return_data: null,
-    main_content_focus: 'TEXT_ONLY',
-    tags: [ 'orbcommunitiesbonsai' ],
-    description: 'Gm',
-    external_url: 'https://orb.ac//@natem',
-    name: 'text by @natem',
-    attributes: [],
-    animation_url: 'ipfs://bafkreig543m6ejm7rtkjluqws736scidhfkiqrqqjrcnd33sa26vigpq6q',
-    lens: {
-      id: 'fb2da93d-7ff2-4303-a761-f03e09b4d3cc',
-      appId: 'orb',
-      locale: 'en-US',
-      tags: [ 'orbcommunitiesbonsai' ],
-      mainContentFocus: 'TEXT_ONLY',
-      content: 'Gm'
-    },
-    isEncrypted: false,
-    type: 'post',
-    total_amount_of_mirrors: 0,
-    total_amount_of_actions: 0,
-    total_amount_of_comments: 0,
-    total_amount_of_quotes: 0,
-    total_amount_of_tips: 0,
-    total_reactions: 0,
-    karma_score: 0,
-    orb_reputation_score: 0,
-    is_pinned: false,
-    is_hidden: false,
-    community_id: '65e6dec26d85271723b6357c',
-    is_member: true
-  }
-*/
+import searchToken from "../services/launchpad/searchToken.ts";
 
 const DEFAULT_CURVE_TYPE = 1; // NORMAL;
 const DEFAULT_INITIAL_SUPPLY = !IS_PRODUCTION ? "1" : "15"; // buy price at ~200 usdc
@@ -148,23 +105,6 @@ export const launchpadCreate: Action = {
 
         let { symbol, name, description } = response;
 
-        // // Extract name, ticker, and description from text using regex
-        // const nameMatch = text.match(/name:\s*([^,\n]+)/i);
-        // const tickerMatch = text.match(/ticker:\s*\$?([^,\n\s]+)/i);
-        // const descriptionMatch = text.match(/description:\s*([^,\n]+)/i);
-
-        // const name = nameMatch ? nameMatch[1].trim() : null;
-        // const symbol = tickerMatch ? tickerMatch[1].trim().toUpperCase() : null;
-        // const description = descriptionMatch
-        //     ? descriptionMatch[1].trim()
-        //     : null;
-
-        // if (!name || !symbol) {
-        //     throw new Error(
-        //         "Missing required name or ticker. Format should be: name: <name>, ticker: <ticker>"
-        //     );
-        // }
-
         symbol = symbol.replace("$", "");
         name = name || symbol.charAt(0).toUpperCase() + symbol.slice(1);
         console.log(
@@ -203,6 +143,11 @@ Self as creator?: ${params.setSelfAsCreator}`
         const creator = params.setSelfAsCreator
             ? address
             : (lensProfile.ownedBy.address as `0x${string}`);
+        const hasBonsaiNFT =
+            (await getTokenBalance(
+                lensProfile.ownedBy.address as `0x${string}`,
+                BONSAI_TOKEN_ADDRESS_BASE
+            )) > parseEther("100000");
 
         const initialSupply = "0"; // not buying till we have a good strategy
         // const registrationFee = await getRegistrationFee(
@@ -225,7 +170,7 @@ Self as creator?: ${params.setSelfAsCreator}`
         const handle = params.setSelfAsCreator
             ? AGENT_HANDLE
             : lensProfile.handle.localName;
-        const { clubId } = await registerClub(wallet, creator, {
+        const registerParams = {
             pubId: params.publication_id,
             handle,
             profileId: params.profile_id,
@@ -235,10 +180,44 @@ Self as creator?: ${params.setSelfAsCreator}`
             tokenImage: imageURL,
             initialSupply: parseUnits(initialSupply, DECIMALS).toString(),
             curveType: DEFAULT_CURVE_TYPE,
-        });
+        };
+        const existingClubId = await searchToken(registerParams.tokenSymbol);
 
-        const reply = `$${symbol} has been created! 👇
+        let reply;
+        if (!existingClubId) {
+            const { clubId } = await registerClub(
+                wallet,
+                creator,
+                registerParams
+            );
+            if (clubId) {
+                // store in our db
+                await createClub(clubId, {
+                    pubId: registerParams.pubId,
+                    handle: registerParams.handle,
+                    profileId: registerParams.profileId,
+                    strategy: "lens",
+                    token: {
+                        name: registerParams.tokenName,
+                        symbol: registerParams.tokenSymbol,
+                        image: registerParams.tokenImage,
+                        description: registerParams.tokenDescription,
+                    },
+                    featureStartAt: hasBonsaiNFT
+                        ? Math.floor(Date.now() / 1000)
+                        : undefined,
+                });
+                reply = `$${symbol} has been created! 👇
 https://launch.bonsai.meme/token/${clubId}`;
+            } else {
+                reply = "Failed to create your token, try again later";
+            }
+        } else {
+            console.log(`skipping, token already exists: ${existingClubId}`);
+            reply = `Ticker $${registerParams.tokenSymbol} already exists!
+https://launch.bonsai.meme/token/${existingClubId}`;
+        }
+
         await createPost(
             wallets?.polygon,
             wallets?.profile?.id,

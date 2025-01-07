@@ -697,8 +697,7 @@ export class OrbClient {
                 /* generate an image */
                 let imageUrl;
                 let videoUrl;
-                // TODO: media temporarily disabled
-                if (Math.random() < 0) {
+                if (Math.random() < 0.3) {
                     const imagePrompt = `Generate a unique image to accompany this post: ${responseMessage.content.text}. Try to make images in varied styles that are different than previous ones.`;
                     const imageResponse = await generateImage(
                         { prompt: imagePrompt, width: 1024, height: 1024 },
@@ -1108,9 +1107,9 @@ export class OrbClient {
 
                 // check if the message contains the word "create" and a $ followed by a word
                 if (
-                    (state.userMessage as string)
-                        .toLowerCase()
-                        .includes(`@${AGENT_HANDLE} create $`)
+                    /create \$\w+/i.test(
+                        (state.userMessage as string).toLowerCase()
+                    )
                 ) {
                     // HACK: agent as the creator
                     const setSelfAsCreator =

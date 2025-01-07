@@ -1,4 +1,5 @@
 import { MongoClient } from "mongodb";
+import { IS_PRODUCTION } from "./launchpad/contract";
 
 let client: MongoClient;
 let connecting: Promise<MongoClient> | null = null;
@@ -22,7 +23,7 @@ export const getClient = async () => {
     const collection = database.collection("agents");
     const tips = database.collection("user-tips");
     const tickers = database.collection("tickers");
-    const clubs = database.collection("clubs-prod");
+    const clubs = database.collection(IS_PRODUCTION ? "clubs-prod" : "clubs");
 
     return { client, collection, tips, tickers, clubs };
 };
