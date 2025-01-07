@@ -16,7 +16,7 @@ import BonsaiLaunchpadAbi from "./BonsaiLaunchpad";
 import { getEventFromReceipt, encodeAbi } from "../../utils/viem";
 import { toHexString } from "../../utils/utils";
 import { CHAIN_TO_RPC } from "../../utils/constants";
-import { elizaLogger } from "@ai16z/eliza";
+import { elizaLogger } from "@elizaos/core";
 
 export const IS_PRODUCTION = process.env.LAUNCHPAD_CHAIN_ID === "8453";
 export const CONTRACT_CHAIN_ID = IS_PRODUCTION ? base.id : baseSepolia.id;
