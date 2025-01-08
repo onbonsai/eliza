@@ -7,7 +7,6 @@ import { v4 as uuid } from "uuid";
 import {
     generateImage,
     generateText,
-    generateVideoRunway,
     Content,
     Memory,
     ModelClass,
@@ -53,6 +52,7 @@ import {
     createTrendingClubReport,
     formatTrendingClubReport,
 } from "./services/launchpad/trending.ts";
+import { generateVideoRunway } from "./services/runway.ts";
 
 export const messageHandlerTemplate =
     `# Action Examples
