@@ -70,10 +70,10 @@ const searchTokenAction = {
                 const context = composeContext({
                     state,
                     // make sure it fits, we can pad the tokens a bit
-                    template: trimTokens(
+                    template: await trimTokens(
                         tokenSummaryTemplate,
                         100000,
-                        "gpt-4o-mini" // TODO: make this dynamic and generic
+                        runtime
                     ),
                 });
 
@@ -132,6 +132,7 @@ const searchTokenAction = {
             callback({
                 text,
                 attachments,
+                action: "NONE",
             });
         } catch (error) {
             elizaLogger.error("Failed to search token");

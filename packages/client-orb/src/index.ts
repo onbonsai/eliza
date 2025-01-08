@@ -413,18 +413,18 @@ export class OrbClient {
                     [responseMessage],
                     state,
                     async (newMessages) => {
-                        message = newMessages;
-
-                        if (message.action !== "NONE") {
+                        if (newMessages.action !== "NONE") {
                             console.log("emitting to roomId", roomId);
                             this.io.to(roomId).emit(
                                 "response",
                                 JSON.stringify({
-                                    text: message.text,
-                                    attachments: message.attachments,
+                                    text: newMessages.text,
+                                    attachments: newMessages.attachments,
                                     action: "NONE",
                                 })
                             );
+                        } else {
+                            message = newMessages;
                         }
 
                         return [memory];

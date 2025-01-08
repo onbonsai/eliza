@@ -81,19 +81,14 @@ export const executeTradeAction: Action = {
                     base.getBalance(Coinbase.assets.Eth),
                 ]);
 
-                const pctBuy = state.score === TokenScore.BUY ? 0.1 : 0.25; // TODO: config
+                const pctBuy = state.score === TokenScore.BUY ? 0.02 : 0.1; // TODO: config
                 let inputAsset;
                 if (usdcBalance > ethBalance) {
                     inputAsset = Coinbase.assets.Usdc;
-                    fromAmount = formatUnits(
-                        BigInt(
-                            usdcBalance
-                                .mul(new Decimal(pctBuy))
-                                .floor()
-                                .toString()
-                        ),
-                        6
-                    );
+                    fromAmount = usdcBalance
+                        .mul(new Decimal(pctBuy))
+                        .toFixed(4, Decimal.ROUND_DOWN)
+                        .toString();
                     fromTicker = "USDC";
                 } else {
                     inputAsset = Coinbase.assets.Eth;
@@ -116,21 +111,28 @@ export const executeTradeAction: Action = {
                 const tokenBalance = await base.getBalance(
                     getAddress(inputTokenAddress)
                 );
-                const pctSell = state.score === TokenScore.SELL ? 0.5 : 1; // TODO: config
-                fromAmount = tokenBalance.mul(new Decimal(pctSell));
-                fromTicker = ticker;
-                toTicker = "USDC";
+                if (tokenBalance > new Decimal(0)) {
+                    const pctSell = state.score === TokenScore.SELL ? 0.5 : 1; // TODO: config
+                    fromAmount = tokenBalance.mul(new Decimal(pctSell));
+                    fromTicker = ticker;
+                    toTicker = "USDC";
 
-                res = await executeTrade(
-                    base,
-                    getAddress(inputTokenAddress),
-                    Coinbase.assets.Usdc, // TODO: config
-                    formatEther(BigInt(fromAmount.floor().toString()))
-                );
+                    res = await executeTrade(
+                        base,
+                        getAddress(inputTokenAddress),
+                        Coinbase.assets.Usdc, // TODO: config
+                        formatUnits(BigInt(fromAmount.floor().toString()), 6) // TODO: config
+                    );
+                }
             }
 
             // TODO: handle this error better (no need to tell the user?)
             if (!res) {
+                callback?.({
+                    text: "",
+                    attachments: [],
+                    action: "NONE",
+                });
                 return;
             }
 
@@ -177,6 +179,7 @@ export const executeTradeAction: Action = {
                 text: "btw, I executed a trade",
                 // @ts-expect-error attachments
                 attachments,
+                action: "NONE",
             });
         } catch (error) {
             console.log(error);

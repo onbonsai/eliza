@@ -13,6 +13,7 @@ import { TokenProvider } from "../providers/token";
 import { createClientBase } from "@elizaos/client-twitter";
 import { getClient } from "../services/mongo.ts";
 import { executeTradeAction } from "./executeTrade.ts";
+import { ScoreSchema, TokenInfoSchema } from "./../types/schema.ts";
 
 const messageTemplate = `Respond with a JSON markdown block containing only the extracted values. Use null for any values that cannot be determined.
 
@@ -50,7 +51,7 @@ An example message would look like this: what about this token 0x00561688b20a2b8
 `;
 
 // TODO: update judgement instructions
-const ratingTemplate = `Respond with a JSON markdown block containing only the extracted values. Use null for any values that cannot be determined.
+const ratingTemplate = `Respond with a JSON markdown block, single object (NO ARRAY), containing only the extracted values. Use null for any values that cannot be determined.
 
 Example response:
 \`\`\`json
@@ -80,7 +81,7 @@ Beyond these things interpret the data as you see fit.
 
 Token Score should be one of the following: "STRONG_SELL", "SELL", "NEUTRAL", "BUY", "STRONG_BUY"
 
-Include your reasoning also. Respond with a JSON markdown block containing only the extracted values. The result should be a valid JSON object with the following schema:
+Include your reasoning also. Respond with a JSON markdown block, single object (NO ARRAY), containing only the extracted values. The result should be a valid JSON object with the following schema:
 \`\`\`json
 {
     "rating": string,
@@ -200,7 +201,10 @@ export const scoreToken: Action = {
                 runtime,
                 context: messageContext,
                 modelClass: ModelClass.LARGE,
+                schema: TokenInfoSchema,
             });
+
+            response = response.object;
         }
 
         console.log("response:", response);
@@ -235,12 +239,27 @@ export const scoreToken: Action = {
                 "{{shouldTrade}}",
                 technicalResult.shouldTrade ? "Yes" : "No"
             );
-        const ratingResponse = await generateObject({
-            runtime,
-            context,
-            modelClass: ModelClass.LARGE,
-        });
-        console.log("ratingResponse", ratingResponse);
+        let ratingResponse;
+        try {
+            const { object } = (await generateObject({
+                runtime,
+                context,
+                modelClass: ModelClass.LARGE,
+                schema: ScoreSchema,
+            })) as unknown as { object: { rating: string; reason: string } };
+            ratingResponse = object;
+            console.log("ratingResponse", ratingResponse);
+        } catch (error) {
+            console.log(error);
+            // fail gracefully
+            callback?.({
+                text: "Failed to generate rating, try again later",
+                // @ts-ignore
+                attachments: [],
+                action: "NONE",
+            });
+            return;
+        }
 
         const scoreString = ratingResponse.rating.replace(
             "TokenScore.",
@@ -255,8 +274,14 @@ export const scoreToken: Action = {
             },
         }));
 
-        // take action
-        if (score != 2 && inputTokenAddress && chain) {
+        // take action; TODO: should use trust score of the user
+        if (
+            technicalResult.shouldTrade &&
+            (score == TokenScore.STRONG_SELL ||
+                score == TokenScore.STRONG_BUY) &&
+            inputTokenAddress &&
+            chain
+        ) {
             // send the response as a ws message
             callback?.({
                 text: ratingResponse.reason,
@@ -316,6 +341,7 @@ export const scoreToken: Action = {
                 text: ratingResponse.reason,
                 // @ts-ignore
                 attachments,
+                action: "NONE",
             });
         }
 
