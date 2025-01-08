@@ -398,6 +398,11 @@ export async function initializeClients(
         character.clients?.map((str) => str.toLowerCase()) || [];
     elizaLogger.log("initializeClients", clientTypes, "for", character.name);
 
+    if (clientTypes.includes(Clients.ORB)) {
+        const orbClient = await OrbClientInterface.start(runtime);
+        if (orbClient) clients.orb = orbClient;
+    }
+
     if (clientTypes.includes(Clients.DIRECT)) {
         const autoClient = await AutoClientInterface.start(runtime);
         if (autoClient) clients.auto = autoClient;
@@ -442,11 +447,6 @@ export async function initializeClients(
     if (clientTypes.includes("slack")) {
         const slackClient = await SlackClientInterface.start(runtime);
         if (slackClient) clients.slack = slackClient; // Use object property instead of push
-    }
-
-    if (clientTypes.includes("orb")) {
-        const orbClient = await OrbClientInterface.start(runtime);
-        if (orbClient) clients.orb = orbClient; // Use object property instead of push
     }
 
     function determineClientType(client: Client): string {
