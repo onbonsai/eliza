@@ -148,6 +148,31 @@ const CLUB_TRADES_PAGINATED = gql`
     }
 `;
 
+const ALL_CLUB_TRADES_PAGINATED = gql`
+    query ClubTrades($skip: Int!) {
+        trades(
+            orderBy: createdAt
+            orderDirection: desc
+            first: 100
+            skip: $skip
+        ) {
+            isBuy
+            amount
+            trader {
+                id
+            }
+            club {
+                clubId
+                tokenInfo
+            }
+            price
+            txPrice
+            txHash
+            createdAt
+        }
+    }
+`;
+
 const CLUB_TRADES_LATEST = gql`
     query {
         trades(
@@ -159,6 +184,8 @@ const CLUB_TRADES_LATEST = gql`
             club {
                 clubId
             }
+            price
+            amount
             createdAt
         }
     }
@@ -175,6 +202,8 @@ const REGISTERED_CLUBS = gql`
             supply
             feesEarned
             currentPrice
+            liquidity
+            holders
             marketCap
             complete
             tokenInfo
@@ -262,37 +291,118 @@ export const subgraphClient = () => {
     return new GraphQLClient(uri);
 };
 
-export const getTrendingClub = async () => {
+export const getTokenAnalytics = async (symbol: string) => {
+    const clubId = await searchToken(symbol.replace("$", ""));
+    if (!clubId) return null;
+
+    const club = await getRegisteredClubById(clubId);
+    if (!club) return null;
+
+    const price = formatUnits(BigInt(club.currentPrice), DECIMALS);
+    const marketCap = formatUnits(
+        BigInt(club.supply) * BigInt(club.currentPrice),
+        DECIMALS * 2
+    );
+    const liquidity = formatUnits(BigInt(club.liquidity), DECIMALS);
+
+    const priceChange24h = club["24h"]
+        ? (parseFloat(formatUnits(BigInt(club["24h"].price), DECIMALS)) /
+              parseFloat(formatUnits(BigInt(club["24h"].prevPrice), DECIMALS)) -
+              1) *
+          100
+        : 0;
+
+    const [clubName, clubSymbol] = decodeAbiParameters(
+        [
+            { name: "name", type: "string" },
+            { name: "symbol", type: "string" },
+        ],
+        club.tokenInfo as `0x${string}`
+    );
+
+    return {
+        name: clubName,
+        symbol: clubSymbol,
+        price: parseFloat(price).toFixed(6),
+        priceChange24h: priceChange24h.toFixed(2),
+        marketCap: marketCap,
+        liquidity: parseFloat(liquidity).toFixed(2),
+        holders: club.holders,
+        clubId,
+        complete: club.complete,
+        createdAt: club.createdAt,
+        age: Math.floor((Date.now() / 1000 - club.createdAt) / (60 * 60 * 24)),
+    };
+};
+
+export const getTrendingClub = async (count: number = 1) => {
     try {
         const trades = await getLatestTrades();
         const grouped = groupBy(trades, "club.clubId");
-        const trendingClubId = Object.keys(grouped).reduce((a, b) =>
-            grouped[a].length > grouped[b].length ? a : b
+
+        // Calculate volume for each club
+        const clubVolumes = Object.entries(grouped).map(([clubId, trades]) => {
+            const volume = trades.reduce(
+                (acc, trade) =>
+                    acc +
+                    parseFloat(formatUnits(BigInt(trade.price), DECIMALS)),
+                0
+            );
+            return [
+                clubId,
+                {
+                    trades: trades.length,
+                    volume,
+                },
+            ];
+        });
+
+        // Sort clubs by volume in descending order and take requested number
+        const trendingClubIds = clubVolumes
+            .sort(([, dataA], [, dataB]) => dataB.volume - dataA.volume)
+            .slice(0, count)
+            .map(([clubId]) => clubId);
+
+        // Fetch and process all trending clubs in parallel
+        const trendingClubs = await Promise.all(
+            trendingClubIds.map(async (clubId) => {
+                const club = await getRegisteredClubById(clubId);
+                const [name, symbol, image] = decodeAbiParameters(
+                    [
+                        { name: "name", type: "string" },
+                        { name: "symbol", type: "string" },
+                        { name: "uri", type: "string" },
+                    ],
+                    club.tokenInfo
+                );
+
+                const volume =
+                    clubVolumes.find(([id]) => id === clubId)?.[1].volume || 0;
+                const trades =
+                    clubVolumes.find(([id]) => id === clubId)?.[1].trades || 0;
+
+                club.marketCap = formatUnits(
+                    BigInt(club.supply) * BigInt(club.currentPrice),
+                    DECIMALS
+                ).split(".")[0];
+
+                club.token = {
+                    name,
+                    symbol,
+                    image,
+                };
+
+                club.volume = volume;
+                club.trades = trades;
+
+                return club;
+            })
         );
 
-        const club = await getRegisteredClubById(trendingClubId);
-        const [name, symbol, image] = decodeAbiParameters(
-            [
-                { name: "name", type: "string" },
-                { name: "symbol", type: "string" },
-                { name: "uri", type: "string" },
-            ],
-            club.tokenInfo
-        );
-        club.marketCap = formatUnits(
-            BigInt(club.supply) * BigInt(club.currentPrice),
-            DECIMALS
-        ).split(".")[0];
-
-        club.token = {
-            name,
-            symbol,
-            image,
-        };
-
-        return club;
+        return count === 1 ? trendingClubs[0] : trendingClubs;
     } catch (e) {
         console.log(e);
+        return count === 1 ? undefined : [];
     }
 };
 
@@ -342,6 +452,95 @@ export const getRegisteredClubInfo = async (ids: string[]) => {
         );
         return { name, symbol, image, clubId: club.clubId, id: club.id };
     });
+};
+
+export const getRegisteredClubs = async (
+    page = 0
+): Promise<{ clubs: any[]; hasMore: boolean }> => {
+    const client = subgraphClient();
+    const limit = 50;
+    const skip = page * limit;
+
+    try {
+        const { clubs } = await client.request(REGISTERED_CLUBS, { skip });
+
+        // Process clubs to decode tokenInfo
+        const processedClubs = clubs?.map((club) => {
+            try {
+                const [name, symbol, image] = decodeAbiParameters(
+                    [
+                        { name: "name", type: "string" },
+                        { name: "symbol", type: "string" },
+                        { name: "uri", type: "string" },
+                    ],
+                    club.tokenInfo
+                );
+
+                return {
+                    ...club,
+                    token: {
+                        name,
+                        symbol,
+                        image,
+                    },
+                    marketCap: formatUnits(
+                        BigInt(club.supply) * BigInt(club.currentPrice),
+                        DECIMALS
+                    ).split(".")[0],
+                };
+            } catch (e) {
+                console.error("Error processing club:", e);
+                return club;
+            }
+        });
+
+        return {
+            clubs: processedClubs || [],
+            hasMore: clubs?.length === limit,
+        };
+    } catch (e) {
+        console.error("Error fetching registered clubs:", e);
+        return { clubs: [], hasMore: false };
+    }
+};
+
+export const getVolumeStats = async () => {
+    const twentyFourHoursAgo = Math.floor(
+        (Date.now() - 24 * 60 * 60 * 1000) / 1000
+    );
+    let page = 0;
+    let hasMore = true;
+    let totalVolume = 0;
+    let totalTrades = 0;
+
+    while (hasMore) {
+        const { trades, hasMore: hasMoreTrades } = await getAllTrades(page); // Empty string gets all trades
+
+        // Filter trades from last 24h and calculate volume
+        const recentTrades = trades.filter(
+            (trade) => trade.createdAt >= twentyFourHoursAgo
+        );
+
+        // If all trades in this batch are older than 24h, we can stop
+        if (recentTrades.length === 0 && trades.length > 0) {
+            hasMore = false;
+            continue;
+        }
+
+        totalVolume += recentTrades.reduce(
+            (acc, trade) => acc + parseFloat(trade.txPrice),
+            0
+        );
+        totalTrades += recentTrades.length;
+
+        hasMore = hasMoreTrades;
+        page++;
+    }
+
+    return {
+        last24hVolume: parseFloat(formatUnits(totalVolume, DECIMALS)),
+        tradeCount: totalTrades,
+    };
 };
 
 export const getVolume = async (clubId: string): Promise<bigint> => {
@@ -399,6 +598,20 @@ export const getTrades = async (
 
     const { trades } = await client.request(CLUB_TRADES_PAGINATED, {
         club: id,
+        skip,
+    });
+
+    return { trades: trades || [], hasMore: trades?.length == limit };
+};
+
+export const getAllTrades = async (
+    page = 0
+): Promise<{ trades: any[]; hasMore: boolean }> => {
+    const client = subgraphClient();
+    const limit = 50;
+    const skip = page * limit;
+
+    const { trades } = await client.request(ALL_CLUB_TRADES_PAGINATED, {
         skip,
     });
 
