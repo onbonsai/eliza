@@ -82,6 +82,33 @@ Note that {{agentName}} is capable of reading/seeing/hearing various forms of me
 NO EMOJIS. don't take yourself to seriously, don't say 'ah' or 'oh', be brief and concise.
 ` + messageCompletionFooter;
 
+export const longerMssageHandlerTemplate =
+    `# Action Examples
+{{actionExamples}}
+(Action examples are for reference only. Do not use the information from them in your response.)
+
+# Task: Generate dialog and actions for the character {{agentName}}.
+About {{agentName}}:
+{{bio}}
+{{lore}}
+
+{{providers}}
+
+{{attachments}}
+
+# Capabilities
+Note that {{agentName}} is capable of reading/seeing/hearing various forms of media, including images, videos, audio, plaintext and PDFs. Recent attachments have been included above under the "Attachments" section.
+
+{{messageDirections}}
+
+{{recentMessages}}
+
+{{actions}}
+
+# Instructions: Write a response to the most recent message as {{agentName}}. Ignore "action". Don't say anything similar to a previous conversation message, make each thought fresh and unique. avoid responding with platitudes.
+NO EMOJIS. don't take yourself to seriously, don't say 'ah' or 'oh'. Feel free to be as concise or descriptive as you see fit. If requested to clarify or dive deeper, do so without hesitation. Feel free to 'hallucinate' once in a while to provide a more creative response.
+` + messageCompletionFooter;
+
 export const faqMessageHandlerTemplate =
     `About {{agentName}}:
 {{bio}}
@@ -424,13 +451,13 @@ export class OrbClient {
 
                 const context = composeContext({
                     state,
-                    template: messageHandlerTemplate,
+                    template: longerMssageHandlerTemplate,
                 });
 
                 const response = await generateMessageResponse({
                     runtime: runtime,
                     context,
-                    modelClass: ModelClass.SMALL,
+                    modelClass: ModelClass.MEDIUM,
                 });
 
                 // save response to memory
@@ -476,19 +503,26 @@ export class OrbClient {
                     memory,
                     [responseMessage],
                     state,
-                    async (newMessages) => {
-                        if (newMessages.action !== "NONE") {
+                    async (newMessage) => {
+                        if (newMessage.action !== "NONE") {
+                            // doing this to skip duplicate messages
+                            // TODO: maybe handle video too
+                            console.log("newMessage", newMessage);
+                            if (newMessage.action === "GENERATE_IMAGE") {
+                                return [memory];
+                            }
+
                             console.log("emitting to roomId", roomId);
                             this.io.to(roomId).emit(
                                 "response",
                                 JSON.stringify({
-                                    text: newMessages.text,
-                                    attachments: newMessages.attachments,
+                                    text: newMessage.text,
+                                    attachments: newMessage.attachments,
                                     action: "NONE",
                                 })
                             );
-                        } else {
-                            message = newMessages;
+                        } else if (newMessage.source !== "imageGeneration") {
+                            message = newMessage;
                         }
 
                         return [memory];
