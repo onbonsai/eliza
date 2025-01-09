@@ -24,6 +24,7 @@
         "@elizaos/core": "workspace:*",
         "@elizaos/plugin-image-generation": "workspace:*",
         "@elizaos/plugin-token-analysis": "workspace:*",
+        "@elizaos/plugin-bonsai-launchpad": "workspace:*",
         "@lens-protocol/client": "^2.3.1",
         "@lens-protocol/metadata": "^1.2.0",
         "@runwayml/sdk": "^1.4.4",

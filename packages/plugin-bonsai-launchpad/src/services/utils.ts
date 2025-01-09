@@ -18,6 +18,7 @@ import { Wallet } from "@coinbase/coinbase-sdk";
 import BonsaiLaunchpadAbi from "./BonsaiLaunchpad";
 import { toHexString } from "../utils/utils";
 import { CHAIN_TO_RPC } from "../utils/constants";
+import { searchToken } from "./searchToken";
 
 export const IS_PRODUCTION = true; // NOTE: always true
 export const CHAIN = IS_PRODUCTION ? base : baseSepolia;
@@ -292,7 +293,7 @@ export const subgraphClient = () => {
 };
 
 export const getTokenAnalytics = async (symbol: string) => {
-    const clubId = await searchToken(symbol.replace("$", ""));
+    const clubId = await searchToken(symbol);
     if (!clubId) return null;
 
     const club = await getRegisteredClubById(clubId);

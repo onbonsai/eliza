@@ -17,7 +17,7 @@ import { decodeAbiParameters, formatUnits } from "viem";
 
 const ACTION = "LAUNCHPAD_ANALYTICS";
 
-const launchpadAnalyticsAction = {
+export const launchpadAnalyticsAction = {
     name: ACTION,
     similes: ["LAUNCHPAD_STATS", "LAUNCHPAD_VOLUME", "LAUNCHPAD_TRENDING"],
     description: "Get analytics about the Bonsai Launchpad trading activity",
@@ -315,5 +315,3 @@ const launchpadAnalyticsAction = {
         ],
     ],
 } as Action;
-
-export default launchpadAnalyticsAction;

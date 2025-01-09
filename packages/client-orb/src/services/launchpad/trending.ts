@@ -1,5 +1,9 @@
 import { formatUnits } from "viem";
-import { DECIMALS, getTrades, getTrendingClub } from "./utils";
+import {
+    DECIMALS,
+    getTrades,
+    getTrendingClub,
+} from "@elizaos/plugin-bonsai-launchpad";
 import { getProfilesOwned } from "../lens/profiles";
 import { LensPost, searchLensForTerm } from "../lens/search";
 

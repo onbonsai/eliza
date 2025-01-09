@@ -16,20 +16,16 @@ import {
     registerClub,
     IS_PRODUCTION,
     DECIMALS,
-    USDC_CONTRACT_ADDRESS,
     BONSAI_TOKEN_ADDRESS_BASE,
-    LAUNCHPAD_CONTRACT_ADDRESS,
-    CHAIN,
-    getRegistrationFee,
     getTokenBalance,
-} from "../services/launchpad/contract.ts";
+} from "@elizaos/plugin-bonsai-launchpad";
 import { createClub } from "../services/launchpad/database.ts";
 import { getLensImageURL } from "../services/lens/ipfs.ts";
 import { getProfileById } from "../services/lens/profiles.ts";
 import { approveToken } from "../services/coinbase.ts";
 import createPost from "../services/orb/createPost.ts";
 import { AGENT_HANDLE } from "../utils/constants.ts";
-import searchToken from "../services/launchpad/searchToken.ts";
+import { searchToken } from "@elizaos/plugin-bonsai-launchpad";
 
 const DEFAULT_CURVE_TYPE = 1; // NORMAL;
 const DEFAULT_INITIAL_SUPPLY = !IS_PRODUCTION ? "1" : "15"; // buy price at ~200 usdc
