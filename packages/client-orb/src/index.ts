@@ -523,7 +523,6 @@ export class OrbClient {
                         if (newMessage.action !== "NONE") {
                             // doing this to skip duplicate messages
                             // TODO: maybe handle video too
-                            console.log("newMessage", newMessage);
                             if (newMessage.action === "GENERATE_IMAGE") {
                                 return [memory];
                             }
