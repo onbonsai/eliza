@@ -13,9 +13,12 @@ import { TokenProvider } from "../providers/token";
 import { createClientBase } from "@elizaos/client-twitter";
 import { getClient } from "../services/mongo.ts";
 import { executeTradeAction } from "./executeTrade.ts";
-import { ScoreSchema, TokenInfoSchema } from "./../types/schema.ts";
+import {
+    OptionalArrayScoreSchema,
+    OptionalArrayTokenInfoSchema,
+} from "./../types/schema.ts";
 
-const messageTemplate = `Respond with a JSON markdown block containing only the extracted values. Use null for any values that cannot be determined.
+const messageTemplate = `Respond with a JSON markdown block, containing only the extracted values. Use null for any values that cannot be determined.
 
 Example response:
 \`\`\`json
@@ -51,7 +54,7 @@ An example message would look like this: what about this token 0x00561688b20a2b8
 `;
 
 // TODO: update judgement instructions
-const ratingTemplate = `Respond with a JSON markdown block, single object (NO ARRAY), containing only the extracted values. Use null for any values that cannot be determined.
+const ratingTemplate = `Respond with a JSON markdown block, containing only the extracted values. Use null for any values that cannot be determined.
 
 Example response:
 \`\`\`json
@@ -81,7 +84,7 @@ Beyond these things interpret the data as you see fit.
 
 Token Score should be one of the following: "STRONG_SELL", "SELL", "NEUTRAL", "BUY", "STRONG_BUY"
 
-Include your reasoning also. Respond with a JSON markdown block, single object (NO ARRAY), containing only the extracted values. The result should be a valid JSON object with the following schema:
+Include your reasoning also. Respond with a JSON markdown block, containing only the extracted values. The result should be a valid JSON object with the following schema:
 \`\`\`json
 {
     "rating": string,
@@ -154,13 +157,7 @@ const technicalAnalysis = async (
 
 export const scoreToken: Action = {
     name: "SCORE_TOKEN",
-    similes: [
-        "SCORE_TOKEN",
-        "TOKEN_SCORE",
-        "RATE_TOKEN",
-        "ANALYZE_TOKEN",
-        "TOKEN_ANALYSIS",
-    ],
+    similes: ["SCORE_TOKEN", "RATE_TOKEN", "ANALYZE_TOKEN"],
     validate: async (runtime: IAgentRuntime, message: Memory) => {
         // Check if the necessary parameters are provided in the message
         console.log("Message:", message);
@@ -201,16 +198,21 @@ export const scoreToken: Action = {
                 runtime,
                 context: messageContext,
                 modelClass: ModelClass.LARGE,
-                schema: TokenInfoSchema,
+                schema: OptionalArrayTokenInfoSchema,
             });
 
-            response = response.object;
+            response = Array.isArray(response)
+                ? response.find((item) => item !== null)
+                : response.object;
+            response = Array.isArray(response)
+                ? response.find((item) => item !== null)
+                : response;
         }
 
         console.log("response:", response);
 
         let { ticker, inputTokenAddress, chain } = response;
-        ticker = ticker?.toLowerCase();
+        ticker = ticker?.replace("$", "").toLowerCase();
         chain = chain?.toLowerCase();
 
         const [socialResult, technicalResult] = await Promise.all([
@@ -241,13 +243,18 @@ export const scoreToken: Action = {
             );
         let ratingResponse;
         try {
-            const { object } = (await generateObject({
+            ratingResponse = await generateObject({
                 runtime,
                 context,
                 modelClass: ModelClass.LARGE,
-                schema: ScoreSchema,
-            })) as unknown as { object: { rating: string; reason: string } };
-            ratingResponse = object;
+                schema: OptionalArrayScoreSchema,
+            });
+            ratingResponse = Array.isArray(ratingResponse)
+                ? ratingResponse.find((item) => item !== null)
+                : ratingResponse.object;
+            ratingResponse = Array.isArray(ratingResponse)
+                ? ratingResponse.find((item) => item !== null)
+                : ratingResponse;
             console.log("ratingResponse", ratingResponse);
         } catch (error) {
             console.log(error);
@@ -274,25 +281,10 @@ export const scoreToken: Action = {
             },
         }));
 
-        // take action; TODO: should use trust score of the user
-        if (
-            technicalResult.shouldTrade &&
-            (score == TokenScore.STRONG_SELL ||
-                score == TokenScore.STRONG_BUY) &&
-            inputTokenAddress &&
-            chain
-        ) {
-            // send the response as a ws message
-            callback?.({
-                text: ratingResponse.reason,
-                // @ts-expect-error attachments
-                attachments,
-                action: "EXECUTE_TRADE",
-            });
-
-            // score non-neutral to the db - using ticker, userAddress as the uniq id
+        let objectId;
+        // store non-neutral to the db - using ticker, userAddress as the uniq id
+        if (score != TokenScore.NEUTRAL) {
             const { tickers } = await getClient();
-            let objectId;
             try {
                 const result = await tickers.insertOne({
                     ticker,
@@ -315,6 +307,23 @@ export const scoreToken: Action = {
                     console.log(error);
                 }
             }
+        }
+
+        // take action; TODO: should use trust score of the user
+        if (
+            technicalResult.shouldTrade &&
+            (score == TokenScore.STRONG_SELL ||
+                score == TokenScore.STRONG_BUY) &&
+            inputTokenAddress &&
+            chain
+        ) {
+            // send the response as a ws message
+            callback?.({
+                text: ratingResponse.reason,
+                // @ts-expect-error attachments
+                attachments,
+                action: "EXECUTE_TRADE",
+            });
 
             state.payload = {
                 action: "EXECUTE_TRADE",
@@ -357,23 +366,46 @@ export const scoreToken: Action = {
             {
                 user: "{{user1}}",
                 content: {
-                    address: "0x474f4cb764df9da079D94052fED39625c147C12C",
+                    text: "Score this token on Base with ticker $BONSAI and CA: 0x474f4cb764df9da079d94052fed39625c147c12c",
                 },
             },
             {
-                user: "{{user2}}",
+                user: "Sage",
                 content: {
                     text: "Analyzing token 0x474f4cb764df9da079D94052fED39625c147C12C on Base",
                     action: "SCORE_TOKEN",
                 },
             },
+        ],
+        [
             {
-                user: "{{user2}}",
+                user: "{{user1}}",
                 content: {
-                    text: "Analysis complete! I rate this token ...",
+                    text: "Rate this token on Base with ticker $BONSAI and CA: 0x474f4cb764df9da079d94052fed39625c147c12c",
+                },
+            },
+            {
+                user: "Sage",
+                content: {
+                    text: "Analyzing $BONSAI on Base",
+                    action: "SCORE_TOKEN",
                 },
             },
         ],
-        // Add more examples as needed
+        [
+            {
+                user: "{{user1}}",
+                content: {
+                    text: "Analyze this token on Base with ticker $BONSAI and CA: 0x474f4cb764df9da079d94052fed39625c147c12c",
+                },
+            },
+            {
+                user: "Sage",
+                content: {
+                    text: "Analyzing $BONSAI on Base",
+                    action: "SCORE_TOKEN",
+                },
+            },
+        ],
     ] as ActionExample[][],
 } as Action;
