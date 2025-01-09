@@ -1,32 +1,36 @@
-const BONSAI_LAUNCHPAD_API_URL = "https://launch.bonsai.meme/api";
-
-// TODO: launchpad api url needs to be opened up with cors or change subgraph to index token info in string
+import { getClient } from "../mongo";
 
 export default async (symbol: string): Promise<string | undefined> => {
     try {
-        console.log({ query: symbol });
-        const response = await fetch(
-            `${BONSAI_LAUNCHPAD_API_URL}/clubs/search`,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
+        const { clubs } = await getClient();
+        const results = await clubs
+            .aggregate([
+                {
+                    $search: {
+                        index: "clubs-prod-token-search-index",
+                        text: {
+                            query: symbol,
+                            path: ["token.name", "token.symbol"], // fields to search
+                        },
+                    },
                 },
-                body: JSON.stringify({ query: symbol }),
-            }
-        );
-
-        if (!response.ok) {
-            console.error("Failed to post to API:", response.statusText);
-            return;
-        }
-
-        const data = await response.json();
-        const { results } = data;
+                {
+                    $project: {
+                        _id: 0,
+                        score: { $meta: "textScore" },
+                        token: 1,
+                        handle: 1,
+                        clubId: 1,
+                    },
+                },
+                // Add a sort stage to sort by the text score
+                { $sort: { score: { $meta: "textScore" } } },
+            ])
+            .toArray();
 
         const res = results.find(
             ({ token }: { token: { symbol: string } }) =>
-                token.symbol === symbol
+                token.symbol.toLowerCase() === symbol.toLowerCase()
         );
         return res?.clubId;
     } catch (error) {

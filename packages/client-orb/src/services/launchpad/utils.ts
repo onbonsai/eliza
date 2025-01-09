@@ -300,7 +300,10 @@ export const getTokenAnalytics = async (symbol: string) => {
     if (!club) return null;
 
     const price = formatUnits(BigInt(club.currentPrice), DECIMALS);
-    const marketCap = formatUnits(BigInt(club.marketCap), DECIMALS);
+    const marketCap = formatUnits(
+        BigInt(club.supply) * BigInt(club.currentPrice),
+        DECIMALS * 2
+    );
     const liquidity = formatUnits(BigInt(club.liquidity), DECIMALS);
 
     const priceChange24h = club["24h"]
@@ -310,16 +313,26 @@ export const getTokenAnalytics = async (symbol: string) => {
           100
         : 0;
 
+    const [clubName, clubSymbol] = decodeAbiParameters(
+        [
+            { name: "name", type: "string" },
+            { name: "symbol", type: "string" },
+        ],
+        club.tokenInfo as `0x${string}`
+    );
+
     return {
-        name: club.token.name,
-        symbol: club.token.symbol,
+        name: clubName,
+        symbol: clubSymbol,
         price: parseFloat(price).toFixed(6),
         priceChange24h: priceChange24h.toFixed(2),
-        marketCap: parseFloat(marketCap).toFixed(2),
+        marketCap: marketCap,
         liquidity: parseFloat(liquidity).toFixed(2),
         holders: club.holders,
         clubId,
         complete: club.complete,
+        createdAt: club.createdAt,
+        age: Math.floor((Date.now() / 1000 - club.createdAt) / (60 * 60 * 24)),
     };
 };
 

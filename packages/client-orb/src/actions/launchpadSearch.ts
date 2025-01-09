@@ -38,11 +38,8 @@ const launchpadAnalyticsAction = {
         // Check for specific token query
         const tokenMatch = text.match(/\$[a-zA-Z]+/);
         if (tokenMatch) {
-            // TODO:  need better way to search for tokens
             const symbol = tokenMatch[0];
             const analytics = await getTokenAnalytics(symbol);
-
-            console.log("analytics", analytics);
 
             if (!analytics) {
                 response = `Could not find token ${symbol} on the launchpad.`;
@@ -61,6 +58,7 @@ const launchpadAnalyticsAction = {
                 response += `• Market Cap: $${analytics.marketCap}\n`;
                 response += `• Liquidity: $${analytics.liquidity}\n`;
                 response += `• Holders: ${analytics.holders}\n\n`;
+                response += `• Age: ${analytics.age} days\n`;
                 response += `Trade now: https://launch.bonsai.meme/token/${analytics.clubId}`;
             }
         }
