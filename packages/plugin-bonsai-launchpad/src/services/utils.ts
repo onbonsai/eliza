@@ -293,7 +293,7 @@ export const subgraphClient = () => {
 };
 
 export const getTokenAnalytics = async (symbol: string) => {
-    const clubId = await searchToken(symbol);
+    const { clubId } = await searchToken(symbol);
     if (!clubId) return null;
 
     const club = await getRegisteredClubById(clubId);
