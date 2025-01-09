@@ -166,7 +166,11 @@ export const launchpadAnalyticsAction = {
                 const liquidity = formatUnits(BigInt(club.liquidity), DECIMALS);
                 response += `${i + 1}. $${club.token.symbol}: $${parseFloat(liquidity).toFixed(2)}\n`;
             });
-        } else if (text.includes("holders") || text.includes("community")) {
+        } else if (
+            text.includes("holders") ||
+            text.includes("community") ||
+            text.includes("communities")
+        ) {
             const { clubs } = await getRegisteredClubs();
             const byHolders = clubs
                 .filter((club) => !club.complete)
@@ -242,7 +246,22 @@ export const launchpadAnalyticsAction = {
             {
                 user: "{{user1}}",
                 content: {
-                    text: "How's $CAPO doing?",
+                    text: "What launchpad stuff can I ask you about?",
+                },
+            },
+            {
+                user: "{{agentName}}",
+                content: {
+                    text: "I can tell you about a ticker, top gainers, liquidity, volume, holders, today, trending and newest tokens.",
+                    action: "NONE",
+                },
+            },
+        ],
+        [
+            {
+                user: "{{user1}}",
+                content: {
+                    text: "How's $CAPO doing on the launchpad?",
                 },
             },
             {
@@ -264,6 +283,51 @@ export const launchpadAnalyticsAction = {
                 user: "{{agentName}}",
                 content: {
                     text: "Here are the top performing tokens in the last 24h.",
+                    action: ACTION,
+                },
+            },
+        ],
+        [
+            {
+                user: "{{user1}}",
+                content: {
+                    text: "How much liquidity is there on the launchpad?",
+                },
+            },
+            {
+                user: "{{agentName}}",
+                content: {
+                    text: "Here's the latest liquidity statistics on top launchpad tokens.",
+                    action: ACTION,
+                },
+            },
+        ],
+        [
+            {
+                user: "{{user1}}",
+                content: {
+                    text: "Which launchpad tokens have the most holders?",
+                },
+            },
+            {
+                user: "{{agentName}}",
+                content: {
+                    text: "Here's a summary of the tokens with the top holders on the launchpad.",
+                    action: ACTION,
+                },
+            },
+        ],
+        [
+            {
+                user: "{{user1}}",
+                content: {
+                    text: "Which launchpad tokens have the biggest cmomunity?",
+                },
+            },
+            {
+                user: "{{agentName}}",
+                content: {
+                    text: "Here's a summary of the tokens with the biggest communities on the launchpad.",
                     action: ACTION,
                 },
             },
