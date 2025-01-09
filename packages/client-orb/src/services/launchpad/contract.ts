@@ -12,7 +12,7 @@ import {
 import { base, baseSepolia } from "viem/chains";
 import { groupBy, reduce } from "lodash/collection";
 import { Wallet } from "@coinbase/coinbase-sdk";
-import BonsaiLaunchpadAbi from "./BonsaiLaunchpad";
+import { BonsaiLaunchpadAbi } from "@elizaos/plugin-bonsai-launchpad";
 import { getEventFromReceipt, encodeAbi } from "../../utils/viem";
 import { toHexString } from "../../utils/utils";
 import { CHAIN_TO_RPC } from "../../utils/constants";

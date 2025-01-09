@@ -1,6 +1,6 @@
 import { MongoClient } from "mongodb";
-import { IS_PRODUCTION } from "./launchpad/contract";
 
+const IS_PRODUCTION = process.env.LAUNCHPAD_CHAIN_ID === "8453";
 let client: MongoClient;
 let connecting: Promise<MongoClient> | null = null;
 

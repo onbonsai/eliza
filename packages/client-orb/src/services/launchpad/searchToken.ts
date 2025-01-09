@@ -2,6 +2,7 @@ import { getClient } from "../mongo";
 
 export default async (symbol: string): Promise<string | undefined> => {
     try {
+        symbol = symbol.replace("$", "");
         const { clubs } = await getClient();
         const results = await clubs
             .aggregate([

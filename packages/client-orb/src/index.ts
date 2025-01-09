@@ -53,7 +53,8 @@ import {
     formatTrendingClubReport,
 } from "./services/launchpad/trending.ts";
 import { generateVideoRunway } from "./services/runway.ts";
-import launchpadAnalyticsAction from "./actions/launchpadSearch.ts";
+import { launchpadAnalyticsAction } from "@elizaos/plugin-bonsai-launchpad";
+import searchToken from "./services/launchpad/searchToken.ts";
 
 export const messageHandlerTemplate =
     `# Action Examples
@@ -304,6 +305,21 @@ export class OrbClient {
                 );
 
                 res.json({ clubResult, formatted });
+            }
+        );
+
+        this.app.get(
+            "/bonsai-launchpad/search-token",
+            async (req: express.Request, res: express.Response) => {
+                const query = req.query.q as string;
+                if (!query) {
+                    res.status(400).json({
+                        error: "Query parameter 'q' is required",
+                    });
+                } else {
+                    const clubId = await searchToken(query);
+                    res.status(200).json({ query, clubId });
+                }
             }
         );
 
