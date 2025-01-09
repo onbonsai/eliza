@@ -1,5 +1,7 @@
 const BONSAI_LAUNCHPAD_API_URL = "https://launch.bonsai.meme/api";
 
+// TODO: launchpad api url needs to be opened up with cors or change subgraph to index token info in string
+
 export default async (symbol: string): Promise<string | undefined> => {
     try {
         console.log({ query: symbol });

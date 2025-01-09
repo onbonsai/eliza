@@ -53,6 +53,7 @@ import {
     formatTrendingClubReport,
 } from "./services/launchpad/trending.ts";
 import { generateVideoRunway } from "./services/runway.ts";
+import launchpadAnalyticsAction from "./actions/launchpadSearch.ts";
 
 export const messageHandlerTemplate =
     `# Action Examples
@@ -158,6 +159,69 @@ export class OrbClient {
         this.app.use(bodyParser.urlencoded({ extended: true }));
 
         this.initializeWebSocket();
+
+        /* test endpoint for launchpad analysis */
+        this.app.post(
+            "/:agentId/launchpad-analysis",
+            async (req: express.Request, res: express.Response) => {
+                console.log("Launchpad Analysis");
+                const agentId = req.params.agentId;
+                const roomId =
+                    req.body.roomId || stringToUuid("default-room-" + agentId);
+                const userId = stringToUuid(req.body.userId ?? "user");
+
+                let runtime = this.agents.get(agentId);
+
+                // if runtime is null, look for runtime with the same name
+                if (!runtime) {
+                    runtime = Array.from(this.agents.values()).find(
+                        (a) =>
+                            a.character.name.toLowerCase() ===
+                            agentId.toLowerCase()
+                    );
+                }
+
+                if (!runtime) {
+                    res.status(404).send("Agent not found");
+                    return;
+                }
+
+                await runtime.ensureConnection(
+                    userId,
+                    roomId,
+                    req.body.userName,
+                    req.body.name,
+                    "direct"
+                );
+
+                const text = req.body.text;
+                const messageId = stringToUuid(Date.now().toString());
+
+                const content: Content = {
+                    text,
+                    attachments: [],
+                    source: "direct",
+                    inReplyTo: undefined,
+                };
+
+                const memory: Memory = {
+                    id: messageId,
+                    agentId: runtime.agentId,
+                    userId,
+                    roomId,
+                    content,
+                    createdAt: Date.now(),
+                };
+
+                await runtime.messageManager.createMemory(memory);
+
+                const result = await launchpadAnalyticsAction.handler(
+                    runtime,
+                    memory
+                );
+                res.json({ result });
+            }
+        );
 
         /* endpoint for get and rating a trending club */
         this.app.post(
@@ -777,18 +841,14 @@ export class OrbClient {
                 );
 
                 /* create post */
-                if (process.env.ORB_DRY_RUN != "true") {
-                    await createPost(
-                        wallets.polygon,
-                        wallets.profile.id,
-                        wallets.profile.handle,
-                        responseMessage.content.text,
-                        videoUrl ? undefined : imageUrl,
-                        videoUrl
-                    );
-                } else {
-                    console.log("Dry run: not posting to Orb");
-                }
+                await createPost(
+                    wallets.polygon,
+                    wallets.profile.id,
+                    wallets.profile.handle,
+                    responseMessage.content.text,
+                    videoUrl ? undefined : imageUrl,
+                    videoUrl
+                );
 
                 const result = await runtime.processActions(
                     memory,
@@ -1517,6 +1577,7 @@ export const OrbClientInterface: Client = {
         runtime.registerAction(searchTokenAction);
         runtime.registerAction(tokenAnalysisPlugin.actions[0]); // tokenScoreAction
         runtime.registerAction(launchpadCreate);
+        runtime.registerAction(launchpadAnalyticsAction);
         client.registerAgent(runtime);
         client.start(serverPort);
         return client;
