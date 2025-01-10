@@ -255,7 +255,7 @@ export const launchpadAnalyticsAction = {
             {
                 user: "{{user1}}",
                 content: {
-                    text: "Which launchpad tokens have the biggest cmomunity?",
+                    text: "Which launchpad tokens have the biggest community?",
                 },
             },
             {
@@ -271,6 +271,21 @@ export const launchpadAnalyticsAction = {
                 user: "{{user1}}",
                 content: {
                     text: "Show me today's launchpad activity",
+                },
+            },
+            {
+                user: "{{agentName}}",
+                content: {
+                    text: "Here's a summary of the last 24 hours on the launchpad.",
+                    action: ACTION,
+                },
+            },
+        ],
+        [
+            {
+                user: "{{user1}}",
+                content: {
+                    text: "How's the launchpad today?",
                 },
             },
             {
@@ -301,6 +316,21 @@ export const launchpadAnalyticsAction = {
                 user: "{{user1}}",
                 content: {
                     text: "What are the trending tokens right now on the launchpad?",
+                },
+            },
+            {
+                user: "{{agentName}}",
+                content: {
+                    text: "Here are the top trending tokens by volume.",
+                    action: ACTION,
+                },
+            },
+        ],
+        [
+            {
+                user: "{{user1}}",
+                content: {
+                    text: "How are the launchpad tokens?",
                 },
             },
             {
