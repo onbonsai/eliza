@@ -968,41 +968,41 @@ export class OrbClient {
                     return;
                 }
 
+                const userId = stringToUuid(params.profile_id);
+                const roomId = stringToUuid(params.community_id);
+                const messageId = stringToUuid(params.publication_id);
+                const content: Content = {
+                    text: params.lens.content,
+                    attachments: [],
+                    source: "direct",
+                    inReplyTo: undefined,
+                };
+                const userMessage = {
+                    content,
+                    userId,
+                    roomId,
+                    agentId: runtime.agentId,
+                };
+
+                const memory: Memory = {
+                    id: messageId,
+                    agentId: runtime.agentId,
+                    userId,
+                    roomId,
+                    content: { text: params.lens.content },
+                    createdAt: Date.now(),
+                };
+                const state = (await runtime.composeState(userMessage, {
+                    agentName: runtime.character.name,
+                })) as State;
+                state.params = params;
+                state.userMessage = userMessage.content.text;
+
                 // if the agent was tagged, process as an action
                 if (
                     params.lens.content.includes(agent.handle) &&
                     params.lens.content.toLowerCase().includes("create")
                 ) {
-                    const userId = stringToUuid(params.profile_id);
-                    const roomId = stringToUuid(params.community_id);
-                    const messageId = stringToUuid(params.publication_id);
-                    const content: Content = {
-                        text: params.lens.content,
-                        attachments: [],
-                        source: "direct",
-                        inReplyTo: undefined,
-                    };
-                    const userMessage = {
-                        content,
-                        userId,
-                        roomId,
-                        agentId: runtime.agentId,
-                    };
-
-                    const memory: Memory = {
-                        id: messageId,
-                        agentId: runtime.agentId,
-                        userId,
-                        roomId,
-                        content: { text: params.lens.content },
-                        createdAt: Date.now(),
-                    };
-                    const state = (await runtime.composeState(userMessage, {
-                        agentName: runtime.character.name,
-                    })) as State;
-                    state.params = params;
-                    state.userMessage = userMessage.content.text;
-
                     // HACK: hardcoding this action for now, to skip the first process message
                     // save response to memory
                     const responseMessage = {
@@ -1021,7 +1021,7 @@ export class OrbClient {
 
                     await runtime.evaluate(memory, state);
 
-                    const result = await runtime.processActions(
+                    await runtime.processActions(
                         memory,
                         [responseMessage],
                         state,
@@ -1107,6 +1107,26 @@ export class OrbClient {
                                 );
                             }
                         }
+
+                        // process actions (like responding with analysis)
+                        await runtime.processActions(
+                            memory,
+                            [],
+                            state,
+                            async ({ text }) => {
+                                await createPost(
+                                    wallets?.polygon,
+                                    wallets?.profile?.id,
+                                    wallets?.profile?.handle,
+                                    text,
+                                    undefined,
+                                    undefined,
+                                    params.publication_id
+                                );
+                                return [];
+                            }
+                        );
+
                         res.status(200).json({ rating, comment });
                     } catch (error) {
                         console.log(error);
@@ -1288,6 +1308,25 @@ export class OrbClient {
                         undefined,
                         params.publicationId
                     );
+
+                    // process actions (like responding with analysis)
+                    await runtime.processActions(
+                        memory,
+                        [],
+                        state,
+                        async ({ text }) => {
+                            await createPost(
+                                wallets?.polygon,
+                                wallets?.profile?.id,
+                                wallets?.profile?.handle,
+                                text,
+                                undefined,
+                                undefined,
+                                params.publication_id
+                            );
+                            return [];
+                        }
+                    );
                 }
 
                 res.status(200).json({ response, message });
@@ -1403,6 +1442,17 @@ export class OrbClient {
 
                 // send reply directly to the message
                 await sendMessage(response.text, messageId);
+
+                // process actions (like responding with analysis)
+                await runtime.processActions(
+                    memory,
+                    [],
+                    state,
+                    async ({ text }) => {
+                        await sendMessage(text, messageId);
+                        return [];
+                    }
+                );
                 res.status(200).send();
             }
         );

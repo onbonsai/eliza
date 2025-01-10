@@ -77,8 +77,17 @@ const isActionContent = (object: any): object is ActionContent => {
 
 export const launchpadAnalyticsAction = {
     name: ACTION,
-    similes: ["LAUNCHPAD_STATS", "LAUNCHPAD_VOLUME", "LAUNCHPAD_TRENDING"],
-    description: "Get analytics about the Bonsai Launchpad trading activity",
+    similes: [
+        "LAUNCHPAD_STATS",
+        "LAUNCHPAD_VOLUME",
+        "LAUNCHPAD_TRENDING",
+        "LAUNCHPAD_DATA",
+        "LAUNCHPAD_TOKENS",
+        "LAUNCHPAD_INFO",
+        "LAUNCHPAD_TODAY",
+        "LAUNCHPAD_ACTIVITY",
+    ],
+    description: "Get analytics about the Bonsai Launchpad activity",
     validate: async (runtime: IAgentRuntime, message: Memory) => {
         return true;
     },
@@ -169,7 +178,7 @@ export const launchpadAnalyticsAction = {
                     "I couldn't understand what launchpad analytics you're looking for. You can ask about specific tokens, top gainers, liquidity, holders, daily stats, volume, trending tokens, or newest tokens.";
         }
 
-        callback?.({
+        await callback?.({
             text: result,
         });
 
