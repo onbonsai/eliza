@@ -21,6 +21,7 @@ import {
     stringToUuid,
     settings,
 } from "@elizaos/core";
+import { isAddress } from "viem";
 import createPost from "./services/orb/createPost";
 import { getWallets } from "./services/coinbase.ts";
 import { getRandomPrompt } from "./utils/postPrompt";
@@ -318,7 +319,7 @@ export class OrbClient {
                     });
                 } else {
                     const clubId = await searchToken(query);
-                    res.status(200).json({ query, clubId });
+                    res.status(200).json({ clubId });
                 }
             }
         );
@@ -404,6 +405,7 @@ export class OrbClient {
                     req.body.roomId || stringToUuid("default-room-" + agentId);
                 const userId = stringToUuid(req.body.userId ?? "user");
                 const payload: Payload = req.body.payload; // in order for actions to pull in preset params
+                const imageURL = req.body.imageURL; // any image attachment
 
                 let runtime = this.agents.get(agentId);
 
@@ -464,6 +466,12 @@ export class OrbClient {
                     ...payload,
                     userId: req.body.userId,
                 };
+                state.imageURL = imageURL;
+                state.userAddress = req.body.userId
+                    ? isAddress(req.body.userId)
+                        ? req.body.userId
+                        : undefined
+                    : undefined;
 
                 const context = composeContext({
                     state,
@@ -473,7 +481,7 @@ export class OrbClient {
                 const response = await generateMessageResponse({
                     runtime: runtime,
                     context,
-                    modelClass: ModelClass.MEDIUM,
+                    modelClass: ModelClass.SMALL,
                 });
 
                 // save response to memory
@@ -1009,7 +1017,7 @@ export class OrbClient {
                         ...userMessage,
                         userId: runtime.agentId,
                         content: {
-                            action: "CREATE_TOKEN_LAUNCHPAD",
+                            action: "CREATE_LAUNCHPAD_TOKEN",
                             text: "Creating token",
                         },
                     };
@@ -1264,7 +1272,7 @@ export class OrbClient {
                         params.publicationData.lens.content
                             .toLowerCase()
                             .includes("create")
-                            ? { action: "CREATE_TOKEN_LAUNCHPAD" }
+                            ? { action: "CREATE_LAUNCHPAD_TOKEN" }
                             : {};
                     // save response to memory
                     const responseMessage = {

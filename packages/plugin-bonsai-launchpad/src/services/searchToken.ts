@@ -15,7 +15,7 @@ export const searchToken = async (
         }
 
         const data = await response.json();
-        return data;
+        return data?.clubId;
     } catch (error) {
         console.error("Error posting to API:", error);
         return;
