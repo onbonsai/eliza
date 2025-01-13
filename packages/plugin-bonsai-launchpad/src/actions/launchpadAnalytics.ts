@@ -2,6 +2,7 @@ import {
     Action,
     composeContext,
     generateObject,
+    generateObjectDeprecated,
     HandlerCallback,
     IAgentRuntime,
     Memory,
@@ -106,29 +107,28 @@ export const launchpadAnalyticsAction = {
             ),
         });
 
-        const response = await generateObject({
+        const response = await generateObjectDeprecated({
             runtime,
             context: messageContext,
             modelClass: ModelClass.LARGE,
-            schema: ActionSchema,
         });
 
-        if (!isActionContent(response.object)) {
-            callback(
-                {
-                    text: "A request could not be parsed for launchpad data",
-                },
-                []
-            );
-            return;
-        }
+        // if (!isActionContent(response.object)) {
+        //     callback?.(
+        //         {
+        //             text: "A request could not be parsed for launchpad data",
+        //         },
+        //         []
+        //     );
+        //     return;
+        // }
 
-        let { operation, symbol } = response.object as ActionContent;
+        let { operation, symbol } = response;
 
-        // for some reason it likes to return this sometimes instead of "operation"
-        if (response.object[", "]) {
-            operation = response.object[", "];
-        }
+        // // for some reason it likes to return this sometimes instead of "operation"
+        // if (response.object[", "]) {
+        //     operation = response.object[", "];
+        // }
 
         let result = "";
 
