@@ -11,6 +11,7 @@ export const createClientBase = async (
 ): Promise<ClientBase> => {
     const twitterConfig: TwitterConfig = await validateTwitterConfig(runtime);
     const client = new ClientBase(runtime, twitterConfig);
+    client.init(true);
     return client;
 };
 

@@ -674,8 +674,8 @@ export class OrbClient {
             "/:agentId/orb/create-post",
             async (req: express.Request, res: express.Response) => {
                 console.log("OrbClient create-post");
-                // 7% chance of posting, sleep for some time
-                const shouldPost = Math.random() < 0.07 || req.body?.shouldPost;
+                // 5% chance of posting, sleep for some time
+                const shouldPost = Math.random() < 0.05 || req.body?.shouldPost;
                 if (!shouldPost) {
                     res.status(200).send("Skipped posting this time.");
                     return;
@@ -778,9 +778,13 @@ export class OrbClient {
 
                 await runtime.messageManager.createMemory(memory);
 
-                const state = (await runtime.composeState(userMessage, {
-                    agentName: runtime.character.name,
-                })) as State;
+                const state = (await runtime.composeState(
+                    userMessage,
+                    {
+                        agentName: runtime.character.name,
+                    },
+                    1
+                )) as State;
 
                 const context = composeContext({
                     state,
@@ -792,8 +796,6 @@ export class OrbClient {
                     context,
                     modelClass: ModelClass.SMALL,
                 });
-
-                console.log("response", response);
 
                 // save response to memory
                 const responseMessage = {
@@ -813,7 +815,7 @@ export class OrbClient {
 
                 let message = null as Content | null;
 
-                await runtime.evaluate(memory, state);
+                // await runtime.evaluate(memory, state);
 
                 /* generate an image */
                 let imageUrl;
@@ -907,15 +909,15 @@ export class OrbClient {
                     videoUrl
                 );
 
-                const result = await runtime.processActions(
-                    memory,
-                    [responseMessage],
-                    state,
-                    async (newMessages) => {
-                        message = newMessages;
-                        return [memory];
-                    }
-                );
+                // const result = await runtime.processActions(
+                //     memory,
+                //     [responseMessage],
+                //     state,
+                //     async (newMessages) => {
+                //         message = newMessages;
+                //         return [memory];
+                //     }
+                // );
 
                 if (message) {
                     res.json([message, response]);

@@ -23,7 +23,10 @@ export default async (
     videoUrl?: string,
     commentOn?: string
 ) => {
-    if (process.env.ORB_DRY_RUN == "true") console.log("Dry run: not posting to Orb");
+    if (process.env.ORB_DRY_RUN == "true") {
+        console.log("Dry run: not posting to Orb");
+        return;
+    }
 
     const client = new LensClient({ environment: production });
 
