@@ -3,6 +3,8 @@ import { walletProvider } from "./providers/wallet.ts";
 import { trustScoreProvider } from "./providers/trustScoreProvider.ts";
 import { scoreToken } from "./actions/scoreToken.ts";
 
+export { technicalAnalysis } from "./actions/scoreToken.ts";
+
 /**
  * Plugin for ingesting a ticker or contract address + chain combo, performing technical analysis
  * and scanning social for a sentiment analysis and scoring the token.

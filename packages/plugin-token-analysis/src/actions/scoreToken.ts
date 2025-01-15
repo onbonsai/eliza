@@ -146,7 +146,7 @@ const socialAnalysis = async (
 };
 
 // TECHNICAL ANALYSIS
-const technicalAnalysis = async (
+export const technicalAnalysis = async (
     inputTokenAddress: string,
     chain: string
 ): Promise<{ formattedReport: string; shouldTrade: boolean }> => {

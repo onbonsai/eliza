@@ -20,6 +20,7 @@
     ],
     "dependencies": {
         "@elizaos/core": "workspace:*",
+        "@elizaos/plugin-token-analysis": "workspace:*",
         "@lens-protocol/client": "^2.3.1",
         "@lens-protocol/metadata": "^1.2.0",
         "graphql": "^16.9.0",

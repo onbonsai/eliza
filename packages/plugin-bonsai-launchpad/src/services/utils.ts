@@ -293,7 +293,7 @@ export const subgraphClient = () => {
 };
 
 export const getTokenAnalytics = async (symbol: string) => {
-    const { clubId } = await searchToken(symbol);
+    const clubId = await searchToken(symbol);
     if (!clubId) return null;
 
     const club = await getRegisteredClubById(clubId);
@@ -331,6 +331,7 @@ export const getTokenAnalytics = async (symbol: string) => {
         holders: club.holders,
         clubId,
         complete: club.complete,
+        tokenAddress: club.tokenAddress,
         createdAt: club.createdAt,
         age: Math.floor((Date.now() / 1000 - club.createdAt) / (60 * 60 * 24)),
     };

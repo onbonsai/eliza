@@ -9,6 +9,7 @@ import {
     ModelClass,
     State,
 } from "@elizaos/core";
+import { technicalAnalysis } from "@elizaos/plugin-token-analysis";
 import { getTokenAnalytics } from "../services/utils";
 import {
     formatActiveTokenAnalytics,
@@ -139,7 +140,11 @@ export const launchpadAnalyticsAction = {
                 if (!analytics) {
                     result = `Could not find token ${symbol} on the launchpad.`;
                 } else if (analytics.complete) {
-                    result = formatCompletedTokenAnalytics(analytics);
+                    const { formattedReport } = await technicalAnalysis(
+                        analytics.tokenAddress,
+                        "base"
+                    );
+                    result = `Token has graduated from the Launchpad to Uniswap! \n\n${formattedReport}`;
                 } else {
                     result = formatActiveTokenAnalytics(analytics);
                 }

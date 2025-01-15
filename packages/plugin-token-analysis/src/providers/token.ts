@@ -777,8 +777,12 @@ export class TokenProvider {
         try {
             const processedData = await this.getProcessedTokenData();
             const formattedReport = this.formatTokenData(processedData);
-            const shouldTrade = await this.shouldTradeToken(processedData);
-            console.log({ formattedReport, shouldTrade });
+            let shouldTrade;
+            try {
+                shouldTrade = await this.shouldTradeToken(processedData);
+            } catch (error) {
+                console.error("Error: generating should trade analysis", error);
+            }
             return { formattedReport, shouldTrade };
         } catch (error) {
             console.error("Error generating token report:", error);

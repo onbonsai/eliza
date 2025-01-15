@@ -1146,6 +1146,9 @@ importers:
       '@elizaos/core':
         specifier: workspace:*
         version: link:../core
+      '@elizaos/plugin-token-analysis':
+        specifier: workspace:*
+        version: link:../plugin-token-analysis
       '@lens-protocol/client':
         specifier: ^2.3.1
         version: 2.3.2(@jest/globals@29.7.0)(@lens-protocol/metadata@1.2.0(zod@3.23.8))(bufferutil@4.0.9)(encoding@0.1.13)(ethers@6.13.4(bufferutil@4.0.9)(utf-8-validate@5.0.10))(utf-8-validate@5.0.10)
