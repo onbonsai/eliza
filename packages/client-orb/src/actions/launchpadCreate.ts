@@ -8,6 +8,7 @@ import {
     State,
     type Action,
     ModelClass,
+    generateObjectDeprecated,
 } from "@elizaos/core";
 import { z } from "zod";
 import { parseEther, parseUnits } from "viem";
@@ -115,11 +116,10 @@ export const launchpadCreate: Action = {
 
         let response;
         try {
-            response = await generateObject({
+            response = await generateObjectDeprecated({
                 runtime,
                 context: messageContext,
                 modelClass: ModelClass.LARGE,
-                schema: OptionalArrayTokenInfoSchema,
             });
             response = Array.isArray(response)
                 ? response.find((item) => item !== null)

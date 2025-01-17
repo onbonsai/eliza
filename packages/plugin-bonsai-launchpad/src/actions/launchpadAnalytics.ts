@@ -1,7 +1,6 @@
 import {
     Action,
     composeContext,
-    generateObject,
     generateObjectDeprecated,
     HandlerCallback,
     IAgentRuntime,

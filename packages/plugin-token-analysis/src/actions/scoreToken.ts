@@ -1,5 +1,4 @@
-import { composeContext } from "@elizaos/core";
-import { generateObject } from "@elizaos/core";
+import { composeContext, generateObjectDeprecated } from "@elizaos/core";
 import {
     ActionExample,
     HandlerCallback,
@@ -194,11 +193,10 @@ export const scoreToken: Action = {
                 template: messageTemplate,
             });
 
-            response = await generateObject({
+            response = await generateObjectDeprecated({
                 runtime,
                 context: messageContext,
                 modelClass: ModelClass.LARGE,
-                schema: OptionalArrayTokenInfoSchema,
             });
 
             response = Array.isArray(response)
@@ -243,11 +241,10 @@ export const scoreToken: Action = {
             );
         let ratingResponse;
         try {
-            ratingResponse = await generateObject({
+            ratingResponse = await generateObjectDeprecated({
                 runtime,
                 context,
                 modelClass: ModelClass.LARGE,
-                schema: OptionalArrayScoreSchema,
             });
             ratingResponse = Array.isArray(ratingResponse)
                 ? ratingResponse.find((item) => item !== null)
