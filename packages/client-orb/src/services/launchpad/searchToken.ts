@@ -33,7 +33,7 @@ export default async (symbol: string): Promise<string | undefined> => {
             ({ token }: { token: { symbol: string } }) =>
                 token.symbol.toLowerCase() === symbol.toLowerCase()
         );
-        return res?.clubId;
+        return res?.clubId ?? null;
     } catch (error) {
         console.error("Error posting to API:", error);
         return;

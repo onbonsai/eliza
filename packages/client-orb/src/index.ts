@@ -817,10 +817,21 @@ export class OrbClient {
 
                 // await runtime.evaluate(memory, state);
 
+                // Check for launchpad ticker in response text
+                let launchpadTickerPresent = false;
+                const tickerRegex = /\$[A-Z]+/g;
+                const tickers = responseMessage.content.text.match(tickerRegex);
+                if (tickers && tickers.length > 0) {
+                    const clubId = await searchToken(
+                        tickers[0].replace("$", "")
+                    );
+                    if (clubId) launchpadTickerPresent = true;
+                }
+
                 /* generate an image */
                 let imageUrl;
                 let videoUrl;
-                if (Math.random() < 0.3) {
+                if (launchpadTickerPresent || Math.random() < 0.3) {
                     const imagePrompt = `Generate a unique image to accompany this post: ${responseMessage.content.text}. Try to make images in varied styles that are different than previous ones.`;
                     const imageResponse = await generateImage(
                         { prompt: imagePrompt, width: 1024, height: 1024 },
