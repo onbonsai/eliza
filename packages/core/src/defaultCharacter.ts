@@ -4,13 +4,16 @@ export const defaultCharacter: Character = {
     name: "Sage",
     username: "bons_ai",
     plugins: [],
-    clients: [Clients.ORB, Clients.TWITTER],
+    clients: [Clients.ORB, Clients.TWITTER, Clients.FARCASTER],
     modelProvider: ModelProviderName.GROK,
     imageModelProvider: ModelProviderName.OPENAI,
     settings: {
         secrets: {},
         voice: {
             model: "en_US-hfc_male-medium",
+        },
+        modelConfig: {
+            temperature: 0.85,
         },
     },
     system: "Roleplay and generate content on behalf of Sage.",

@@ -5,13 +5,15 @@ import {
     ModelClass,
     stringToUuid,
     elizaLogger,
+    UUID,
 } from "@elizaos/core";
 import { LensClient } from "./client";
 import { formatTimeline, postTemplate } from "./prompts";
 import { publicationUuid } from "./utils";
 import { createPublicationMemory } from "./memory";
-import { sendPublication } from "./actions";
+import { sendPublication as sendPublicationAction } from "./actions";
 import StorjProvider from "./providers/StorjProvider";
+import { AnyPublicationFragment } from "@lens-protocol/client";
 
 export class LensPostManager {
     private timeout: NodeJS.Timeout | undefined;
@@ -44,6 +46,27 @@ export class LensPostManager {
 
     public async stop() {
         if (this.timeout) clearTimeout(this.timeout);
+    }
+
+    public async sendPublication({
+        content,
+        commentOn,
+        roomId,
+    }: {
+        content: string;
+        commentOn?: string;
+        roomId?: UUID;
+    }): Promise<AnyPublicationFragment | undefined> {
+        const { publication } = await sendPublicationAction({
+            client: this.client,
+            runtime: this.runtime,
+            roomId: roomId ?? stringToUuid("lens_generate_room"),
+            content: { text: content },
+            ipfs: this.ipfs,
+            commentOn,
+        });
+
+        return publication;
     }
 
     private async generateNewPublication() {
@@ -100,12 +123,9 @@ export class LensPostManager {
             }
 
             try {
-                const { publication } = await sendPublication({
-                    client: this.client,
-                    runtime: this.runtime,
+                const publication = await this.sendPublication({
+                    content,
                     roomId: generateRoomId,
-                    content: { text: content },
-                    ipfs: this.ipfs,
                 });
 
                 if (!publication) throw new Error("failed to send publication");

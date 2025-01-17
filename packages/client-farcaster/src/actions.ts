@@ -8,6 +8,7 @@ export async function sendCast({
     client,
     runtime,
     content,
+    embeds,
     roomId,
     inReplyTo,
     profile,
@@ -16,6 +17,7 @@ export async function sendCast({
     client: FarcasterClient;
     runtime: IAgentRuntime;
     content: Content;
+    embeds?: [{ url: string }];
     roomId: UUID;
     signerUuid: string;
     inReplyTo?: CastId;
@@ -25,7 +27,11 @@ export async function sendCast({
     let parentCastId = inReplyTo;
 
     for (const chunk of chunks) {
-        const neynarCast = await client.publishCast(chunk, parentCastId);
+        const neynarCast = await client.publishCast(
+            chunk,
+            parentCastId,
+            embeds
+        );
 
         if (neynarCast) {
             const cast: Cast = {
@@ -33,6 +39,7 @@ export async function sendCast({
                 authorFid: neynarCast.authorFid,
                 text: neynarCast.text,
                 profile,
+                embeds,
                 inReplyTo: parentCastId,
                 timestamp: new Date(),
             };

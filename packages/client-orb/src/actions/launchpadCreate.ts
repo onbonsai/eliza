@@ -15,12 +15,12 @@ import { parseEther, parseUnits } from "viem";
 import { getClient } from "../services/mongo.ts";
 import { getWallets } from "../services/coinbase.ts";
 import {
-    // IS_PRODUCTION,
+    IS_PRODUCTION,
     DECIMALS,
     BONSAI_TOKEN_ADDRESS_BASE,
     searchToken,
-    // registerClub,
-    // getTokenBalance,
+    registerClub,
+    getTokenBalance,
 } from "@elizaos/plugin-bonsai-launchpad";
 import { createClub } from "../services/launchpad/database.ts";
 import { getLensImageURL } from "../services/lens/ipfs.ts";
@@ -28,11 +28,6 @@ import { getProfileById } from "../services/lens/profiles.ts";
 import { approveToken } from "../services/coinbase.ts";
 import createPost from "../services/orb/createPost.ts";
 import { AGENT_HANDLE } from "../utils/constants.ts";
-import {
-    IS_PRODUCTION,
-    registerClub,
-    getTokenBalance,
-} from "../services/launchpad/contract.ts";
 import {
     tweetIntentTokenReferral,
     orbIntentTokenReferral,

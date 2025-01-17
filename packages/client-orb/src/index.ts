@@ -55,6 +55,7 @@ import {
 } from "./services/launchpad/trending.ts";
 import { generateVideoRunway } from "./services/runway.ts";
 import { launchpadAnalyticsAction } from "@elizaos/plugin-bonsai-launchpad";
+import { promoteTokenAction } from "@elizaos/plugin-bonsai-launchpad";
 import searchToken from "./services/launchpad/searchToken.ts";
 
 export const messageHandlerTemplate =
@@ -405,7 +406,7 @@ export class OrbClient {
                     req.body.roomId || stringToUuid("default-room-" + agentId);
                 const userId = stringToUuid(req.body.userId ?? "user");
                 const payload: Payload = req.body.payload; // in order for actions to pull in preset params
-                const imageURL = req.body.imageURL; // any image attachment
+                const imageURL = req.body.imageURL || ""; // any image attachment
 
                 let runtime = this.agents.get(agentId);
 
@@ -1687,6 +1688,7 @@ export const OrbClientInterface: Client = {
         runtime.registerAction(tokenAnalysisPlugin.actions[0]); // tokenScoreAction
         runtime.registerAction(launchpadCreate);
         runtime.registerAction(launchpadAnalyticsAction);
+        runtime.registerAction(promoteTokenAction);
         client.registerAgent(runtime);
         client.start(serverPort);
         return client;

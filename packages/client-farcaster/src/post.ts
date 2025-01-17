@@ -10,7 +10,9 @@ import { FarcasterClient } from "./client";
 import { formatTimeline, postTemplate } from "./prompts";
 import { castUuid, MAX_CAST_LENGTH } from "./utils";
 import { createCastMemory } from "./memory";
-import { sendCast } from "./actions";
+import { sendCast as sendCastAction } from "./actions";
+import { UUID } from "@elizaos/core";
+import { Cast, CastId, Profile } from "./types";
 
 export class FarcasterPostManager {
     private timeout: NodeJS.Timeout | undefined;
@@ -42,6 +44,33 @@ export class FarcasterPostManager {
 
     public async stop() {
         if (this.timeout) clearTimeout(this.timeout);
+    }
+
+    public async sendCast({
+        content,
+        roomId,
+        profile,
+        inReplyTo,
+        embeds,
+    }: {
+        content: string;
+        profile: Profile;
+        roomId?: UUID;
+        inReplyTo?: CastId;
+        embeds?: [{ url: string }];
+    }): Promise<Cast | undefined> {
+        const [{ cast }] = await sendCastAction({
+            client: this.client,
+            runtime: this.runtime,
+            signerUuid: this.signerUuid,
+            roomId: roomId ?? stringToUuid("farcaster_generate_room"),
+            content: { text: content },
+            embeds,
+            profile,
+            inReplyTo,
+        });
+
+        return cast;
     }
 
     private async generateNewCast() {
@@ -123,14 +152,11 @@ export class FarcasterPostManager {
             }
 
             try {
-                const [{ cast }] = await sendCast({
-                    client: this.client,
-                    runtime: this.runtime,
-                    signerUuid: this.signerUuid,
+                const cast = (await this.sendCast({
+                    content,
                     roomId: generateRoomId,
-                    content: { text: content },
                     profile,
-                });
+                })) as Cast;
 
                 const roomId = castUuid({
                     agentId: this.runtime.agentId,
