@@ -184,10 +184,6 @@ export const launchpadCreate: Action = {
         const creator = selfAsCreator
             ? address
             : userAddress || (lensProfile.ownedBy.address as `0x${string}`);
-        console.log(
-            `IS_PRODUCTION: ${IS_PRODUCTION}`,
-            `BONSAI_TOKEN_ADDRESS_BASE: ${BONSAI_TOKEN_ADDRESS_BASE}`
-        );
         const hasBonsaiNFT =
             (await getTokenBalance(
                 userAddress || (lensProfile.ownedBy.address as `0x${string}`),
