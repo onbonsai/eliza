@@ -39,6 +39,7 @@ export const registerClub = async (
         ["string", "string", "string"],
         [params.tokenName, params.tokenSymbol, params.tokenImage]
     );
+    console.log(`LAUNCHPAD_CONTRACT_ADDRESS: ${LAUNCHPAD_CONTRACT_ADDRESS}`);
     const contractInvocation = await wallet.invokeContract({
         contractAddress: LAUNCHPAD_CONTRACT_ADDRESS,
         abi: BonsaiLaunchpadAbi,

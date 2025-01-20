@@ -114,7 +114,7 @@ export const launchpadCreate: Action = {
             response = await generateObjectDeprecated({
                 runtime,
                 context: messageContext,
-                modelClass: ModelClass.LARGE,
+                modelClass: ModelClass.SMALL,
             });
             console.log("response", response);
         } catch (error) {
@@ -186,8 +186,7 @@ export const launchpadCreate: Action = {
             : userAddress || (lensProfile.ownedBy.address as `0x${string}`);
         console.log(
             `IS_PRODUCTION: ${IS_PRODUCTION}`,
-            wallet,
-            BONSAI_TOKEN_ADDRESS_BASE
+            `BONSAI_TOKEN_ADDRESS_BASE: ${BONSAI_TOKEN_ADDRESS_BASE}`
         );
         const hasBonsaiNFT =
             (await getTokenBalance(
@@ -284,7 +283,7 @@ https://launch.bonsai.meme/token/${clubId}`;
                 }
 
                 reply = `$${symbol} has been created!`;
-                const url = `https://launch.bonsai.meme/token/${clubId}?ref=${userAddress}`;
+                const url = `https://launch.bonsai.meme/token/${clubId}`;
                 attachments = [
                     {
                         button: { url },
