@@ -289,7 +289,7 @@ https://launch.bonsai.meme/token/${clubId}`;
                             label: "Share to X",
                             url: tweetIntentTokenReferral({
                                 url,
-                                text: `Created $${symbol}!`,
+                                text: `I created $${symbol} with Bonsai @agentdotbonsai`,
                             }),
                             useLabel: true,
                         },
@@ -299,7 +299,7 @@ https://launch.bonsai.meme/token/${clubId}`;
                             label: "Share to Farcaster",
                             url: castIntentTokenReferral({
                                 url,
-                                text: `Created $${symbol}!`,
+                                text: `I created $${symbol} with Bonsai @agentdotbonsai`,
                             }),
                             useLabel: true,
                         },
@@ -308,7 +308,7 @@ https://launch.bonsai.meme/token/${clubId}`;
                         button: {
                             label: "Share to Lens",
                             url: orbIntentTokenReferral({
-                                text: `Created $${symbol}! ${url}`,
+                                text: `I created $${symbol} with Bonsai! @bons_ai ${url}`,
                             }),
                             useLabel: true,
                         },
