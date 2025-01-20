@@ -116,12 +116,7 @@ export const launchpadCreate: Action = {
                 context: messageContext,
                 modelClass: ModelClass.LARGE,
             });
-            response = Array.isArray(response)
-                ? response.find((item) => item !== null)
-                : response.object;
-            response = Array.isArray(response)
-                ? response.find((item) => item !== null)
-                : response;
+            console.log("response", response);
         } catch (error) {
             console.log(error);
             callback?.({
