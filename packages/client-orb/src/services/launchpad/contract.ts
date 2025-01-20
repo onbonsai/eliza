@@ -18,7 +18,7 @@ import { toHexString } from "../../utils/utils";
 import { CHAIN_TO_RPC } from "../../utils/constants";
 import { elizaLogger } from "@elizaos/core";
 
-export const IS_PRODUCTION = process.env.LAUNCHPAD_CHAIN_ID === "8453";
+export const IS_PRODUCTION = true; // process.env.LAUNCHPAD_CHAIN_ID === "8453";
 export const CONTRACT_CHAIN_ID = IS_PRODUCTION ? base.id : baseSepolia.id;
 export const CHAIN = IS_PRODUCTION ? base : baseSepolia;
 export const LAUNCHPAD_CONTRACT_ADDRESS = IS_PRODUCTION
