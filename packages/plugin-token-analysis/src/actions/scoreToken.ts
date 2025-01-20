@@ -196,15 +196,8 @@ export const scoreToken: Action = {
             response = await generateObjectDeprecated({
                 runtime,
                 context: messageContext,
-                modelClass: ModelClass.LARGE,
+                modelClass: ModelClass.SMALL,
             });
-
-            response = Array.isArray(response)
-                ? response.find((item) => item !== null)
-                : response.object;
-            response = Array.isArray(response)
-                ? response.find((item) => item !== null)
-                : response;
         }
 
         console.log("response:", response);
@@ -244,15 +237,8 @@ export const scoreToken: Action = {
             ratingResponse = await generateObjectDeprecated({
                 runtime,
                 context,
-                modelClass: ModelClass.LARGE,
+                modelClass: ModelClass.SMALL,
             });
-            ratingResponse = Array.isArray(ratingResponse)
-                ? ratingResponse.find((item) => item !== null)
-                : ratingResponse.object;
-            ratingResponse = Array.isArray(ratingResponse)
-                ? ratingResponse.find((item) => item !== null)
-                : ratingResponse;
-            console.log("ratingResponse", ratingResponse);
         } catch (error) {
             console.log(error);
             // fail gracefully

@@ -132,48 +132,48 @@ export const promoteTokenAction: Action = {
 
         let attachments = [];
 
-        //         // post to x, lens, farcaster
-        //         if (
-        //             !!runtime.getSetting("TWITTER_USERNAME") &&
-        //             !!runtime.getSetting("TWITTER_PASSWORD")
-        //         ) {
-        //             const client = await createClientBase(runtime);
-        //             await client.init(true);
-        //             const content = `${response}
-        // Link below 👇`;
+        // post to x, lens, farcaster
+        if (
+            !!runtime.getSetting("TWITTER_USERNAME") &&
+            !!runtime.getSetting("TWITTER_PASSWORD")
+        ) {
+            const client = await createClientBase(runtime);
+            await client.init(true);
+            const content = `${response}
+        Link below 👇`;
 
-        //             const standardTweetResult =
-        //                 await client.twitterClient.sendTweet(content);
-        //             const body = await standardTweetResult.json();
-        //             console.log(body);
-        //             const tweetId =
-        //                 body.data.create_tweet?.tweet_results?.result?.rest_id;
-        //             if (tweetId) {
-        //                 await client.twitterClient.sendTweet(link, tweetId);
-        //                 attachments.push({
-        //                     button: {
-        //                         url: `https://x.com/${client.profile.username}/status/${tweetId}`,
-        //                     },
-        //                 });
-        //             }
-        //         }
+            const standardTweetResult =
+                await client.twitterClient.sendTweet(content);
+            const body = await standardTweetResult.json();
+            console.log(body);
+            const tweetId =
+                body.data.create_tweet?.tweet_results?.result?.rest_id;
+            if (tweetId) {
+                await client.twitterClient.sendTweet(link, tweetId);
+                attachments.push({
+                    button: {
+                        url: `https://x.com/${client.profile.username}/status/${tweetId}`,
+                    },
+                });
+            }
+        }
 
-        //         if (
-        //             !!runtime.getSetting("EVM_PRIVATE_KEY") &&
-        //             !!runtime.getSetting("LENS_PROFILE_ID")
-        //         ) {
-        //             const lensClient = new LensAgentClient(runtime);
-        //             const content = `${response}
-        // ${link}`;
-        //             const { id: publicationId } =
-        //                 await lensClient.posts.sendPublication({ content });
+        if (
+            !!runtime.getSetting("EVM_PRIVATE_KEY") &&
+            !!runtime.getSetting("LENS_PROFILE_ID")
+        ) {
+            const lensClient = new LensAgentClient(runtime);
+            const content = `${response}
+        ${link}`;
+            const { id: publicationId } =
+                await lensClient.posts.sendPublication({ content });
 
-        //             attachments.push({
-        //                 button: {
-        //                     url: `https://orb.club/p/${publicationId}`,
-        //                 },
-        //             });
-        //         }
+            attachments.push({
+                button: {
+                    url: `https://orb.club/p/${publicationId}`,
+                },
+            });
+        }
 
         if (
             !!runtime.getSetting("FARCASTER_NEYNAR_SIGNER_UUID") &&

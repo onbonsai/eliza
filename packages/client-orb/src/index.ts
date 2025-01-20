@@ -501,21 +501,9 @@ export class OrbClient {
                     return;
                 }
 
-                let message = null as Content | null;
-
                 await runtime.evaluate(memory, state);
 
-                // if we process some actions, send the original response as a ws event for feedback
-                if (response.action !== "NONE") {
-                    console.log("emitting to roomId", roomId);
-                    this.io.to(roomId).emit(
-                        "response",
-                        JSON.stringify({
-                            text: response.text,
-                            action: "NONE",
-                        })
-                    );
-                }
+                res.json([response]);
 
                 // set the adminProfileId to be able to post to orb
                 const token = req.headers["lens-access-token"] as string;
@@ -524,40 +512,30 @@ export class OrbClient {
                     state.adminProfileId = adminProfileId;
                 }
 
-                const result = await runtime.processActions(
+                await runtime.processActions(
                     memory,
                     [responseMessage],
                     state,
                     async (newMessage) => {
-                        if (newMessage.action !== "NONE") {
-                            // doing this to skip duplicate messages
-                            // TODO: maybe handle video too
-                            if (newMessage.action === "GENERATE_IMAGE") {
-                                return [memory];
-                            }
-
-                            console.log("emitting to roomId", roomId);
-                            this.io.to(roomId).emit(
-                                "response",
-                                JSON.stringify({
-                                    text: newMessage.text,
-                                    attachments: newMessage.attachments,
-                                    action: "NONE",
-                                })
-                            );
-                        } else if (newMessage.source !== "imageGeneration") {
-                            message = newMessage;
+                        // doing this to skip duplicate messages
+                        // TODO: maybe handle video too
+                        if (newMessage.action === "GENERATE_IMAGE") {
+                            return [memory];
                         }
+
+                        console.log("emitting to roomId", roomId);
+                        this.io.to(roomId).emit(
+                            "response",
+                            JSON.stringify({
+                                text: newMessage.text,
+                                attachments: newMessage.attachments,
+                                action: "NONE",
+                            })
+                        );
 
                         return [memory];
                     }
                 );
-
-                if (message) {
-                    res.json([message, response]);
-                } else {
-                    res.json([response]);
-                }
             }
         );
 
