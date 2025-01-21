@@ -1156,6 +1156,7 @@ export const generateImage = async (
         jobId?: string;
         stylePreset?: string;
         hideWatermark?: boolean;
+        aspectRatio?: string;
     },
     runtime: IAgentRuntime
 ): Promise<{
@@ -1188,6 +1189,8 @@ export const generateImage = async (
                           return runtime.getSetting("VENICE_API_KEY");
                       case ModelProviderName.LIVEPEER:
                           return runtime.getSetting("LIVEPEER_GATEWAY_URL");
+                      case ModelProviderName.TITLES:
+                          return runtime.getSetting("TITLES_API_KEY");
                       default:
                           // If no specific match, try the fallback chain
                           return (
@@ -1448,6 +1451,81 @@ export const generateImage = async (
                 console.error(error);
                 return { success: false, error: error };
             }
+        } else if (runtime.imageModelProvider === ModelProviderName.TITLES) {
+            if (!apiKey) {
+                throw new Error("Missing TITLES_API_KEY in env");
+            }
+
+            // generate inference
+            const response = await fetch(
+                `${models.titles.endpoint}/images/inference`,
+                {
+                    method: "POST",
+                    headers: {
+                        "X-Api-External-Key": apiKey,
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        model_id: data.modelId || "EHhr62whbgnIHtADxrro",
+                        prompt: data.prompt,
+                        aspect_ratio: data.aspectRatio || "1:1",
+                    }),
+                }
+            );
+
+            const result = await response.json();
+            if (!result.transformation_id) {
+                throw new Error("Failed to submit generation");
+            }
+
+            elizaLogger.log("Submitted inference request to Titles");
+
+            const id = result.transformation_id;
+            let polling = true;
+            let images;
+            let success = false;
+            while (polling) {
+                const pollingResponse = await fetch(
+                    `${models.titles.endpoint}/images/inference/status?transformation_id=${id}`,
+                    {
+                        method: "GET",
+                        headers: {
+                            "X-Api-External-Key": apiKey,
+                            "Content-Type": "application/json",
+                        },
+                    }
+                );
+                const pollingResult = await pollingResponse.json();
+
+                if (
+                    pollingResult.state === "processed" ||
+                    pollingResult.state === "failed"
+                ) {
+                    if (
+                        pollingResult.state === "processed" &&
+                        pollingResult.images?.length > 0
+                    ) {
+                        success = true;
+                        images = await Promise.all(
+                            pollingResult.images.map(async (url) => {
+                                const response = await fetch(url);
+                                const blob = await response.blob();
+                                const buffer = await blob.arrayBuffer();
+                                const base64 =
+                                    Buffer.from(buffer).toString("base64");
+                                return `data:image/jpeg;base64,${base64}`;
+                            })
+                        );
+                    }
+
+                    polling = false;
+                } else {
+                    elizaLogger.log("Polling ...");
+                    await new Promise((resolve) => setTimeout(resolve, 5000)); // 5sec polling
+                }
+            }
+
+            return { success, data: images };
         } else {
             let targetSize = `${data.width}x${data.height}`;
             if (
