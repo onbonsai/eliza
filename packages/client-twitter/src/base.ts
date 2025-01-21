@@ -161,6 +161,7 @@ export class ClientBase extends EventEmitter {
         const email = this.twitterConfig.TWITTER_EMAIL;
         let retries = this.twitterConfig.TWITTER_RETRY_LIMIT;
         const twitter2faSecret = this.twitterConfig.TWITTER_2FA_SECRET;
+        let attempt = 0;
 
         if (!username) {
             throw new Error("Twitter username not configured");
@@ -203,6 +204,7 @@ export class ClientBase extends EventEmitter {
             }
 
             retries--;
+            attempt++;
             elizaLogger.error(
                 `Failed to login to Twitter. Retrying... (${retries} attempts left)`
             );
@@ -214,7 +216,10 @@ export class ClientBase extends EventEmitter {
                 throw new Error("Twitter login failed after maximum retries.");
             }
 
-            await new Promise((resolve) => setTimeout(resolve, 2000));
+            // exponential backoff
+            await new Promise((resolve) =>
+                setTimeout(resolve, Math.pow(2, attempt) * 1000)
+            );
         }
         // Initialize Twitter profile
         this.profile = await this.fetchProfile(username);
