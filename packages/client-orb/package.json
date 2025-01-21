@@ -49,7 +49,9 @@
     "scripts": {
         "build": "tsup --format esm --no-splitting",
         "dev": "tsup --format esm --watch --no-splitting",
-        "lint": "eslint --fix  --cache ."
+        "lint": "eslint --fix  --cache .",
+        "create-post": "curl -X POST https://eliza.bonsai.meme/c3bd776c-4465-037f-9c7a-bf94dfba78d9/orb/create-post",
+        "trending-club": "curl -X POST https://eliza.bonsai.meme/c3bd776c-4465-037f-9c7a-bf94dfba78d9/trending-club"
     },
     "peerDependencies": {
         "@elizaos/client-twitter": "workspace:*",
