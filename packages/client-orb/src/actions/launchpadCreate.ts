@@ -9,6 +9,7 @@ import {
     type Action,
     ModelClass,
     generateObjectDeprecated,
+    generateImage,
 } from "@elizaos/core";
 import { z } from "zod";
 import { parseEther, parseUnits } from "viem";
@@ -33,6 +34,7 @@ import {
     orbIntentTokenReferral,
     castIntentTokenReferral,
 } from "../utils/utils.ts";
+import { parseAndUploadBase64Image } from "../utils/ipfs.ts";
 
 export const TokenInfoSchema = z.object({
     symbol: z.string().nullable().describe("Symbol"),
@@ -145,13 +147,21 @@ export const launchpadCreate: Action = {
             return;
         }
 
-        const imageURL = params?.lens?.image?.item
+        let imageURL = params?.lens?.image?.item
             ? getLensImageURL(params.lens.image?.item)
             : _imageURL;
 
-        // TODO: generate an image for the token
         if (!imageURL) {
-            console.log(`no image url`);
+            console.log(`no image url - generating...`);
+            const imageResponse = await generateImage(
+                {
+                    prompt: `generate an image that can accompany this project: Name: ${name}, Description: ${description}`,
+                    width: 1024,
+                    height: 1024,
+                },
+                runtime
+            );
+            imageURL = await parseAndUploadBase64Image(imageResponse);
         }
 
         // get agent

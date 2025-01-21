@@ -57,6 +57,7 @@ import { generateVideoRunway } from "./services/runway.ts";
 import { launchpadAnalyticsAction } from "@elizaos/plugin-bonsai-launchpad";
 import { promoteTokenAction } from "@elizaos/plugin-bonsai-launchpad";
 import searchToken from "./services/launchpad/searchToken.ts";
+import { parseAndUploadBase64Image } from "./utils/ipfs.ts";
 
 export const messageHandlerTemplate =
     `# Action Examples
@@ -817,28 +818,11 @@ export class OrbClient {
                         runtime
                     );
 
-                    if (imageResponse.success && imageResponse.data?.[0]) {
-                        // Convert base64 to buffer
-                        const base64Data = imageResponse.data[0].replace(
-                            /^data:image\/\w+;base64,/,
-                            ""
-                        );
-                        const imageBuffer = Buffer.from(base64Data, "base64");
-
-                        // Create a file object that can be used with FormData
-                        const file = {
-                            buffer: imageBuffer,
-                            originalname: `generated_${Date.now()}.png`,
-                            mimetype: "image/png",
-                        };
-
-                        // Upload to your hosting service
-                        imageUrl = await pinFile(file);
-                        console.log("imageUrl", imageUrl);
-                    }
+                    // Upload to your hosting service
+                    imageUrl = await parseAndUploadBase64Image(imageResponse);
 
                     /* generate a video */
-                    if (Math.random() < 0.25) {
+                    if (imageUrl && Math.random() < 0.25) {
                         const videoPrompt = await generateText({
                             runtime,
                             context: `Write a succinct prompt to generate a captivating 5 second video based on this message: "${responseMessage.content.text}". Write only the prompt and nothing else, don't include any text in the video, only imagery. the prompt should involve some form of action taking place.`,
