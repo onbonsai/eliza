@@ -7,26 +7,18 @@ import {
     getVolumeStats,
 } from "./utils";
 
-export const formatCompletedTokenAnalytics = (analytics: any) => {
+export const formatActiveTokenAnalytics = (analytics: any) => {
     return (
-        `${analytics.name} (${analytics.symbol}) has graduated from the launchpad! 🎓\n\n` +
-        `Final Stats:\n` +
+        `${analytics.name} (${analytics.symbol}) Stats:\n` +
         `• Price: $${analytics.price}\n` +
         `• Market Cap: $${analytics.marketCap}\n` +
         `• Liquidity: $${analytics.liquidity}\n` +
         `• Holders: ${analytics.holders}\n\n` +
-        `View token: https://launch.bonsai.meme/token/${analytics.clubId}`
-    );
-};
-
-export const formatActiveTokenAnalytics = (analytics: any) => {
-    return (
-        `${analytics.name} (${analytics.symbol}) Stats:\n` +
-        `• Price: $${analytics.price} (${analytics.priceChange24h}% 24h)\n` +
-        `• Market Cap: $${analytics.marketCap}\n` +
-        `• Liquidity: $${analytics.liquidity}\n` +
-        `• Holders: ${analytics.holders}\n\n` +
         `• Age: ${analytics.age} days\n` +
+        `• ${analytics.priceChange24h}% 24h\n` +
+        `• ${analytics.priceChange6h}% 6h\n` +
+        `• ${analytics.priceChange1h}% 1h\n` +
+        `• ${analytics.priceChange5m}% 5m\n` +
         `Trade now: https://launch.bonsai.meme/token/${analytics.clubId}`
     );
 };

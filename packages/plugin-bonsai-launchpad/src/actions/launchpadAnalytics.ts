@@ -12,7 +12,6 @@ import { technicalAnalysis } from "@elizaos/plugin-token-analysis";
 import { getTokenAnalytics } from "../services/utils";
 import {
     formatActiveTokenAnalytics,
-    formatCompletedTokenAnalytics,
     getDailyStatsAnalytics,
     getHoldersAnalytics,
     getLiquidityAnalytics,

@@ -313,6 +313,27 @@ export const getTokenAnalytics = async (symbol: string) => {
           100
         : 0;
 
+    const priceChange6h = club["6h"]
+        ? (parseFloat(formatUnits(BigInt(club["6h"].price), DECIMALS)) /
+              parseFloat(formatUnits(BigInt(club["6h"].prevPrice), DECIMALS)) -
+              1) *
+          100
+        : 0;
+
+    const priceChange1h = club["1h"]
+        ? (parseFloat(formatUnits(BigInt(club["1h"].price), DECIMALS)) /
+              parseFloat(formatUnits(BigInt(club["1h"].prevPrice), DECIMALS)) -
+              1) *
+          100
+        : 0;
+
+    const priceChange5m = club["5m"]
+        ? (parseFloat(formatUnits(BigInt(club["5m"].price), DECIMALS)) /
+              parseFloat(formatUnits(BigInt(club["5m"].prevPrice), DECIMALS)) -
+              1) *
+          100
+        : 0;
+
     const [clubName, clubSymbol] = decodeAbiParameters(
         [
             { name: "name", type: "string" },
@@ -326,6 +347,9 @@ export const getTokenAnalytics = async (symbol: string) => {
         symbol: clubSymbol,
         price: parseFloat(price).toFixed(6),
         priceChange24h: priceChange24h.toFixed(2),
+        priceChange6h: priceChange6h.toFixed(2),
+        priceChange1h: priceChange1h.toFixed(2),
+        priceChange5m: priceChange5m.toFixed(2),
         marketCap: marketCap,
         liquidity: parseFloat(liquidity).toFixed(2),
         holders: club.holders,
