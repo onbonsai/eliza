@@ -33,7 +33,7 @@ case "$1" in
             "adapter-postgres"
             "adapter-sqlite"
             "adapter-sqljs"
-            # "adapter-supabase"
+            "adapter-supabase"
             "client-auto"
             "client-direct"
             # "client-discord"
@@ -44,7 +44,7 @@ case "$1" in
             "plugin-bootstrap"
             "plugin-image-generation"
             "plugin-node"
-            # "plugin-solana"
+            "plugin-solana"
             "plugin-evm"
             "plugin-tee"
         )
