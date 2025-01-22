@@ -140,7 +140,7 @@ export const promoteTokenAction: Action = {
             const client = await createClientBase(runtime);
             await client.init(true);
             const content = `${response}
-        Link below 👇`;
+Link below 👇`;
 
             const standardTweetResult =
                 await client.twitterClient.sendTweet(content);
