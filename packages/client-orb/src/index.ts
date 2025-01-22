@@ -299,12 +299,21 @@ export class OrbClient {
                 const clubResult = await createTrendingClubReport();
                 const formatted = formatTrendingClubReport(clubResult);
 
-                // create orb post
+                // create orb post for report
                 await createPost(
                     wallets.polygon,
                     wallets.profile.id,
                     wallets.profile.handle,
-                    formatted
+                    formatted,
+                    clubResult.trendingClub.token.image
+                );
+
+                // orb post for swap link
+                await createPost(
+                    wallets.polygon,
+                    wallets.profile.id,
+                    wallets.profile.handle,
+                    `Trade the trending club now: https://launch.bonsai.meme/token/${parseInt(clubResult.trendingClub.id, 16)}`
                 );
 
                 res.json({ clubResult, formatted });

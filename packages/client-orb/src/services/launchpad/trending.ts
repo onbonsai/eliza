@@ -49,8 +49,6 @@ export const formatTrendingClubReport = (report: {
 • Sentiment: ${socialAnalysis.sentiment}
 • Creator Followers: ${creatorFollowers}
 • Top Post: "${socialAnalysis.topPosts[0].content.replace(/https?:\/\/[^\s]+/g, "")}" - @${socialAnalysis.topPosts[0].by}
-
-Trade now: https://launch.bonsai.meme/token/${parseInt(trendingClub.id, 16)}
 `;
 };
 
