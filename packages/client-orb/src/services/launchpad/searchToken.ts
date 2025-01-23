@@ -22,6 +22,7 @@ export default async (symbol: string): Promise<string | undefined> => {
                         token: 1,
                         handle: 1,
                         clubId: 1,
+                        hidden: 1,
                     },
                 },
                 // Add a sort stage to sort by the text score
@@ -30,8 +31,15 @@ export default async (symbol: string): Promise<string | undefined> => {
             .toArray();
 
         const res = results.find(
-            ({ token }: { token: { symbol: string } }) =>
-                token.symbol.toLowerCase() === symbol.toLowerCase()
+            ({
+                token,
+                hidden,
+            }: {
+                token: { symbol: string };
+                hidden?: boolean;
+            }) =>
+                token.symbol.trim().toLowerCase() ===
+                    symbol.trim().toLowerCase() && !hidden
         );
         return res?.clubId ?? null;
     } catch (error) {
