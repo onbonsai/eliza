@@ -26,8 +26,9 @@ type RegistrationParams = {
     tokenDescription: string;
     tokenImage: string;
     initialSupply: string;
-    curveType?: number; // default to 1
     strategy?: string; // default to "lens"
+    cliffPercent?: number; // bps; default to 10% (1000)
+    vestingDuration?: number; // seconds; default to 2 hours (7200)
 };
 
 export const registerClub = async (
@@ -35,7 +36,7 @@ export const registerClub = async (
     creator: `0x${string}`,
     params: RegistrationParams
 ): Promise<{ objectId?: string; clubId?: string }> => {
-    const token = encodeAbi(
+    const tokenInfo = encodeAbi(
         ["string", "string", "string"],
         [params.tokenName, params.tokenSymbol, params.tokenImage]
     );
@@ -45,10 +46,11 @@ export const registerClub = async (
         method: "registerClub",
         args: {
             hook: DEFAULT_HOOK_ADDRESS,
-            token,
+            tokenInfo,
             initialSupply: params.initialSupply,
-            curve: (params.curveType ?? 1).toString(),
             creator,
+            cliffPercent: params.cliffPercent || 1000,
+            vestingDuration: params.vestingDuration || 7200,
         },
     });
     await contractInvocation.wait();

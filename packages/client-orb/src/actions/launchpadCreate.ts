@@ -47,7 +47,6 @@ export const OptionalArrayTokenInfoSchema = z
     .union([TokenInfoSchema.nullable(), z.array(TokenInfoSchema.nullable())])
     .describe("Either a single info or an array of info");
 
-const DEFAULT_CURVE_TYPE = 1; // NORMAL;
 const DEFAULT_INITIAL_SUPPLY = !IS_PRODUCTION ? "1" : "15"; // buy price at ~200 usdc
 
 const messageTemplate = `Respond with a JSON markdown block containing only the extracted values. Use null for any values that cannot be determined.
@@ -232,7 +231,6 @@ export const launchpadCreate: Action = {
             tokenDescription: description,
             tokenImage: imageURL,
             initialSupply: parseUnits(initialSupply, DECIMALS).toString(),
-            curveType: DEFAULT_CURVE_TYPE,
         };
         const existingClubId = await searchToken(registerParams.tokenSymbol);
 

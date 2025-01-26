@@ -10,21 +10,22 @@ import {
     maxUint256,
     decodeAbiParameters,
     formatUnits,
+    Chain,
 } from "viem";
 import { base, baseSepolia } from "viem/chains";
 import pkg from "lodash/collection";
 const { groupBy, reduce } = pkg;
 import { Wallet } from "@coinbase/coinbase-sdk";
-import BonsaiLaunchpadAbi from "./BonsaiLaunchpad";
+import BonsaiLaunchpadAbi from "./BonsaiLaunchpad"; // v2
 import { toHexString } from "../utils/utils";
 import { CHAIN_TO_RPC } from "../utils/constants";
 import { searchToken } from "./searchToken";
 
 export const IS_PRODUCTION = true; // NOTE: always true
-export const CHAIN = IS_PRODUCTION ? base : baseSepolia;
+export const CHAIN: Chain = IS_PRODUCTION ? base : baseSepolia;
 export const LAUNCHPAD_CONTRACT_ADDRESS = IS_PRODUCTION
-    ? "0xA44dD13Bd66C4C4aDF8F70c3DFA26334764C1d64"
-    : "0x60aaa60eb9a11f3e82e2ca87631d4b37e1b88891";
+    ? "0xA44dD13Bd66C4C4aDF8F70c3DFA26334764C1d64" // TODO: v2
+    : "0x7EDE9a32e8bCD20dcaF962de5EC3Fa0b95705692"; // v2
 
 const REGISTERED_CLUB = gql`
     query Club(
@@ -603,7 +604,7 @@ export const getVolume = async (clubId: string): Promise<bigint> => {
 
 export const getLiquidity = async (clubId: string) => {
     const client = publicClient();
-    const [_, __, ___, ____, liquidity] = (await client.readContract({
+    const [_, __, liquidity] = (await client.readContract({
         address: LAUNCHPAD_CONTRACT_ADDRESS,
         abi: BonsaiLaunchpadAbi,
         functionName: "registeredClubs",
