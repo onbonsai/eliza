@@ -9,6 +9,7 @@ import {
     TemplateType,
     UUID,
     truncateToCompleteSentence,
+    ModelProviderName,
 } from "@elizaos/core";
 import { elizaLogger } from "@elizaos/core";
 import { ClientBase } from "./base.ts";
@@ -49,6 +50,27 @@ const twitterPostTemplate = `
 Write a post that is {{adjective}} about {{topic}} (without mentioning {{topic}} directly), from the perspective of {{agentName}}. Do not add commentary or acknowledge this request, just write the post.
 Your response should be 1 or 2 sentences (choose the length at random). Keep your response brief and concise as it MUST be less than {{maxTweetLength}} characters.
 Your response should not contain any questions. Brief, concise statements only. The total character count MUST be less than {{maxTweetLength}}. No emojis. Use \\n\\n (double spaces) between statements if there are multiple statements in your response.`;
+
+const twitterPostTemplateWithTimeline = `
+# Areas of Expertise
+{{knowledge}}
+
+# About {{agentName}} (@{{twitterUserName}}):
+{{bio}}
+{{lore}}
+{{topics}}
+
+{{providers}}
+
+{{characterPostExamples}}
+
+{{postDirections}}
+{{timelineText}}
+
+# Task: Here are some recent posts from your timeline. Generate a post in the voice and style and perspective of {{agentName}} @{{twitterUserName}}.
+Write a post of your own that's directly relevant to something that someone else is saying. Try to write something totally different than previous messages you've sent. Do not add commentary or acknowledge this request, and do not include the 'think' part of your response, just write the post.
+Your response should be 1 or 2 sentences (choose the length at random). Keep your response brief and concise as it MUST be less than {{maxTweetLength}} characters.
+Your response should not contain any questions. Brief, concise statements only. The total character count MUST be less than {{maxTweetLength}}. No emojis. No hashtags. Use \\n\\n (double spaces) between statements if there are multiple statements in your response.`;
 
 export const twitterActionTemplate =
     `
@@ -491,11 +513,20 @@ export class TwitterPostClient {
                 }
             );
 
+            const homeTimeline = await this.client.fetchHomeTimeline(20);
+            const timelineText = homeTimeline
+                .map((tweet) => `@${tweet.username}: ${tweet.text}`)
+                .join("\n");
+
+            // Add timeline context to prompt text
+            state.timelineText = timelineText;
+
             const context = composeContext({
                 state,
-                template:
-                    this.runtime.character.templates?.twitterPostTemplate ||
-                    twitterPostTemplate,
+                template: twitterPostTemplateWithTimeline,
+                // template:
+                //     this.runtime.character.templates?.twitterPostTemplate ||
+                //     twitterPostTemplate,
             });
 
             elizaLogger.debug("generate post prompt:\n" + context);
@@ -504,6 +535,7 @@ export class TwitterPostClient {
                 runtime: this.runtime,
                 context,
                 modelClass: ModelClass.SMALL,
+                modelProvider: ModelProviderName.VENICE, // using venice for post generation
             });
 
             // First attempt to clean content
