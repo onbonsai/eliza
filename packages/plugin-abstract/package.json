@@ -1,6 +1,6 @@
 {
     "name": "@elizaos/plugin-abstract",
-    "version": "0.1.7",
+    "version": "0.1.8+build.1",
     "type": "module",
     "main": "dist/index.js",
     "module": "dist/index.js",
@@ -21,7 +21,7 @@
     "dependencies": {
         "@elizaos/core": "workspace:*",
         "tsup": "^8.3.5",
-        "web3": "^4.15.0"
+        "viem": "2.22.2"
     },
     "scripts": {
         "build": "tsup --format esm --dts"

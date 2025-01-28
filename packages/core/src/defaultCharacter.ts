@@ -290,4 +290,5 @@ export const defaultCharacter: Character = {
         "investor with a twist",
         "artistic provocateur",
     ],
+    extends: [],
 };
