@@ -3,8 +3,8 @@ import {
     generateText,
     trimTokens,
     parseJSONObjectFromText,
+    getModelSettings,
 } from "@elizaos/core";
-import { models } from "@elizaos/core";
 import {
     Action,
     ActionExample,
@@ -194,8 +194,11 @@ const summarizeAction: Action = {
 
         let currentSummary = "";
 
-        const model = models[runtime.character.modelProvider];
-        const chunkSize = model.settings.maxOutputTokens;
+        const modelSettings = getModelSettings(
+            runtime.character.modelProvider,
+            ModelClass.SMALL
+        );
+        const chunkSize = modelSettings.maxOutputTokens;
 
         currentState.attachmentsWithText = attachmentsWithText;
         currentState.objective = objective;

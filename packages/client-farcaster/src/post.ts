@@ -5,6 +5,7 @@ import {
     ModelClass,
     stringToUuid,
     elizaLogger,
+    ModelProviderName,
 } from "@elizaos/core";
 import { FarcasterClient } from "./client";
 import { formatTimeline, postTemplate } from "./prompts";
@@ -125,6 +126,7 @@ export class FarcasterPostManager {
                 runtime: this.runtime,
                 context,
                 modelClass: ModelClass.SMALL,
+                modelProvider: ModelProviderName.VENICE, // using venice for post generation
             });
 
             const slice = newContent.replaceAll(/\\n/g, "\n").trim();

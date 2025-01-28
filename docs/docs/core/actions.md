@@ -179,7 +179,7 @@ const continueAction: Action = {
     name: "CONTINUE",
     similes: ["ELABORATE", "KEEP_TALKING"],
     description:
-        "Used when the message requires a follow-up. Don't use when conversation is finished.",
+        "Used when the message requires a follow-up. Don't use when the conversation is finished.",
     validate: async (runtime, message) => {
         // Validation logic
         return true;

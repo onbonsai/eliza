@@ -20,6 +20,7 @@ import {
     AgentRuntime,
     stringToUuid,
     settings,
+    ModelProviderName,
 } from "@elizaos/core";
 import { isAddress } from "viem";
 import createPost from "./services/orb/createPost";
@@ -715,30 +716,15 @@ export class OrbClient {
 
                 // get post prompt
                 let text = req.body.text || getRandomPrompt();
-                const randomNumber = Math.random();
-                if (randomNumber < 0.6) {
-                    const twitterSearchClient = await createClientBase(runtime);
-                    await new Promise((resolve) => setTimeout(resolve, 5000));
-                    const homeTimeline =
-                        await twitterSearchClient.fetchHomeTimeline(20);
-                    // Format timeline into string of tweets and authors
-                    const timelineText = homeTimeline
-                        .map((tweet) => `@${tweet.username}: ${tweet.text}`)
-                        .join("\n");
-
-                    // Add timeline context to prompt text
-                    text = `Here are some recent tweets from your timeline:\n${timelineText}\n\n Write a tweet of your own that's directly relevant to something that someone else is saying. Try to write something totally different than previous messages you've sent.`;
-                } else if (randomNumber < 0.8) {
-                    const homeTimeline = await fetchFeed(
-                        wallets.polygon,
-                        wallets.profile.id
-                    );
-                    // Format timeline into string of tweets and authors
-                    const timelineText = homeTimeline
-                        .map((post) => `${post.author}: ${post.content}`)
-                        .join("\n");
-                    text = `Here are some recent posts from your Lens timeline:\n${timelineText}\n\n Write a post of your own that's directly relevant to something that someone else is saying. Try to write something totally different than previous messages you've sent.`;
-                }
+                const homeTimeline = await fetchFeed(
+                    wallets.polygon,
+                    wallets.profile.id
+                );
+                // Format timeline into string of tweets and authors
+                const timelineText = homeTimeline
+                    .map((post) => `${post.author}: ${post.content}`)
+                    .join("\n");
+                text = `Here are some recent posts from your Lens timeline:\n${timelineText}\n\n Write a post of your own that's directly relevant to something that someone else is saying. Try to write something totally different than previous messages you've sent. Do not acknowledge the request, and do not include hashtags in your response.`;
 
                 const messageId = stringToUuid(Date.now().toString());
 
@@ -784,6 +770,7 @@ export class OrbClient {
                     runtime: runtime,
                     context,
                     modelClass: ModelClass.SMALL,
+                    modelProvider: ModelProviderName.VENICE, // using venice for post generation
                 });
 
                 // save response to memory

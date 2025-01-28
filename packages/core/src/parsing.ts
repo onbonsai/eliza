@@ -205,3 +205,37 @@ export const parseActionResponseFromText = (
 
     return { actions };
 };
+
+/**
+ * Truncate text to fit within the character limit, ensuring it ends at a complete sentence.
+ */
+export function truncateToCompleteSentence(
+    text: string,
+    maxLength: number
+): string {
+    if (text.length <= maxLength) {
+        return text;
+    }
+
+    // Attempt to truncate at the last period within the limit
+    const lastPeriodIndex = text.lastIndexOf(".", maxLength - 1);
+    if (lastPeriodIndex !== -1) {
+        const truncatedAtPeriod = text.slice(0, lastPeriodIndex + 1).trim();
+        if (truncatedAtPeriod.length > 0) {
+            return truncatedAtPeriod;
+        }
+    }
+
+    // If no period, truncate to the nearest whitespace within the limit
+    const lastSpaceIndex = text.lastIndexOf(" ", maxLength - 1);
+    if (lastSpaceIndex !== -1) {
+        const truncatedAtSpace = text.slice(0, lastSpaceIndex).trim();
+        if (truncatedAtSpace.length > 0) {
+            return truncatedAtSpace + "...";
+        }
+    }
+
+    // Fallback: Hard truncate and add ellipsis
+    const hardTruncated = text.slice(0, maxLength - 3).trim();
+    return hardTruncated + "...";
+}
