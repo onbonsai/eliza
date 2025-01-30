@@ -60,6 +60,11 @@ export default [
                 internalType: "uint256",
             },
             {
+                name: "maxPrice",
+                type: "uint256",
+                internalType: "uint256",
+            },
+            {
                 name: "clientAddress",
                 type: "address",
                 internalType: "address",
@@ -181,6 +186,30 @@ export default [
     },
     {
         type: "function",
+        name: "getBuyPriceByClub",
+        inputs: [
+            {
+                name: "clubId",
+                type: "uint256",
+                internalType: "uint256",
+            },
+            {
+                name: "amount",
+                type: "uint256",
+                internalType: "uint256",
+            },
+        ],
+        outputs: [
+            {
+                name: "price",
+                type: "uint256",
+                internalType: "uint256",
+            },
+        ],
+        stateMutability: "view",
+    },
+    {
+        type: "function",
         name: "getFees",
         inputs: [],
         outputs: [
@@ -208,6 +237,30 @@ export default [
         inputs: [
             {
                 name: "supply",
+                type: "uint256",
+                internalType: "uint256",
+            },
+            {
+                name: "amount",
+                type: "uint256",
+                internalType: "uint256",
+            },
+        ],
+        outputs: [
+            {
+                name: "price",
+                type: "uint256",
+                internalType: "uint256",
+            },
+        ],
+        stateMutability: "view",
+    },
+    {
+        type: "function",
+        name: "getSellPriceByClub",
+        inputs: [
+            {
+                name: "clubId",
                 type: "uint256",
                 internalType: "uint256",
             },
@@ -414,6 +467,11 @@ export default [
             },
             {
                 name: "amount",
+                type: "uint256",
+                internalType: "uint256",
+            },
+            {
+                name: "minAmountOut",
                 type: "uint256",
                 internalType: "uint256",
             },
@@ -689,6 +747,12 @@ export default [
                 indexed: false,
                 internalType: "address",
             },
+            {
+                name: "uniTokenLp",
+                type: "uint256",
+                indexed: false,
+                internalType: "uint256",
+            },
         ],
         anonymous: false,
     },
@@ -728,16 +792,34 @@ export default [
                 internalType: "address",
             },
             {
+                name: "tokenAddress",
+                type: "address",
+                indexed: true,
+                internalType: "address",
+            },
+            {
                 name: "initialSupply",
                 type: "uint256",
                 indexed: false,
                 internalType: "uint256",
             },
             {
-                name: "tokenInfo",
-                type: "bytes",
+                name: "cliffPercent",
+                type: "uint256",
                 indexed: false,
-                internalType: "bytes",
+                internalType: "uint256",
+            },
+            {
+                name: "vestingDuration",
+                type: "uint256",
+                indexed: false,
+                internalType: "uint256",
+            },
+            {
+                name: "hasNFT",
+                type: "bool",
+                indexed: false,
+                internalType: "bool",
             },
         ],
         anonymous: false,
@@ -884,5 +966,21 @@ export default [
                 internalType: "address",
             },
         ],
+    },
+    {
+        type: "error",
+        name: "Slippage",
+        inputs: [
+            {
+                name: "price",
+                type: "uint256",
+                internalType: "uint256",
+            },
+        ],
+    },
+    {
+        type: "error",
+        name: "ZeroPrice",
+        inputs: [],
     },
 ];

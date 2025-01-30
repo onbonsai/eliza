@@ -1,21 +1,33 @@
-const BONSAI_LAUNCHPAD_API_URL = "https://eliza.bonsai.meme";
+import { searchClubs } from "./utils";
 
+interface Club {
+    id: string;
+    clubId: string;
+    creator: `0x${string}`;
+    initialSupply: string;
+    createdAt: string;
+    supply: string;
+    feesEarned: string;
+    currentPrice: string;
+    liquidity: string;
+    holders: string;
+    marketCap: string;
+    complete: boolean;
+    token: {
+        name: string;
+        symbol: string;
+        image: string;
+    };
+    v2: boolean;
+    tokenAddress: string;
+}
 export const searchToken = async (
     symbol: string
-): Promise<string | undefined> => {
+): Promise<Club | undefined> => {
     try {
         symbol = symbol.replace("$", "");
-        const response = await fetch(
-            `${BONSAI_LAUNCHPAD_API_URL}/bonsai-launchpad/search-token?q=${symbol}`
-        );
-
-        if (!response.ok) {
-            console.error("Failed to post to API:", response.statusText);
-            return;
-        }
-
-        const data = await response.json();
-        return data?.clubId;
+        const clubs = await searchClubs(symbol);
+        return clubs?.length ? clubs[0] : undefined;
     } catch (error) {
         console.error("Error posting to API:", error);
         return;

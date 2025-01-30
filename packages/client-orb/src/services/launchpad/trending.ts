@@ -82,8 +82,10 @@ export const createTrendingClubReport = async () => {
         }
     }
 
-    const symbolPosts = await searchLensForTerm(trendingClub.token.symbol);
-    const namePosts = await searchLensForTerm(trendingClub.token.name);
+    const [symbolPosts, namePosts] = await Promise.all([
+        searchLensForTerm(trendingClub.token.symbol),
+        searchLensForTerm(trendingClub.token.name),
+    ]);
 
     // Combine and deduplicate posts
     const allPosts = [...symbolPosts, ...namePosts].filter(

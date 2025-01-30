@@ -3,7 +3,6 @@ import {
     createPublicClient,
     http,
     parseUnits,
-    formatEther,
     TransactionReceipt,
     zeroAddress,
     erc20Abi,
@@ -14,7 +13,7 @@ import {
 } from "viem";
 import { base, baseSepolia } from "viem/chains";
 import pkg from "lodash/collection";
-const { groupBy, reduce } = pkg;
+const { groupBy } = pkg;
 import { Wallet } from "@coinbase/coinbase-sdk";
 import BonsaiLaunchpadAbi from "./BonsaiLaunchpad"; // v2
 import { toHexString } from "../utils/utils";
@@ -50,6 +49,10 @@ const REGISTERED_CLUB = gql`
             completedAt
             tokenInfo
             tokenAddress
+            name
+            symbol
+            uri
+            v2
             creatorFees
             holders
             prevTrade24h: trades(
@@ -92,38 +95,6 @@ const REGISTERED_CLUB = gql`
                 prevPrice
                 createdAt
             }
-        }
-    }
-`;
-
-const REGISTERED_CLUB_INFO = gql`
-    query ClubInfo($ids: [Bytes!]!) {
-        clubs(where: { id_in: $ids }) {
-            id
-            tokenInfo
-            clubId
-        }
-    }
-`;
-
-const CLUB_TRADES_TODAY = gql`
-    query ClubTrades($club: Bytes!, $startOfDayUTC: Int!, $skip: Int!) {
-        trades(
-            where: { club: $club, createdAt_gt: $startOfDayUTC }
-            orderBy: createdAt
-            orderDirection: desc
-            first: 50
-            skip: $skip
-        ) {
-            isBuy
-            amount
-            trader {
-                id
-            }
-            price
-            txPrice
-            txHash
-            createdAt
         }
     }
 `;
@@ -209,72 +180,48 @@ const REGISTERED_CLUBS = gql`
             marketCap
             complete
             tokenInfo
+            name
+            symbol
+            uri
+            v2
             tokenAddress
         }
     }
 `;
 
-const HOLDINGS_PAGINATED = gql`
-    query ClubChips($trader: Bytes!, $skip: Int!, $startOfDayUTC: Int!) {
-        clubChips(
-            where: { trader: $trader }
-            orderBy: amount
-            orderDirection: desc
-            first: 50
-            skip: $skip
+const SEARCH_CLUBS = gql`
+    query SearchClubs($query: String!) {
+        clubs(
+            where: {
+                or: [
+                    { symbol_contains_nocase: $query }
+                    { name_contains_nocase: $query }
+                ]
+            }
         ) {
             id
-            club {
-                clubId
-                prevTrade24Hr: trades(
-                    where: { createdAt_gt: $startOfDayUTC }
-                    orderBy: createdAt
-                    orderDirection: asc
-                    first: 1
-                ) {
-                    price
-                    createdAt
-                }
-                complete
-                tokenAddress
-                tokenInfo
-                currentPrice
-            }
-            amount
+            clubId
+            creator
+            initialSupply
             createdAt
+            supply
+            feesEarned
+            currentPrice
+            liquidity
+            holders
+            marketCap
+            complete
+            name
+            symbol
+            uri
+            v2
+            tokenAddress
         }
     }
 `;
 
-const CLUB_HOLDINGS_PAGINATED = gql`
-    query ClubChips($club: Bytes!, $skip: Int!) {
-        clubChips(
-            where: { club: $club }
-            orderBy: amount
-            orderDirection: desc
-            first: 100
-            skip: $skip
-        ) {
-            id
-            club {
-                clubId
-            }
-            trader {
-                id
-            }
-            amount
-            createdAt
-        }
-    }
-`;
-
-export const INITIAL_CHIP_SUPPLY_CAP = 10; // with 6 decimals in the contract
-export const DECIMALS = 6;
+export const DECIMALS = 18;
 export const USDC_DECIMALS = 6;
-// this isn't likely to change
-export const MIN_LIQUIDITY_THRESHOLD = IS_PRODUCTION
-    ? BigInt(23005)
-    : BigInt(10);
 
 export const CONTRACT_CHAIN_ID = IS_PRODUCTION ? base.id : baseSepolia.id;
 
@@ -294,10 +241,7 @@ export const subgraphClient = () => {
 };
 
 export const getTokenAnalytics = async (symbol: string) => {
-    const clubId = await searchToken(symbol);
-    if (!clubId) return null;
-
-    const club = await getRegisteredClubById(clubId);
+    const club = await searchToken(symbol);
     if (!club) return null;
 
     const price = formatUnits(BigInt(club.currentPrice), DECIMALS);
@@ -335,13 +279,17 @@ export const getTokenAnalytics = async (symbol: string) => {
           100
         : 0;
 
-    const [clubName, clubSymbol] = decodeAbiParameters(
-        [
-            { name: "name", type: "string" },
-            { name: "symbol", type: "string" },
-        ],
-        club.tokenInfo as `0x${string}`
-    );
+    let { name: clubName, symbol: clubSymbol } = club;
+
+    if (!club.name || !club.symbol) {
+        [clubName, clubSymbol] = decodeAbiParameters(
+            [
+                { name: "name", type: "string" },
+                { name: "symbol", type: "string" },
+            ],
+            club.tokenInfo as `0x${string}`
+        );
+    }
 
     return {
         name: clubName,
@@ -358,6 +306,7 @@ export const getTokenAnalytics = async (symbol: string) => {
         complete: club.complete,
         tokenAddress: club.tokenAddress,
         createdAt: club.createdAt,
+        v2: club.v2,
         age: Math.floor((Date.now() / 1000 - club.createdAt) / (60 * 60 * 24)),
     };
 };
@@ -394,14 +343,18 @@ export const getTrendingClub = async (count: number = 1) => {
         const trendingClubs = await Promise.all(
             trendingClubIds.map(async (clubId) => {
                 const club = await getRegisteredClubById(clubId);
-                const [name, symbol, image] = decodeAbiParameters(
-                    [
-                        { name: "name", type: "string" },
-                        { name: "symbol", type: "string" },
-                        { name: "uri", type: "string" },
-                    ],
-                    club.tokenInfo
-                );
+                let { name, symbol, uri: image } = club;
+
+                if (!club.name || !club.symbol || !club.uri) {
+                    [name, symbol, image] = decodeAbiParameters(
+                        [
+                            { name: "name", type: "string" },
+                            { name: "symbol", type: "string" },
+                            { name: "uri", type: "string" },
+                        ],
+                        club.tokenInfo
+                    );
+                }
 
                 const volume =
                     clubVolumes.find(([id]) => id === clubId)?.[1].volume || 0;
@@ -464,23 +417,6 @@ export const getRegisteredClubById = async (clubId: string) => {
     };
 };
 
-export const getRegisteredClubInfo = async (ids: string[]) => {
-    const client = subgraphClient();
-    const { clubs } = await client.request(REGISTERED_CLUB_INFO, { ids });
-
-    return clubs?.map((club) => {
-        const [name, symbol, image] = decodeAbiParameters(
-            [
-                { name: "name", type: "string" },
-                { name: "symbol", type: "string" },
-                { name: "uri", type: "string" },
-            ],
-            club.tokenInfo
-        );
-        return { name, symbol, image, clubId: club.clubId, id: club.id };
-    });
-};
-
 export const getRegisteredClubs = async (
     page = 0
 ): Promise<{ clubs: any[]; hasMore: boolean }> => {
@@ -494,14 +430,17 @@ export const getRegisteredClubs = async (
         // Process clubs to decode tokenInfo
         const processedClubs = clubs?.map((club) => {
             try {
-                const [name, symbol, image] = decodeAbiParameters(
-                    [
-                        { name: "name", type: "string" },
-                        { name: "symbol", type: "string" },
-                        { name: "uri", type: "string" },
-                    ],
-                    club.tokenInfo
-                );
+                let { name, symbol, uri: image } = club;
+                if (!club.name || !club.symbol || !club.uri) {
+                    [name, symbol, image] = decodeAbiParameters(
+                        [
+                            { name: "name", type: "string" },
+                            { name: "symbol", type: "string" },
+                            { name: "uri", type: "string" },
+                        ],
+                        club.tokenInfo
+                    );
+                }
 
                 return {
                     ...club,
@@ -570,50 +509,6 @@ export const getVolumeStats = async () => {
     };
 };
 
-export const getVolume = async (clubId: string): Promise<bigint> => {
-    const id = toHexString(parseInt(clubId));
-    const startOfDayUTC = Math.floor((Date.now() - 24 * 60 * 60 * 1000) / 1000);
-    const client = subgraphClient();
-    const limit = 50;
-    let skip = 0;
-    let volume = 0n;
-    let hasMore = true;
-
-    while (hasMore) {
-        const { trades } = await client.request(CLUB_TRADES_TODAY, {
-            club: id,
-            startOfDayUTC,
-            skip,
-        });
-
-        if (!trades) hasMore = false;
-        volume += reduce(
-            trades,
-            (sum, trade) => sum + BigInt(trade.txPrice),
-            0n
-        );
-
-        if (trades.length < limit) {
-            hasMore = false;
-        } else {
-            skip += limit;
-        }
-    }
-    return volume;
-};
-
-export const getLiquidity = async (clubId: string) => {
-    const client = publicClient();
-    const [_, __, liquidity] = (await client.readContract({
-        address: LAUNCHPAD_CONTRACT_ADDRESS,
-        abi: BonsaiLaunchpadAbi,
-        functionName: "registeredClubs",
-        args: [clubId],
-    })) as any[];
-
-    return liquidity;
-};
-
 export const getTrades = async (
     clubId: string,
     page = 0
@@ -652,51 +547,16 @@ export const getLatestTrades = async (): Promise<any[]> => {
     return trades || [];
 };
 
-export const getHoldings = async (
-    account: `0x${string}`,
-    page = 0
-): Promise<{ holdings: any[]; hasMore: boolean }> => {
-    const limit = 50;
-    const skip = page * limit;
-    const startOfDayUTC = Math.floor((Date.now() - 24 * 60 * 60 * 1000) / 1000);
+export const searchClubs = async (query: string) => {
     const client = subgraphClient();
-    const { clubChips } = await client.request(HOLDINGS_PAGINATED, {
-        trader: account.toLowerCase(),
-        startOfDayUTC,
-        skip,
-    });
-
-    const holdings =
-        clubChips?.map((chips) => {
-            const balance =
-                parseFloat(formatUnits(chips.amount, DECIMALS)) *
-                parseFloat(formatUnits(chips.club.currentPrice, USDC_DECIMALS));
-            return { ...chips, balance };
-        }) || [];
-
-    return {
-        holdings,
-        hasMore: clubChips?.length == limit,
-    };
-};
-
-export const getClubHoldings = async (
-    clubId: string,
-    page = 0
-): Promise<{ holdings: any[]; hasMore: boolean }> => {
-    const id = toHexString(parseInt(clubId));
-    const limit = 100;
-    const skip = page * limit;
-    const client = subgraphClient();
-    const { clubChips } = await client.request(CLUB_HOLDINGS_PAGINATED, {
-        club: id,
-        skip,
-    });
-
-    return {
-        holdings: clubChips || [],
-        hasMore: clubChips?.length == limit,
-    };
+    const { clubs } = await client.request(SEARCH_CLUBS, { query });
+    return clubs
+        ?.map((club) => {
+            if (!club.v2) return;
+            const { name, symbol, image } = club;
+            return { token: { name, symbol, image }, ...club };
+        })
+        .filter((c) => c);
 };
 
 export const publicClient = () => {
@@ -705,173 +565,6 @@ export const publicClient = () => {
         chain,
         transport: http(CHAIN_TO_RPC[chain.id]),
     });
-};
-
-export const getBalance = async (
-    clubId: string,
-    account: `0x${string}`
-): Promise<bigint> => {
-    const res = await publicClient().readContract({
-        address: LAUNCHPAD_CONTRACT_ADDRESS,
-        abi: BonsaiLaunchpadAbi,
-        functionName: "balances",
-        args: [clubId, account],
-    });
-
-    return res as bigint;
-};
-
-export const getBuyPrice = async (
-    account: `0x${string}`,
-    clubId: string,
-    amount: string
-): Promise<{ buyPrice: bigint; buyPriceAfterFees: bigint }> => {
-    const amountWithDecimals = parseUnits(amount, DECIMALS);
-    const client = publicClient();
-    const buyPrice = await client.readContract({
-        address: LAUNCHPAD_CONTRACT_ADDRESS,
-        abi: BonsaiLaunchpadAbi,
-        functionName: "getBuyPrice",
-        args: [clubId, amountWithDecimals],
-        account,
-    });
-
-    return {
-        buyPrice: buyPrice as bigint,
-        buyPriceAfterFees: 0n, // HACK
-    };
-};
-
-export const getMarketCap = async (
-    supply: string,
-    curve: number | string
-): Promise<bigint> => {
-    console.log(supply, curve);
-    const client = publicClient();
-    const marketCap = await client.readContract({
-        address: LAUNCHPAD_CONTRACT_ADDRESS,
-        abi: BonsaiLaunchpadAbi,
-        functionName: "getMcap",
-        args: [supply, curve],
-    });
-
-    return marketCap as bigint;
-};
-
-const PROTOCOL_FEE = 0.03; // 3% total fees for non-NFT holders
-
-export const getBuyAmount = async (
-    account: `0x${string}`,
-    clubId: string,
-    spendAmount: string, // Amount in USDC user wants to spend
-    hasNft = false
-): Promise<{
-    maxAllowed: bigint;
-    buyAmount: bigint;
-    excess: bigint;
-    effectiveSpend: string;
-}> => {
-    const client = publicClient();
-
-    // Convert spend amount to proper decimals
-    const spendAmountBigInt = parseUnits(spendAmount, DECIMALS);
-
-    // Get maximum allowed purchase and excess amount
-    const [maxAllowed, excess] = (await client.readContract({
-        address: LAUNCHPAD_CONTRACT_ADDRESS,
-        abi: BonsaiLaunchpadAbi,
-        functionName: "calculatePurchaseAllocation",
-        args: [spendAmountBigInt, clubId],
-        account,
-    })) as [bigint, bigint];
-
-    // Calculate effective spend (maxAllowed or full amount if no excess)
-    const effectiveSpendBigInt = excess > 0n ? maxAllowed : spendAmountBigInt;
-
-    // If user has NFT, use full amount. If not, reduce by fees
-    const spendAfterFees = hasNft
-        ? effectiveSpendBigInt
-        : (effectiveSpendBigInt *
-              BigInt(Math.floor((1 - PROTOCOL_FEE) * 10000))) /
-          10000n;
-
-    // Get token amount for the effective spend
-    const buyAmount = (await client.readContract({
-        address: LAUNCHPAD_CONTRACT_ADDRESS,
-        abi: BonsaiLaunchpadAbi,
-        functionName: "getTokensForSpend",
-        args: [clubId, spendAfterFees],
-        account,
-    })) as bigint;
-
-    return {
-        maxAllowed,
-        buyAmount,
-        excess,
-        effectiveSpend: formatUnits(effectiveSpendBigInt, DECIMALS),
-    };
-};
-
-export const getSellPrice = async (
-    account: `0x${string}`,
-    clubId: string,
-    amount: string
-): Promise<{ sellPrice: bigint; sellPriceAfterFees: bigint }> => {
-    const amountWithDecimals = parseUnits(amount, DECIMALS);
-    const client = publicClient();
-
-    const [sellPrice, sellPriceAfterFees] = await Promise.all([
-        client.readContract({
-            address: LAUNCHPAD_CONTRACT_ADDRESS,
-            abi: BonsaiLaunchpadAbi,
-            functionName: "getSellPrice",
-            args: [clubId, amountWithDecimals],
-            account,
-        }) as Promise<bigint>,
-        client.readContract({
-            address: LAUNCHPAD_CONTRACT_ADDRESS,
-            abi: BonsaiLaunchpadAbi,
-            functionName: "getSellPriceAfterFees",
-            args: [clubId, amountWithDecimals],
-            account,
-        }) as Promise<bigint>,
-    ]);
-
-    return {
-        sellPrice,
-        sellPriceAfterFees,
-    };
-};
-
-export const calculatePriceDelta = (
-    price: bigint,
-    lastTradePrice: bigint
-): { valuePct: number; positive?: boolean } => {
-    if (lastTradePrice == 0n) return { valuePct: 0 };
-    const priceDelta: bigint =
-        price > lastTradePrice
-            ? price - lastTradePrice
-            : lastTradePrice - price;
-    const priceDeltaPercentage =
-        (parseFloat(formatEther(priceDelta)) * 100) /
-        parseFloat(formatEther(lastTradePrice));
-    return {
-        valuePct: parseFloat(roundedToFixed(priceDeltaPercentage, 2)),
-        positive: price > lastTradePrice,
-    };
-};
-
-export const getFeesEarned = async (
-    account: `0x${string}`
-): Promise<bigint> => {
-    const res = await publicClient().readContract({
-        address: LAUNCHPAD_CONTRACT_ADDRESS,
-        abi: BonsaiLaunchpadAbi,
-        functionName: "feesEarned",
-        args: [account],
-    });
-
-    return res as bigint;
 };
 
 export const buyChips = async (

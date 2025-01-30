@@ -76,9 +76,9 @@ export const registerClub = async (
     return { clubId };
 };
 
+// TODO: if registration fee is turned on do something here
 export const getRegistrationFee = async (
     amountEther: string,
-    curve: number,
     account?: `0x${string}`
 ): Promise<bigint> => {
     const amountWithDecimals = parseUnits(amountEther, DECIMALS);
@@ -86,8 +86,8 @@ export const getRegistrationFee = async (
     return (await client.readContract({
         address: LAUNCHPAD_CONTRACT_ADDRESS,
         abi: BonsaiLaunchpadAbi,
-        functionName: "getRegistrationFee",
-        args: [amountWithDecimals, curve],
+        functionName: "getBuyPrice",
+        args: [amountWithDecimals, "0"],
         account,
     })) as bigint;
 };

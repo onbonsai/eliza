@@ -55,9 +55,11 @@ import {
     formatTrendingClubReport,
 } from "./services/launchpad/trending.ts";
 import { generateVideoRunway } from "./services/runway.ts";
-import { launchpadAnalyticsAction } from "@elizaos/plugin-bonsai-launchpad";
+import {
+    launchpadAnalyticsAction,
+    searchToken,
+} from "@elizaos/plugin-bonsai-launchpad";
 import { promoteTokenAction } from "@elizaos/plugin-bonsai-launchpad";
-import searchToken from "./services/launchpad/searchToken.ts";
 import { parseAndUploadBase64Image } from "./utils/ipfs.ts";
 
 export const messageHandlerTemplate =
@@ -318,21 +320,6 @@ export class OrbClient {
                 );
 
                 res.json({ clubResult, formatted });
-            }
-        );
-
-        this.app.get(
-            "/bonsai-launchpad/search-token",
-            async (req: express.Request, res: express.Response) => {
-                const query = req.query.q as string;
-                if (!query) {
-                    res.status(400).json({
-                        error: "Query parameter 'q' is required",
-                    });
-                } else {
-                    const clubId = await searchToken(query);
-                    res.status(200).json({ clubId });
-                }
             }
         );
 
@@ -798,10 +785,8 @@ export class OrbClient {
                 const tickerRegex = /\$[A-Z]+/g;
                 const tickers = responseMessage.content.text.match(tickerRegex);
                 if (tickers && tickers.length > 0) {
-                    const clubId = await searchToken(
-                        tickers[0].replace("$", "")
-                    );
-                    if (clubId) launchpadTickerPresent = true;
+                    const club = await searchToken(tickers[0].replace("$", ""));
+                    if (club) launchpadTickerPresent = true;
                 }
 
                 /* generate an image */

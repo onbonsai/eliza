@@ -202,7 +202,6 @@ export const launchpadCreate: Action = {
         const initialSupply = "0"; // not buying till we have a good strategy
         // const registrationFee = await getRegistrationFee(
         //     DEFAULT_INITIAL_SUPPLY,
-        //     DEFAULT_CURVE_TYPE,
         //     address
         // );
         // const balance = await getTokenBalance(address);
@@ -232,11 +231,11 @@ export const launchpadCreate: Action = {
             tokenImage: imageURL,
             initialSupply: parseUnits(initialSupply, DECIMALS).toString(),
         };
-        const existingClubId = await searchToken(registerParams.tokenSymbol);
+        const existingClub = await searchToken(registerParams.tokenSymbol);
 
         let reply;
         let attachments;
-        if (!existingClubId) {
+        if (!existingClub) {
             const { clubId } = await registerClub(
                 wallet,
                 creator,
@@ -326,7 +325,9 @@ https://launch.bonsai.meme/token/${clubId}`;
                 reply = "Failed to create your token, try again later";
             }
         } else {
-            console.log(`skipping, token already exists: ${existingClubId}`);
+            console.log(
+                `skipping, token already exists: ${existingClub.clubId}`
+            );
             reply = `Ticker $${registerParams.tokenSymbol} already exists!`;
             attachments = [
                 {
