@@ -10,7 +10,6 @@ import {
 } from "@elizaos/core";
 import { createClientBase } from "@elizaos/client-twitter";
 import { LensAgentClient } from "@elizaos/client-lens";
-import { FarcasterAgentClient } from "@elizaos/client-farcaster";
 import { ModelClass } from "@elizaos/core";
 import { getTokenAnalytics, publicClient } from "../services/utils";
 import { getEventFromReceipt } from "../utils/viem";
@@ -137,19 +136,18 @@ export const promoteTokenAction: Action = {
             !!runtime.getSetting("TWITTER_USERNAME") &&
             !!runtime.getSetting("TWITTER_PASSWORD")
         ) {
-            const client = await createClientBase(runtime);
-            await client.init(true);
+            const client = runtime.clients.twitter?.client?.twitterClient;
             const content = `${response}
 Link below 👇`;
 
             const standardTweetResult =
-                await client.twitterClient.sendTweet(content);
+                await client.sendTweet(content);
             const body = await standardTweetResult.json();
             console.log(body);
             const tweetId =
                 body.data.create_tweet?.tweet_results?.result?.rest_id;
             if (tweetId) {
-                await client.twitterClient.sendTweet(link, tweetId);
+                await client.sendTweet(link, tweetId);
                 attachments.push({
                     button: {
                         url: `https://x.com/${client.profile.username}/status/${tweetId}`,
@@ -162,7 +160,7 @@ Link below 👇`;
             !!runtime.getSetting("EVM_PRIVATE_KEY") &&
             !!runtime.getSetting("LENS_PROFILE_ID")
         ) {
-            const lensClient = new LensAgentClient(runtime);
+            const lensClient = runtime.clients?.lens;
             const content = `${response}
         ${link}`;
             const { id: publicationId } =
@@ -180,7 +178,7 @@ Link below 👇`;
             !!runtime.getSetting("FARCASTER_NEYNAR_API_KEY") &&
             !!runtime.getSetting("FARCASTER_FID")
         ) {
-            const farcasterClient = new FarcasterAgentClient(runtime);
+            const farcasterClient = runtime.clients.farcaster;
             const fid = Number(runtime.getSetting("FARCASTER_FID")!);
             const farcasterProfile =
                 await farcasterClient.client.getProfile(fid);

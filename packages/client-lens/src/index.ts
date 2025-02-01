@@ -1,4 +1,4 @@
-import { Client, IAgentRuntime, elizaLogger } from "@elizaos/core";
+import { type Client, type IAgentRuntime, elizaLogger } from "@elizaos/core";
 import { privateKeyToAccount } from "viem/accounts";
 import { LensClient } from "./client";
 import { LensPostManager } from "./post";
@@ -46,6 +46,11 @@ export class LensAgentClient implements Client {
             cache,
             this.ipfs
         );
+
+        runtime.clients.lens = {
+            client: this.client,
+            posts: this.posts,
+        };
 
         this.interactions = new LensInteractionManager(
             this.client,

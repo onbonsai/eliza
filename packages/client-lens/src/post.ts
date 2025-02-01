@@ -1,13 +1,13 @@
 import {
     composeContext,
     generateText,
-    IAgentRuntime,
+    type IAgentRuntime,
     ModelClass,
     stringToUuid,
     elizaLogger,
     UUID,
 } from "@elizaos/core";
-import { LensClient } from "./client";
+import type { LensClient } from "./client";
 import { formatTimeline, postTemplate } from "./prompts";
 import { publicationUuid } from "./utils";
 import { createPublicationMemory } from "./memory";
