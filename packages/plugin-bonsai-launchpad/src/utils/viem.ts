@@ -1,10 +1,15 @@
 import {
     decodeEventLog,
     getAddress,
-    TransactionReceipt,
+    http,
+    createWalletClient,
     encodeAbiParameters,
     parseAbiParameters,
+    type TransactionReceipt,
+    type Chain,
+    type WalletClient,
 } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
 
 interface GetEventFromReceiptProps {
     transactionReceipt: TransactionReceipt;
@@ -28,8 +33,7 @@ export const getEventFromReceipt = ({
 }: GetEventFromReceiptProps): { args?: any } => {
     const logs: any[] = contractAddress
         ? transactionReceipt.logs.filter(
-              ({ address }) =>
-                  getAddress(address) === getAddress(contractAddress)
+              ({ address }) => getAddress(address) === getAddress(contractAddress)
           )
         : transactionReceipt.logs;
 
@@ -41,8 +45,14 @@ export const getEventFromReceipt = ({
                 return {};
             }
         })
-        .find(
-            (event: { eventName: string; args: any }) =>
-                event.eventName === eventName
-        );
+        .find((event: { eventName: string; args: any }) => event.eventName === eventName);
+};
+
+export const getWalletClient = (
+    privateKey: `0x${string}`,
+    chain: Chain,
+    rpc?: string
+): WalletClient => {
+    const account = privateKeyToAccount(privateKey);
+    return createWalletClient({ account, chain, transport: http(rpc) });
 };

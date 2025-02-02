@@ -156,9 +156,9 @@ import { ankrPlugin } from "@elizaos/plugin-ankr";
 import { formPlugin } from "@elizaos/plugin-form";
 import { MongoClient } from "mongodb";
 import { quickIntelPlugin } from "@elizaos/plugin-quick-intel";
-
 import { trikonPlugin } from "@elizaos/plugin-trikon";
 import arbitragePlugin from "@elizaos/plugin-arbitrage";
+import { bonsaiLaunchpadPlugin } from "@elizaos/plugin-bonsai-launchpad";
 const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
 const __dirname = path.dirname(__filename); // get the name of the directory
 
@@ -1301,6 +1301,7 @@ export async function createAgent(
             getSecret(character, "ARBITRAGE_BUNDLE_EXECUTOR_ADDRESS")
                 ? arbitragePlugin
                 : null,
+            getSecret(character, "EVM_PRIVATE_KEY") ? bonsaiLaunchpadPlugin : null,
         ]
             .flat()
             .filter(Boolean),

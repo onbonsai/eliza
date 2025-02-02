@@ -1,19 +1,18 @@
 import {
-    ActionExample,
+    type ActionExample,
     composeContext,
     generateText,
-    HandlerCallback,
-    IAgentRuntime,
-    Memory,
-    State,
+    type HandlerCallback,
+    type IAgentRuntime,
+    type Memory,
+    type State,
     type Action,
 } from "@elizaos/core";
-import { createClientBase } from "@elizaos/client-twitter";
-import { LensAgentClient } from "@elizaos/client-lens";
-import { ModelClass } from "@elizaos/core";
-import { getTokenAnalytics, publicClient } from "../services/utils";
-import { getEventFromReceipt } from "../utils/viem";
 import { erc20Abi } from "viem";
+import { ModelClass } from "@elizaos/core";
+import { getTokenAnalytics } from "../helpers/utils";
+import { getEventFromReceipt } from "../utils/viem";
+import { publicClient } from "../helpers/contract";
 
 const messageHandlerTemplate = `Provide some commentary to this token analytics report, something that provides extra value in the form of insight, entertainment, or something witty about the token. Do not provide more than two stats from the report.
 
@@ -53,25 +52,27 @@ const _verifyTransfer = async (
     );
 };
 
+interface StatePayloadPromoteToken {
+    verifyTransfer: VerifyTransferParams;
+    userId: `0x${string}`;
+}
+
 export const promoteTokenAction: Action = {
     name: "PROMOTE_LAUNCHPAD_TOKEN",
     similes: ["SHILL_LAUNCHPAD_TOKEN"],
     validate: async (runtime: IAgentRuntime, _: Memory) => {
         const enabledTwitter =
-            !!runtime.getSetting("TWITTER_USERNAME") &&
-            !!runtime.getSetting("TWITTER_PASSWORD");
+            !!runtime.getSetting("TWITTER_USERNAME") && !!runtime.getSetting("TWITTER_PASSWORD");
         const enabledFarcaster =
             !!runtime.getSetting("FARCASTER_NEYNAR_SIGNER_UUID") &&
             !!runtime.getSetting("FARCASTER_NEYNAR_API_KEY") &&
             !!runtime.getSetting("FARCASTER_FID");
         const enabledLens =
-            !!runtime.getSetting("EVM_PRIVATE_KEY") &&
-            !!runtime.getSetting("LENS_PROFILE_ID");
+            !!runtime.getSetting("EVM_PRIVATE_KEY") && !!runtime.getSetting("LENS_PROFILE_ID");
 
         return enabledTwitter || enabledFarcaster || enabledLens;
     },
-    description:
-        "Creates social posts to promote a token from the Bonsai Launchpad",
+    description: "Creates social posts to promote a token from the Bonsai Launchpad",
     handler: async (
         runtime: IAgentRuntime,
         message: Memory,
@@ -79,6 +80,7 @@ export const promoteTokenAction: Action = {
         _options: { [key: string]: unknown },
         callback?: HandlerCallback
     ): Promise<{}> => {
+        const { verifyTransfer, userId } = state.payload as StatePayloadPromoteToken;
         const symbolMatch = message.content.text.match(/\$(\w+)/);
         const symbol = symbolMatch ? symbolMatch[0] : null;
 
@@ -92,10 +94,6 @@ export const promoteTokenAction: Action = {
         console.log(`parsed symbol: ${symbol}`);
 
         // verify payment
-        const { verifyTransfer, userId } = state.payload as {
-            verifyTransfer: VerifyTransferParams;
-            userId: `0x${string}`;
-        };
         if (!(verifyTransfer && userId)) {
             callback?.({
                 text: "Missing required verifyTransfer object or userId string in state.payload",
@@ -129,23 +127,18 @@ export const promoteTokenAction: Action = {
             modelClass: ModelClass.MEDIUM,
         });
 
-        let attachments = [];
+        const attachments = [];
 
         // post to x, lens, farcaster
-        if (
-            !!runtime.getSetting("TWITTER_USERNAME") &&
-            !!runtime.getSetting("TWITTER_PASSWORD")
-        ) {
+        if (!!runtime.getSetting("TWITTER_USERNAME") && !!runtime.getSetting("TWITTER_PASSWORD")) {
             const client = runtime.clients.twitter?.client?.twitterClient;
             const content = `${response}
 Link below 👇`;
 
-            const standardTweetResult =
-                await client.sendTweet(content);
+            const standardTweetResult = await client.sendTweet(content);
             const body = await standardTweetResult.json();
             console.log(body);
-            const tweetId =
-                body.data.create_tweet?.tweet_results?.result?.rest_id;
+            const tweetId = body.data.create_tweet?.tweet_results?.result?.rest_id;
             if (tweetId) {
                 await client.sendTweet(link, tweetId);
                 attachments.push({
@@ -156,15 +149,11 @@ Link below 👇`;
             }
         }
 
-        if (
-            !!runtime.getSetting("EVM_PRIVATE_KEY") &&
-            !!runtime.getSetting("LENS_PROFILE_ID")
-        ) {
+        if (!!runtime.getSetting("EVM_PRIVATE_KEY") && !!runtime.getSetting("LENS_PROFILE_ID")) {
             const lensClient = runtime.clients?.lens;
             const content = `${response}
         ${link}`;
-            const { id: publicationId } =
-                await lensClient.posts.sendPublication({ content });
+            const { id: publicationId } = await lensClient.posts.sendPublication({ content });
 
             attachments.push({
                 button: {
@@ -180,8 +169,7 @@ Link below 👇`;
         ) {
             const farcasterClient = runtime.clients.farcaster;
             const fid = Number(runtime.getSetting("FARCASTER_FID")!);
-            const farcasterProfile =
-                await farcasterClient.client.getProfile(fid);
+            const farcasterProfile = await farcasterClient.client.getProfile(fid);
             const content = response;
             const { hash: castHash } = await farcasterClient.posts.sendCast({
                 content,

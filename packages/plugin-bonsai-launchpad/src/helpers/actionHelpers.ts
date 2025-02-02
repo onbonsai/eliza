@@ -35,9 +35,7 @@ export const getTopGainersAnalytics = async () => {
 
     while (hasMore) {
         const { trades, hasMore: moreAvailable } = await getAllTrades(page);
-        const recentTrades = trades.filter(
-            (trade) => trade.createdAt >= twentyFourHoursAgo
-        );
+        const recentTrades = trades.filter((trade) => trade.createdAt >= twentyFourHoursAgo);
 
         // If we've gone past 24h trades, stop
         if (recentTrades.length < trades.length) {
@@ -58,6 +56,10 @@ export const getTopGainersAnalytics = async () => {
                 acc[clubId] = {
                     clubId,
                     tokenInfo: trade.club.tokenInfo,
+                    name: trade.club.name,
+                    symbol: trade.club.symbol,
+                    uri: trade.club.uri,
+                    v2: trade.club.v2,
                     firstTrade: trade,
                     lastTrade: trade,
                     complete: trade.club.complete,
@@ -79,21 +81,22 @@ export const getTopGainersAnalytics = async () => {
     const gainers = Object.values(clubPrices)
         .filter((club) => !club.complete)
         .map((club) => {
-            const [, symbol] = decodeAbiParameters(
-                [
-                    { name: "name", type: "string" },
-                    { name: "symbol", type: "string" },
-                    { name: "uri", type: "string" },
-                ],
-                club.tokenInfo
-            );
+            let symbol = club.symbol;
+            if (!symbol && club.tokenInfo) {
+                [, symbol] = decodeAbiParameters(
+                    [
+                        { name: "name", type: "string" },
+                        { name: "symbol", type: "string" },
+                        { name: "uri", type: "string" },
+                    ],
+                    club.tokenInfo
+                );
+            }
 
-            const startPrice = parseFloat(
+            const startPrice = Number.parseFloat(
                 formatUnits(BigInt(club.firstTrade.price), DECIMALS)
             );
-            const endPrice = parseFloat(
-                formatUnits(BigInt(club.lastTrade.price), DECIMALS)
-            );
+            const endPrice = Number.parseFloat(formatUnits(BigInt(club.lastTrade.price), DECIMALS));
             const priceChange = (endPrice / startPrice - 1) * 100;
 
             return {
@@ -115,14 +118,12 @@ export const getTopGainersAnalytics = async () => {
 export const getLiquidityAnalytics = async () => {
     let response;
     const { clubs } = await getRegisteredClubs();
-    const liquid = clubs
-        .sort((a, b) => Number(b.liquidity) - Number(a.liquidity))
-        .slice(0, 5);
+    const liquid = clubs.sort((a, b) => Number(b.liquidity) - Number(a.liquidity)).slice(0, 5);
 
     response = "Tokens with highest liquidity:\n";
     liquid.forEach((club, i) => {
         const liquidity = formatUnits(BigInt(club.liquidity), DECIMALS);
-        response += `${i + 1}. $${club.token.symbol}: $${parseFloat(liquidity).toFixed(2)}\n`;
+        response += `${i + 1}. $${club.token.symbol}: $${Number.parseFloat(liquidity).toFixed(2)}\n`;
     });
     return response;
 };
@@ -146,9 +147,7 @@ export const getDailyStatsAnalytics = async () => {
     let response;
     const stats = await getVolumeStats();
     const { clubs } = await getRegisteredClubs();
-    const newTokens = clubs.filter(
-        (c) => Date.now() - c.createdAt * 1000 < 24 * 60 * 60 * 1000
-    );
+    const newTokens = clubs.filter((c) => Date.now() - c.createdAt * 1000 < 24 * 60 * 60 * 1000);
 
     response = `Last 24 hours on the launchpad:\n`;
     response += `• Trading Volume: $${stats.last24hVolume}\n`;
@@ -177,9 +176,7 @@ export const getTrendingAnalytics = async () => {
     trending.forEach((data, index) => {
         const symbol = data.token?.symbol || data.id;
         // Since the volume isn't in the current data structure, we'll use marketCap or liquidity
-        const volume = parseFloat(
-            formatUnits(BigInt(data.liquidity), DECIMALS)
-        );
+        const volume = Number.parseFloat(formatUnits(BigInt(data.liquidity), DECIMALS));
         response += `${index + 1}. $${symbol}: $${volume.toFixed(2)} liquidity\n`;
     });
     return response;
@@ -188,20 +185,22 @@ export const getTrendingAnalytics = async () => {
 export const getNewestTokensAnalytics = async () => {
     let response;
     const { clubs } = await getRegisteredClubs();
-    const latestFive = clubs
-        .sort((a, b) => Number(b.createdAt) - Number(a.createdAt))
-        .slice(0, 5);
+    const latestFive = clubs.sort((a, b) => Number(b.createdAt) - Number(a.createdAt)).slice(0, 5);
 
     response = "Latest tokens created:\n";
     latestFive.forEach((club, index) => {
-        const [name, symbol] = decodeAbiParameters(
-            [
-                { name: "name", type: "string" },
-                { name: "symbol", type: "string" },
-                { name: "uri", type: "string" },
-            ],
-            club.tokenInfo
-        );
+        let { name, symbol } = club;
+
+        if (!name && !symbol && club.tokenInfo) {
+            [name, symbol] = decodeAbiParameters(
+                [
+                    { name: "name", type: "string" },
+                    { name: "symbol", type: "string" },
+                    { name: "uri", type: "string" },
+                ],
+                club.tokenInfo
+            );
+        }
 
         response += `${index + 1}. $${symbol}\n`;
         response += `   • Created: ${new Date(club.createdAt * 1000).toLocaleString()}\n`;

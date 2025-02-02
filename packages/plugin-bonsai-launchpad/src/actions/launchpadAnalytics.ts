@@ -1,15 +1,15 @@
 import {
-    Action,
+    type Action,
     composeContext,
     generateObjectDeprecated,
-    HandlerCallback,
-    IAgentRuntime,
-    Memory,
+    type HandlerCallback,
+    type IAgentRuntime,
+    type Memory,
     ModelClass,
-    State,
+    type State,
 } from "@elizaos/core";
 import { technicalAnalysis } from "@elizaos/plugin-token-analysis";
-import { getTokenAnalytics } from "../services/utils";
+import { getTokenAnalytics } from "../helpers/utils";
 import {
     formatActiveTokenAnalytics,
     getDailyStatsAnalytics,
@@ -19,7 +19,7 @@ import {
     getTopGainersAnalytics,
     getTrendingAnalytics,
     getVolumeAnalytics,
-} from "../services/actionHelpers";
+} from "../helpers/actionHelpers";
 import { z } from "zod";
 
 const ACTION = "LAUNCHPAD_ANALYTICS";
@@ -100,10 +100,7 @@ export const launchpadAnalyticsAction = {
     ) => {
         const messageContext = composeContext({
             state,
-            template: analyticsMessageTemplate.replace(
-                "{{userMessage}}",
-                message.content.text
-            ),
+            template: analyticsMessageTemplate.replace("{{userMessage}}", message.content.text),
         });
 
         const response = await generateObjectDeprecated({
@@ -122,7 +119,7 @@ export const launchpadAnalyticsAction = {
         //     return;
         // }
 
-        let { operation, symbol } = response;
+        const { operation, symbol } = response;
 
         // // for some reason it likes to return this sometimes instead of "operation"
         // if (response.object[", "]) {

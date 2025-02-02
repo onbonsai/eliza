@@ -1,30 +1,11 @@
 import { GraphQLClient, gql } from "graphql-request";
-import {
-    createPublicClient,
-    http,
-    parseUnits,
-    TransactionReceipt,
-    zeroAddress,
-    erc20Abi,
-    maxUint256,
-    decodeAbiParameters,
-    formatUnits,
-    Chain,
-} from "viem";
+import { decodeAbiParameters, formatUnits, type Chain } from "viem";
 import { base, baseSepolia } from "viem/chains";
 import pkg from "lodash/collection";
 const { groupBy } = pkg;
-import { Wallet } from "@coinbase/coinbase-sdk";
-import BonsaiLaunchpadAbi from "./BonsaiLaunchpad"; // v2
-import { toHexString } from "../utils/utils";
-import { CHAIN_TO_RPC } from "../utils/constants";
-import { searchToken } from "./searchToken";
 
-export const IS_PRODUCTION = true; // NOTE: always true
+export const IS_PRODUCTION = true; // NOTE: always true unless in dev mode
 export const CHAIN: Chain = IS_PRODUCTION ? base : baseSepolia;
-export const LAUNCHPAD_CONTRACT_ADDRESS = IS_PRODUCTION
-    ? "0xA44dD13Bd66C4C4aDF8F70c3DFA26334764C1d64" // TODO: v2
-    : "0x7EDE9a32e8bCD20dcaF962de5EC3Fa0b95705692"; // v2
 
 const REGISTERED_CLUB = gql`
     query Club(
@@ -47,8 +28,8 @@ const REGISTERED_CLUB = gql`
             liquidity
             complete
             completedAt
-            tokenInfo
             tokenAddress
+            tokenInfo
             name
             symbol
             uri
@@ -137,6 +118,10 @@ const ALL_CLUB_TRADES_PAGINATED = gql`
             club {
                 clubId
                 tokenInfo
+                name
+                symbol
+                uri
+                v2
             }
             price
             txPrice
@@ -166,7 +151,7 @@ const CLUB_TRADES_LATEST = gql`
 
 const REGISTERED_CLUBS = gql`
     query Clubs($skip: Int!) {
-        clubs(orderBy: supply, orderDirection: desc, first: 50, skip: $skip) {
+        clubs(orderBy: supply, orderDirection: desc, first: 50, skip: $skip, where:{v2: true}) {
             id
             clubId
             creator
@@ -179,7 +164,6 @@ const REGISTERED_CLUBS = gql`
             holders
             marketCap
             complete
-            tokenInfo
             name
             symbol
             uri
@@ -193,6 +177,7 @@ const SEARCH_CLUBS = gql`
     query SearchClubs($query: String!) {
         clubs(
             where: {
+                v2: true,
                 or: [
                     { symbol_contains_nocase: $query }
                     { name_contains_nocase: $query }
@@ -234,9 +219,7 @@ export function baseScanUrl(txHash: string) {
 }
 
 export const subgraphClient = () => {
-    const uri = IS_PRODUCTION
-        ? MONEY_CLUBS_SUBGRAPH_URL
-        : MONEY_CLUBS_SUBGRAPH_TESTNET_URL;
+    const uri = IS_PRODUCTION ? MONEY_CLUBS_SUBGRAPH_URL : MONEY_CLUBS_SUBGRAPH_TESTNET_URL;
     return new GraphQLClient(uri);
 };
 
@@ -244,44 +227,41 @@ export const getTokenAnalytics = async (symbol: string) => {
     const club = await searchToken(symbol);
     if (!club) return null;
 
-    const price = formatUnits(BigInt(club.currentPrice), DECIMALS);
-    const marketCap = formatUnits(
-        BigInt(club.supply) * BigInt(club.currentPrice),
-        DECIMALS * 2
-    );
-    const liquidity = formatUnits(BigInt(club.liquidity), DECIMALS);
+    const price = formatUnits(BigInt(club.currentPrice), USDC_DECIMALS);
+    const marketCap = formatUnits(BigInt(club.supply) * BigInt(club.currentPrice), DECIMALS * 2);
+    const liquidity = formatUnits(BigInt(club.liquidity), USDC_DECIMALS);
 
     const priceChange24h = club["24h"]
-        ? (parseFloat(formatUnits(BigInt(club["24h"].price), DECIMALS)) /
-              parseFloat(formatUnits(BigInt(club["24h"].prevPrice), DECIMALS)) -
+        ? (Number.parseFloat(formatUnits(BigInt(club["24h"].price), USDC_DECIMALS)) /
+              Number.parseFloat(formatUnits(BigInt(club["24h"].prevPrice), USDC_DECIMALS)) -
               1) *
           100
         : 0;
 
     const priceChange6h = club["6h"]
-        ? (parseFloat(formatUnits(BigInt(club["6h"].price), DECIMALS)) /
-              parseFloat(formatUnits(BigInt(club["6h"].prevPrice), DECIMALS)) -
+        ? (Number.parseFloat(formatUnits(BigInt(club["6h"].price), USDC_DECIMALS)) /
+              Number.parseFloat(formatUnits(BigInt(club["6h"].prevPrice), USDC_DECIMALS)) -
               1) *
           100
         : 0;
 
     const priceChange1h = club["1h"]
-        ? (parseFloat(formatUnits(BigInt(club["1h"].price), DECIMALS)) /
-              parseFloat(formatUnits(BigInt(club["1h"].prevPrice), DECIMALS)) -
+        ? (Number.parseFloat(formatUnits(BigInt(club["1h"].price), USDC_DECIMALS)) /
+              Number.parseFloat(formatUnits(BigInt(club["1h"].prevPrice), USDC_DECIMALS)) -
               1) *
           100
         : 0;
 
     const priceChange5m = club["5m"]
-        ? (parseFloat(formatUnits(BigInt(club["5m"].price), DECIMALS)) /
-              parseFloat(formatUnits(BigInt(club["5m"].prevPrice), DECIMALS)) -
+        ? (Number.parseFloat(formatUnits(BigInt(club["5m"].price), USDC_DECIMALS)) /
+              Number.parseFloat(formatUnits(BigInt(club["5m"].prevPrice), USDC_DECIMALS)) -
               1) *
           100
         : 0;
 
     let { name: clubName, symbol: clubSymbol } = club;
 
-    if (!club.name || !club.symbol) {
+    if ((!club.name || !club.symbol) && club.tokenInfo) {
         [clubName, clubSymbol] = decodeAbiParameters(
             [
                 { name: "name", type: "string" },
@@ -294,24 +274,24 @@ export const getTokenAnalytics = async (symbol: string) => {
     return {
         name: clubName,
         symbol: clubSymbol,
-        price: parseFloat(price).toFixed(6),
+        price: Number.parseFloat(price).toFixed(6),
         priceChange24h: priceChange24h.toFixed(2),
         priceChange6h: priceChange6h.toFixed(2),
         priceChange1h: priceChange1h.toFixed(2),
         priceChange5m: priceChange5m.toFixed(2),
         marketCap: marketCap,
-        liquidity: parseFloat(liquidity).toFixed(2),
+        liquidity: Number.parseFloat(liquidity).toFixed(2),
         holders: club.holders,
-        clubId,
+        clubId: club.clubId,
         complete: club.complete,
         tokenAddress: club.tokenAddress,
         createdAt: club.createdAt,
         v2: club.v2,
-        age: Math.floor((Date.now() / 1000 - club.createdAt) / (60 * 60 * 24)),
+        age: Math.floor((Date.now() / 1000 - Number.parseInt(club.createdAt)) / (60 * 60 * 24)),
     };
 };
 
-export const getTrendingClub = async (count: number = 1) => {
+export const getTrendingClub = async (count = 1) => {
     try {
         const trades = await getLatestTrades();
         const grouped = groupBy(trades, "club.clubId");
@@ -320,8 +300,7 @@ export const getTrendingClub = async (count: number = 1) => {
         const clubVolumes = Object.entries(grouped).map(([clubId, trades]) => {
             const volume = trades.reduce(
                 (acc, trade) =>
-                    acc +
-                    parseFloat(formatUnits(BigInt(trade.price), DECIMALS)),
+                    acc + Number.parseFloat(formatUnits(BigInt(trade.price), USDC_DECIMALS)),
                 0
             );
             return [
@@ -345,7 +324,7 @@ export const getTrendingClub = async (count: number = 1) => {
                 const club = await getRegisteredClubById(clubId);
                 let { name, symbol, uri: image } = club;
 
-                if (!club.name || !club.symbol || !club.uri) {
+                if ((!club.name || !club.symbol || !club.uri) && club.tokenInfo) {
                     [name, symbol, image] = decodeAbiParameters(
                         [
                             { name: "name", type: "string" },
@@ -356,10 +335,8 @@ export const getTrendingClub = async (count: number = 1) => {
                     );
                 }
 
-                const volume =
-                    clubVolumes.find(([id]) => id === clubId)?.[1].volume || 0;
-                const trades =
-                    clubVolumes.find(([id]) => id === clubId)?.[1].trades || 0;
+                const volume = clubVolumes.find(([id]) => id === clubId)?.[1].volume || 0;
+                const trades = clubVolumes.find(([id]) => id === clubId)?.[1].trades || 0;
 
                 club.marketCap = formatUnits(
                     BigInt(club.supply) * BigInt(club.currentPrice),
@@ -387,7 +364,7 @@ export const getTrendingClub = async (count: number = 1) => {
 };
 
 export const getRegisteredClubById = async (clubId: string) => {
-    const id = toHexString(parseInt(clubId));
+    const id = toHexString(Number.parseInt(clubId));
     const now = Date.now();
     const twentyFourHoursAgo = Math.floor(now / 1000) - 24 * 60 * 60;
     const sixHoursAgo = Math.floor(now / 1000) - 6 * 60 * 60;
@@ -417,9 +394,7 @@ export const getRegisteredClubById = async (clubId: string) => {
     };
 };
 
-export const getRegisteredClubs = async (
-    page = 0
-): Promise<{ clubs: any[]; hasMore: boolean }> => {
+export const getRegisteredClubs = async (page = 0): Promise<{ clubs: any[]; hasMore: boolean }> => {
     const client = subgraphClient();
     const limit = 50;
     const skip = page * limit;
@@ -427,21 +402,10 @@ export const getRegisteredClubs = async (
     try {
         const { clubs } = await client.request(REGISTERED_CLUBS, { skip });
 
-        // Process clubs to decode tokenInfo
+        // Process clubs to set token and marketCap
         const processedClubs = clubs?.map((club) => {
             try {
-                let { name, symbol, uri: image } = club;
-                if (!club.name || !club.symbol || !club.uri) {
-                    [name, symbol, image] = decodeAbiParameters(
-                        [
-                            { name: "name", type: "string" },
-                            { name: "symbol", type: "string" },
-                            { name: "uri", type: "string" },
-                        ],
-                        club.tokenInfo
-                    );
-                }
-
+                const { name, symbol, uri: image } = club;
                 return {
                     ...club,
                     token: {
@@ -471,9 +435,7 @@ export const getRegisteredClubs = async (
 };
 
 export const getVolumeStats = async () => {
-    const twentyFourHoursAgo = Math.floor(
-        (Date.now() - 24 * 60 * 60 * 1000) / 1000
-    );
+    const twentyFourHoursAgo = Math.floor((Date.now() - 24 * 60 * 60 * 1000) / 1000);
     let page = 0;
     let hasMore = true;
     let totalVolume = 0;
@@ -483,9 +445,7 @@ export const getVolumeStats = async () => {
         const { trades, hasMore: hasMoreTrades } = await getAllTrades(page); // Empty string gets all trades
 
         // Filter trades from last 24h and calculate volume
-        const recentTrades = trades.filter(
-            (trade) => trade.createdAt >= twentyFourHoursAgo
-        );
+        const recentTrades = trades.filter((trade) => trade.createdAt >= twentyFourHoursAgo);
 
         // If all trades in this batch are older than 24h, we can stop
         if (recentTrades.length === 0 && trades.length > 0) {
@@ -494,7 +454,7 @@ export const getVolumeStats = async () => {
         }
 
         totalVolume += recentTrades.reduce(
-            (acc, trade) => acc + parseFloat(trade.txPrice),
+            (acc, trade) => acc + Number.parseFloat(trade.txPrice),
             0
         );
         totalTrades += recentTrades.length;
@@ -504,7 +464,7 @@ export const getVolumeStats = async () => {
     }
 
     return {
-        last24hVolume: parseFloat(formatUnits(totalVolume, DECIMALS)),
+        last24hVolume: Number.parseFloat(formatUnits(totalVolume, DECIMALS)),
         tradeCount: totalTrades,
     };
 };
@@ -513,7 +473,7 @@ export const getTrades = async (
     clubId: string,
     page = 0
 ): Promise<{ trades: any[]; hasMore: boolean }> => {
-    const id = toHexString(parseInt(clubId));
+    const id = toHexString(Number.parseInt(clubId));
     const client = subgraphClient();
     const limit = 50;
     const skip = page * limit;
@@ -526,9 +486,7 @@ export const getTrades = async (
     return { trades: trades || [], hasMore: trades?.length == limit };
 };
 
-export const getAllTrades = async (
-    page = 0
-): Promise<{ trades: any[]; hasMore: boolean }> => {
+export const getAllTrades = async (page = 0): Promise<{ trades: any[]; hasMore: boolean }> => {
     const client = subgraphClient();
     const limit = 50;
     const skip = page * limit;
@@ -547,106 +505,23 @@ export const getLatestTrades = async (): Promise<any[]> => {
     return trades || [];
 };
 
-export const searchClubs = async (query: string) => {
+export const searchToken = async (query: string): Promise<any | undefined> => {
     const client = subgraphClient();
+    query = query.replace("$", "");
+
     const { clubs } = await client.request(SEARCH_CLUBS, { query });
-    return clubs
+    const res = clubs
         ?.map((club) => {
             if (!club.v2) return;
-            const { name, symbol, image } = club;
+            const { name, symbol, uri: image } = club;
             return { token: { name, symbol, image }, ...club };
         })
         .filter((c) => c);
+
+    return res?.length ? res[0] : undefined;
 };
 
-export const publicClient = () => {
-    const chain = IS_PRODUCTION ? base : baseSepolia;
-    return createPublicClient({
-        chain,
-        transport: http(CHAIN_TO_RPC[chain.id]),
-    });
-};
-
-export const buyChips = async (
-    wallet: Wallet,
-    recipient: `0x${string}`,
-    clubId: string,
-    buyAmount: string,
-    clientAddress: `0x${string}` = zeroAddress
-) => {
-    const amountWithDecimals = parseUnits(buyAmount, DECIMALS);
-    const contractInvocation = await wallet.invokeContract({
-        contractAddress: LAUNCHPAD_CONTRACT_ADDRESS,
-        abi: BonsaiLaunchpadAbi,
-        method: "buyChips",
-        args: [clubId, amountWithDecimals, clientAddress, recipient],
-    });
-    await contractInvocation.wait();
-    const hash = contractInvocation.getTransactionHash();
-    console.log(`tx: ${hash}`);
-    const receipt: TransactionReceipt =
-        await publicClient().waitForTransactionReceipt({
-            hash: hash as `0x${string}`,
-        });
-
-    if (receipt.status === "reverted") throw new Error("Reverted");
-};
-
-export const sellChips = async (
-    wallet: Wallet,
-    clubId: string,
-    sellAmount: string
-) => {
-    const amountWithDecimals = parseUnits(sellAmount, DECIMALS);
-    const contractInvocation = await wallet.invokeContract({
-        contractAddress: LAUNCHPAD_CONTRACT_ADDRESS,
-        abi: BonsaiLaunchpadAbi,
-        method: "sellChips",
-        args: [clubId, amountWithDecimals, zeroAddress],
-    });
-    await contractInvocation.wait();
-    const hash = contractInvocation.getTransactionHash();
-    console.log(`tx: ${hash}`);
-    const receipt: TransactionReceipt =
-        await publicClient().waitForTransactionReceipt({
-            hash: hash as `0x${string}`,
-        });
-
-    if (receipt.status === "reverted") throw new Error("Reverted");
-};
-
-export const approveToken = async (token: string, wallet: Wallet) => {
-    const [address] = await wallet.listAddresses();
-    const user = address.getId() as `0x${string}`;
-    const allowance = await publicClient().readContract({
-        address: token as `0x${string}`,
-        abi: erc20Abi,
-        functionName: "allowance",
-        args: [user, LAUNCHPAD_CONTRACT_ADDRESS],
-    });
-
-    if (allowance == 0n) {
-        const contractInvocation = await wallet.invokeContract({
-            contractAddress: token,
-            method: "approve",
-            args: {
-                spender: LAUNCHPAD_CONTRACT_ADDRESS,
-                amount: maxUint256.toString(),
-            },
-            abi: erc20Abi,
-        });
-
-        const hash = contractInvocation.getTransactionHash();
-        console.log(`tx: ${hash}`);
-        await contractInvocation.wait();
-    }
-};
-
-export const roundedToFixed = (input: number, digits = 4): string => {
-    const rounder = Math.pow(10, digits);
-    const value = Math.round(input * rounder) / rounder;
-    return value.toLocaleString(undefined, {
-        minimumFractionDigits: digits,
-        maximumFractionDigits: digits,
-    });
+const toHexString = (id: number) => {
+    const hexValue = id.toString(16);
+    return `0x${hexValue.length === 3 ? hexValue.padStart(4, "0") : hexValue.padStart(2, "0")}`;
 };

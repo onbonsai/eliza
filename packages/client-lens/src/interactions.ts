@@ -9,6 +9,7 @@ import {
     type HandlerCallback,
     type Content,
     type IAgentRuntime,
+    Clients,
 } from "@elizaos/core";
 import type { LensClient } from "./client";
 import { toHex } from "viem";
@@ -299,6 +300,14 @@ export class LensInteractionManager {
         const responseMessages = await callback(responseContent);
 
         const newState = await this.runtime.updateRecentMessageState(state);
+
+        // payload for plugin-bonsai-launchpad
+        newState.payload = {
+            client: Clients.LENS,
+            replyTo: {
+                lensPubId: publication.id
+            },
+        };
 
         await this.runtime.processActions(
             memory,

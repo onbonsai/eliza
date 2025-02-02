@@ -1,26 +1,27 @@
 import bodyParser from "body-parser";
 import cors from "cors";
-import express, { Request as ExpressRequest } from "express";
-import { Server as HttpServer, createServer } from "http";
-import { Server as SocketIOServer, ServerOptions } from "socket.io";
+import express from "express";
+import { type Server as HttpServer, createServer } from "node:http";
+import { Server as SocketIOServer, type ServerOptions } from "socket.io";
 import { v4 as uuid } from "uuid";
 import {
     generateImage,
     generateText,
-    Content,
-    Memory,
-    ModelClass,
-    State,
-    Client,
-    IAgentRuntime,
-    UUID,
     composeContext,
     generateMessageResponse,
     messageCompletionFooter,
-    AgentRuntime,
     stringToUuid,
     settings,
     ModelProviderName,
+    ModelClass,
+    Clients,
+    type Content,
+    type Memory,
+    type State,
+    type Client,
+    type IAgentRuntime,
+    type UUID,
+    type AgentRuntime,
 } from "@elizaos/core";
 import { isAddress } from "viem";
 import createPost from "./services/orb/createPost";
@@ -30,7 +31,6 @@ import { mintProfile } from "./services/lens/mintProfile";
 import { getClient } from "./services/mongo";
 import parseJwt from "./services/lens/parseJwt";
 import { updateProfile } from "./services/lens/updateProfile";
-// import { addDelegators } from "./services/lens/addDelegators";
 import {
     downloadVideoBuffer,
     getLensImageURL,
@@ -40,12 +40,9 @@ import { tipPublication } from "./services/orb/tip";
 import handleUserTips from "./utils/handleUserTips";
 import ContentJudgementService from "./services/critic";
 import { updatePointsWithProfileId } from "./services/stack";
-import createPostAction from "./actions/createPost";
 import searchTokenAction from "./actions/searchToken";
-import { launchpadCreate } from "./actions/launchpadCreate";
 import { sendMessage } from "./services/orb/sendMessage";
 import { tokenAnalysisPlugin } from "@elizaos/plugin-token-analysis";
-import { createClientBase } from "@elizaos/client-twitter";
 import { DEXSCREENER_URL } from "./services/codex";
 import { fetchFeed } from "./services/lens/fetchFeed";
 import { searchLensForTerm } from "./services/lens/search.ts";
@@ -55,11 +52,6 @@ import {
     formatTrendingClubReport,
 } from "./services/launchpad/trending.ts";
 import { generateVideoRunway } from "./services/runway.ts";
-import {
-    launchpadAnalyticsAction,
-    searchToken,
-} from "@elizaos/plugin-bonsai-launchpad";
-import { promoteTokenAction } from "@elizaos/plugin-bonsai-launchpad";
 import { parseAndUploadBase64Image } from "./utils/ipfs.ts";
 
 export const messageHandlerTemplate =
@@ -194,69 +186,6 @@ export class OrbClient {
 
         this.initializeWebSocket();
 
-        /* test endpoint for launchpad analysis */
-        this.app.post(
-            "/:agentId/launchpad-analysis",
-            async (req: express.Request, res: express.Response) => {
-                console.log("Launchpad Analysis");
-                const agentId = req.params.agentId;
-                const roomId =
-                    req.body.roomId || stringToUuid("default-room-" + agentId);
-                const userId = stringToUuid(req.body.userId ?? "user");
-
-                let runtime = this.agents.get(agentId);
-
-                // if runtime is null, look for runtime with the same name
-                if (!runtime) {
-                    runtime = Array.from(this.agents.values()).find(
-                        (a) =>
-                            a.character.name.toLowerCase() ===
-                            agentId.toLowerCase()
-                    );
-                }
-
-                if (!runtime) {
-                    res.status(404).send("Agent not found");
-                    return;
-                }
-
-                await runtime.ensureConnection(
-                    userId,
-                    roomId,
-                    req.body.userName,
-                    req.body.name,
-                    "direct"
-                );
-
-                const text = req.body.text;
-                const messageId = stringToUuid(Date.now().toString());
-
-                const content: Content = {
-                    text,
-                    attachments: [],
-                    source: "direct",
-                    inReplyTo: undefined,
-                };
-
-                const memory: Memory = {
-                    id: messageId,
-                    agentId: runtime.agentId,
-                    userId,
-                    roomId,
-                    content,
-                    createdAt: Date.now(),
-                };
-
-                await runtime.messageManager.createMemory(memory);
-
-                const result = await launchpadAnalyticsAction.handler(
-                    runtime,
-                    memory
-                );
-                res.json({ result });
-            }
-        );
-
         /* endpoint for get and rating a trending club */
         this.app.post(
             "/:agentId/trending-club",
@@ -330,67 +259,6 @@ export class OrbClient {
                 const queryTerm = req.body.query;
                 const lensResults = await searchLensForTerm(queryTerm);
                 res.json(lensResults);
-            }
-        );
-
-        /* test endpoint for token ratings */
-        this.app.post(
-            "/:agentId/score-token",
-            async (req: express.Request, res: express.Response) => {
-                console.log("Score Token");
-                const agentId = req.params.agentId;
-                const roomId =
-                    req.body.roomId || stringToUuid("default-room-" + agentId);
-                const userId = stringToUuid(req.body.userId ?? "user");
-
-                let runtime = this.agents.get(agentId);
-
-                // if runtime is null, look for runtime with the same name
-                if (!runtime) {
-                    runtime = Array.from(this.agents.values()).find(
-                        (a) =>
-                            a.character.name.toLowerCase() ===
-                            agentId.toLowerCase()
-                    );
-                }
-
-                if (!runtime) {
-                    res.status(404).send("Agent not found");
-                    return;
-                }
-
-                await runtime.ensureConnection(
-                    userId,
-                    roomId,
-                    req.body.userName,
-                    req.body.name,
-                    "direct"
-                );
-
-                const text = req.body.text;
-                const messageId = stringToUuid(Date.now().toString());
-
-                const content: Content = {
-                    text,
-                    attachments: [],
-                    source: "direct",
-                    inReplyTo: undefined,
-                };
-
-                const memory: Memory = {
-                    id: messageId,
-                    agentId: runtime.agentId,
-                    userId,
-                    roomId,
-                    content,
-                    createdAt: Date.now(),
-                };
-
-                await runtime.messageManager.createMemory(memory);
-
-                const tokenScoreAction = tokenAnalysisPlugin.actions[0];
-                const result = await tokenScoreAction.handler(runtime, memory);
-                res.json(result);
             }
         );
 
@@ -1107,7 +975,7 @@ export class OrbClient {
             async (req: express.Request, res: express.Response) => {
                 // TODO: authorization
                 const params = req.body;
-                if (params.profileId == "0x088d93") {
+                if (params.profileId === "0x088d93") {
                     res.status(500).send("no reply to self");
                     return;
                 }
@@ -1178,11 +1046,13 @@ export class OrbClient {
                 const state = (await runtime.composeState(userMessage, {
                     agentName: runtime.character.name,
                 })) as State;
-                state.params = {
-                    ...params,
-                    lens: params.publicationData.lens,
-                    publication_id: params.publicationId,
-                    profile_id: params.profileId,
+
+                // payload for plugin-bonsai-launchpad
+                state.payload = {
+                    client: Clients.LENS,
+                    replyTo: {
+                        lensPubId: params.publicationId
+                    }
                 };
                 state.userMessage = userMessage.content.text;
 
@@ -1199,31 +1069,13 @@ export class OrbClient {
 
                 let message = null as Content | null;
 
+                // TODO: verify if this is needed, or if we can process actions normally...
                 // check if the message contains the word "create" and a $ followed by a word
                 if (
                     /create \$\w+/i.test(
                         (state.userMessage as string).toLowerCase()
                     )
                 ) {
-                    // HACK: agent as the creator
-                    const setSelfAsCreator =
-                        (state.userMessage as string)
-                            .toLowerCase()
-                            .includes("yourself as creator") ||
-                        (state.userMessage as string)
-                            .toLowerCase()
-                            .includes("yourself as the creator") ||
-                        (state.userMessage as string)
-                            .toLowerCase()
-                            .includes("you as creator") ||
-                        (state.userMessage as string)
-                            .toLowerCase()
-                            .includes("you as the creator") ||
-                        (state.userMessage as string)
-                            .toLowerCase()
-                            .includes("you are the creator");
-                    // @ts-ignore
-                    state.params.setSelfAsCreator = setSelfAsCreator;
                     // HACK: hardcoding this action for now, to skip the first process message
                     const createTokenAction =
                         params.publicationData.lens.content
@@ -1244,7 +1096,7 @@ export class OrbClient {
                     await runtime.messageManager.createMemory(responseMessage);
                     await runtime.evaluate(memory, state);
 
-                    const result = await runtime.processActions(
+                    await runtime.processActions(
                         memory,
                         [responseMessage],
                         state,
@@ -1511,10 +1363,6 @@ export class OrbClient {
                         profileData,
                         approveSignless
                     );
-                    // const success = true;
-                    // await addDelegators(wallets?.polygon, wallets?.profile?.id, [
-                    //     "0x28ff8e457feF9870B9d1529FE68Fbb95C3181f64"
-                    // ]);
 
                     res.status(success ? 200 : 400).send();
                 } catch (error) {
@@ -1637,12 +1485,8 @@ export const OrbClientInterface: Client = {
         console.log("OrbClientInterface start");
         const client = new OrbClient();
         const serverPort = parseInt(settings.SERVER_PORT || "3001");
-        runtime.registerAction(createPostAction);
         runtime.registerAction(searchTokenAction);
         runtime.registerAction(tokenAnalysisPlugin.actions[0]); // tokenScoreAction
-        runtime.registerAction(launchpadCreate);
-        runtime.registerAction(launchpadAnalyticsAction);
-        runtime.registerAction(promoteTokenAction);
         client.registerAgent(runtime);
         client.start(serverPort);
         return client;

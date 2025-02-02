@@ -210,6 +210,9 @@ export class FarcasterClient {
         profile.username = neynarUserProfile.username;
         profile.bio = neynarUserProfile.profile.bio.text;
         profile.pfp = neynarUserProfile.pfp_url;
+        profile.ethAddress = neynarUserProfile.verified_addresses?.eth_addresses?.length
+            ? neynarUserProfile.verified_addresses?.eth_addresses[0]
+            : neynarUserProfile.custody_address;
 
         this.cache.set(`farcaster/profile/${fid}`, profile);
 

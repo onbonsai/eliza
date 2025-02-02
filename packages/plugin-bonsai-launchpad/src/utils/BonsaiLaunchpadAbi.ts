@@ -162,6 +162,19 @@ export default [
     },
     {
         type: "function",
+        name: "flatThreshold",
+        inputs: [],
+        outputs: [
+            {
+                name: "",
+                type: "uint256",
+                internalType: "uint256",
+            },
+        ],
+        stateMutability: "view",
+    },
+    {
+        type: "function",
         name: "getBuyPrice",
         inputs: [
             {
@@ -384,6 +397,21 @@ export default [
                 type: "uint256",
                 internalType: "uint256",
             },
+            {
+                name: "initialPrice",
+                type: "uint256",
+                internalType: "uint256",
+            },
+            {
+                name: "flatThreshold",
+                type: "uint256",
+                internalType: "uint256",
+            },
+            {
+                name: "targetPriceMultiplier",
+                type: "uint256",
+                internalType: "uint256",
+            },
         ],
         stateMutability: "view",
     },
@@ -503,6 +531,16 @@ export default [
                 type: "uint256",
                 internalType: "uint256",
             },
+            {
+                name: "_flatThreshold",
+                type: "uint256",
+                internalType: "uint256",
+            },
+            {
+                name: "_targetPriceMultiplier",
+                type: "uint256",
+                internalType: "uint256",
+            },
         ],
         outputs: [],
         stateMutability: "nonpayable",
@@ -612,6 +650,19 @@ export default [
     },
     {
         type: "function",
+        name: "targetPriceMultiplier",
+        inputs: [],
+        outputs: [
+            {
+                name: "",
+                type: "uint256",
+                internalType: "uint256",
+            },
+        ],
+        stateMutability: "view",
+    },
+    {
+        type: "function",
         name: "transferOwnership",
         inputs: [
             {
@@ -686,6 +737,18 @@ export default [
             },
             {
                 name: "quoteTokenPercentForPool",
+                type: "uint256",
+                indexed: false,
+                internalType: "uint256",
+            },
+            {
+                name: "flatThreshold",
+                type: "uint256",
+                indexed: false,
+                internalType: "uint256",
+            },
+            {
+                name: "targetPriceMultiplier",
                 type: "uint256",
                 indexed: false,
                 internalType: "uint256",

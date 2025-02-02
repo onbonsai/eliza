@@ -22,6 +22,7 @@ import {
 } from "./prompts";
 import { castUuid } from "./utils";
 import { sendCast } from "./actions";
+import { Clients } from "@elizaos/core";
 
 export class FarcasterInteractionManager {
     private timeout: NodeJS.Timeout | undefined;
@@ -280,6 +281,14 @@ export class FarcasterInteractionManager {
         const responseMessages = await callback(responseContent);
 
         const newState = await this.runtime.updateRecentMessageState(state);
+
+        // payload for plugin-bonsai-launchpad
+        newState.payload = {
+            client: Clients.FARCASTER,
+            replyTo: {
+                farcasterCastHash: cast.hash,
+            },
+        };
 
         await this.runtime.processActions(
             { ...memory, content: { ...memory.content, cast } },

@@ -1688,6 +1688,7 @@ export const generateImage = async (
         numIterations?: number;
         guidanceScale?: number;
         seed?: number;
+        imageModelProvider?: ModelProviderName;
         modelId?: string;
         jobId?: string;
         stylePreset?: string;
@@ -1695,6 +1696,7 @@ export const generateImage = async (
         aspectRatio?: string;
         safeMode?: boolean;
         cfgScale?: number;
+        returnRawResponse?: boolean;
     },
     runtime: IAgentRuntime
 ): Promise<{
@@ -1702,7 +1704,8 @@ export const generateImage = async (
     data?: string[];
     error?: any;
 }> => {
-    const modelSettings = getImageModelSettings(runtime.imageModelProvider);
+    const imageModelProvider = data.imageModelProvider || runtime.imageModelProvider;
+    const modelSettings = getImageModelSettings(imageModelProvider);
     if (!modelSettings) {
         elizaLogger.warn("No model settings found for the image model provider.");
         return { success: false, error: "No model settings available" };
@@ -1713,11 +1716,11 @@ export const generateImage = async (
     });
 
     const apiKey =
-        runtime.imageModelProvider === runtime.modelProvider
+        ((!imageModelProvider || imageModelProvider === runtime.imageModelProvider)) && runtime.imageModelProvider === runtime.modelProvider
             ? runtime.token
-            : getToken(runtime, runtime.imageModelProvider);
+            : getToken(runtime, imageModelProvider);
     try {
-        if (runtime.imageModelProvider === ModelProviderName.HEURIST) {
+        if (imageModelProvider === ModelProviderName.HEURIST) {
             const response = await fetch(
                 "http://sequencer.heurist.xyz/submit_job",
                 {
@@ -1754,10 +1757,12 @@ export const generateImage = async (
 
             const imageURL = await response.json();
             return { success: true, data: [imageURL] };
-        } else if (
-            runtime.imageModelProvider === ModelProviderName.TOGETHER ||
+        }
+
+        if (
+            imageModelProvider === ModelProviderName.TOGETHER ||
             // for backwards compat
-            runtime.imageModelProvider === ModelProviderName.LLAMACLOUD
+            imageModelProvider === ModelProviderName.LLAMACLOUD
         ) {
             const together = new Together({ apiKey: apiKey as string });
             const response = await together.images.create({
@@ -1812,7 +1817,9 @@ export const generateImage = async (
 
             elizaLogger.debug(`Generated ${base64s.length} images`);
             return { success: true, data: base64s };
-        } else if (runtime.imageModelProvider === ModelProviderName.FAL) {
+        }
+
+        if (imageModelProvider === ModelProviderName.FAL) {
             fal.config({
                 credentials: apiKey as string,
             });
@@ -1865,7 +1872,9 @@ export const generateImage = async (
 
             const base64s = await Promise.all(base64Promises);
             return { success: true, data: base64s };
-        } else if (runtime.imageModelProvider === ModelProviderName.VENICE) {
+        }
+
+        if (imageModelProvider === ModelProviderName.VENICE) {
             const response = await fetch(
                 "https://api.venice.ai/api/v1/image/generate",
                 {
@@ -1906,8 +1915,10 @@ export const generateImage = async (
             });
 
             return { success: true, data: base64s };
-        } else if (
-            runtime.imageModelProvider === ModelProviderName.NINETEEN_AI
+        }
+
+        if (
+            imageModelProvider === ModelProviderName.NINETEEN_AI
         ) {
             const response = await fetch(
                 "https://api.nineteen.ai/v1/text-to-image",
@@ -1945,7 +1956,9 @@ export const generateImage = async (
             });
 
             return { success: true, data: base64s };
-        } else if (runtime.imageModelProvider === ModelProviderName.LIVEPEER) {
+        }
+
+        if (imageModelProvider === ModelProviderName.LIVEPEER) {
             if (!apiKey) {
                 throw new Error("Livepeer Gateway is not defined");
             }
@@ -2006,11 +2019,14 @@ export const generateImage = async (
                 console.error(error);
                 return { success: false, error: error };
             }
-        } else if (runtime.imageModelProvider === ModelProviderName.TITLES) {
+        }
+
+        if (imageModelProvider === ModelProviderName.TITLES) {
             if (!apiKey) {
                 throw new Error("Missing TITLES_API_KEY in env");
             }
 
+            const defaultModelId = "EHhr62whbgnIHtADxrro"; // bonsai
             // generate inference
             const response = await fetch(
                 `${models.titles.endpoint}/images/inference`,
@@ -2021,7 +2037,7 @@ export const generateImage = async (
                         "Content-Type": "application/json",
                     },
                     body: JSON.stringify({
-                        model_id: data.modelId || "EHhr62whbgnIHtADxrro",
+                        model_id: data.modelId || defaultModelId,
                         prompt: data.prompt,
                         aspect_ratio: data.aspectRatio || "1:1",
                     }),
@@ -2063,6 +2079,8 @@ export const generateImage = async (
                         success = true;
                         images = await Promise.all(
                             pollingResult.images.map(async (url) => {
+                                if (data.returnRawResponse) return url;
+
                                 const response = await fetch(url);
                                 const blob = await response.blob();
                                 const buffer = await blob.arrayBuffer();
@@ -2081,34 +2099,34 @@ export const generateImage = async (
             }
 
             return { success, data: images };
-        } else {
-            let targetSize = `${data.width}x${data.height}`;
-            if (
-                targetSize !== "1024x1024" &&
-                targetSize !== "1792x1024" &&
-                targetSize !== "1024x1792"
-            ) {
-                targetSize = "1024x1024";
-            }
-            const openaiApiKey = runtime.getSetting("OPENAI_API_KEY") as string;
-            if (!openaiApiKey) {
-                throw new Error("OPENAI_API_KEY is not set");
-            }
-            const openai = new OpenAI({
-                apiKey: openaiApiKey as string,
-            });
-            const response = await openai.images.generate({
-                model,
-                prompt: data.prompt,
-                size: targetSize as "1024x1024" | "1792x1024" | "1024x1792",
-                n: data.count,
-                response_format: "b64_json",
-            });
-            const base64s = response.data.map(
-                (image) => `data:image/png;base64,${image.b64_json}`
-            );
-            return { success: true, data: base64s };
         }
+
+        let targetSize = `${data.width}x${data.height}`;
+        if (
+            targetSize !== "1024x1024" &&
+            targetSize !== "1792x1024" &&
+            targetSize !== "1024x1792"
+        ) {
+            targetSize = "1024x1024";
+        }
+        const openaiApiKey = runtime.getSetting("OPENAI_API_KEY") as string;
+        if (!openaiApiKey) {
+            throw new Error("OPENAI_API_KEY is not set");
+        }
+        const openai = new OpenAI({
+            apiKey: openaiApiKey as string,
+        });
+        const response = await openai.images.generate({
+            model,
+            prompt: data.prompt,
+            size: targetSize as "1024x1024" | "1792x1024" | "1024x1792",
+            n: data.count,
+            response_format: "b64_json",
+        });
+        const base64s = response.data.map(
+            (image) => `data:image/png;base64,${image.b64_json}`
+        );
+        return { success: true, data: base64s };
     } catch (error) {
         console.error(error);
         return { success: false, error: error };

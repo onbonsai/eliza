@@ -5,22 +5,20 @@ export default defineConfig({
     outDir: "dist",
     sourcemap: true,
     clean: true,
-    format: ["esm"], // Ensure you're targeting CommonJS
+    format: ["esm"],
     external: [
-        "dotenv", // Externalize dotenv to prevent bundling
-        "fs", // Externalize fs to use Node.js built-in module
-        "path", // Externalize other built-ins if necessary
+        "dotenv",
+        "fs",
+        "path",
         "@reflink/reflink",
         "@node-llama-cpp",
         "https",
         "http",
-        "util",
-        "form-data",
-        "axios",
         "agentkeepalive",
-        "follow-redirects",
-        "url",
-        "proxy-from-env"
-        // Add other modules you want to externalize
+        "viem",
+        "@elizaos/core",
+        "graphql",
+        "graphql-request",
+        "lodash",
     ],
 });

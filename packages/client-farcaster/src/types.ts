@@ -5,6 +5,7 @@ export type Profile = {
     pfp?: string;
     bio?: string;
     url?: string;
+    ethAddress?: string;
     // location?: string;
     // twitter?: string;
     // github?: string;

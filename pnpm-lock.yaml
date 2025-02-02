@@ -247,6 +247,9 @@ importers:
       '@elizaos/plugin-bnb':
         specifier: workspace:*
         version: link:../packages/plugin-bnb
+      '@elizaos/plugin-bonsai-launchpad':
+        specifier: workspace:*
+        version: link:../packages/plugin-bonsai-launchpad
       '@elizaos/plugin-bootstrap':
         specifier: workspace:*
         version: link:../packages/plugin-bootstrap
@@ -2413,15 +2416,6 @@ importers:
 
   packages/plugin-bonsai-launchpad:
     dependencies:
-      '@elizaos/client-farcaster':
-        specifier: workspace:*
-        version: link:../client-farcaster
-      '@elizaos/client-lens':
-        specifier: workspace:*
-        version: link:../client-lens
-      '@elizaos/client-twitter':
-        specifier: workspace:*
-        version: link:../client-twitter
       '@elizaos/core':
         specifier: workspace:*
         version: link:../core
@@ -2437,13 +2431,16 @@ importers:
       lodash:
         specifier: ^4.17.21
         version: 4.17.21
-      whatwg-url:
-        specifier: 7.1.0
-        version: 7.1.0
     devDependencies:
-      tsup:
-        specifier: ^8.3.5
-        version: 8.3.5(@swc/core@1.10.12(@swc/helpers@0.5.15))(jiti@2.4.2)(postcss@8.5.1)(tsx@4.19.2)(typescript@5.7.3)(yaml@2.7.0)
+      '@biomejs/biome':
+        specifier: 1.9.4
+        version: 1.9.4
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.17.9
+      typescript:
+        specifier: ^5.0.0
+        version: 5.7.3
 
   packages/plugin-bootstrap:
     dependencies:
@@ -9381,6 +9378,10 @@ packages:
 
   '@js-sdsl/ordered-map@4.4.2':
     resolution: {integrity: sha512-iUKgm52T8HOE/makSxjqoWhe95ZJA1/G1sYsGev2JDKUSS14KAgg1LHb+Ba+IPow0xflbnSkOsZcO08C7w1gYw==}
+
+  '@js-temporal/polyfill@0.4.4':
+    resolution: {integrity: sha512-2X6bvghJ/JAoZO52lbgyAPFj8uCflhTo2g7nkFzEQdXd/D8rEeD4HtmTEpmtGCva260fcd66YNXBOYdnmHqSOg==}
+    engines: {node: '>=12'}
 
   '@jsdevtools/ono@7.1.3':
     resolution: {integrity: sha512-4JQNk+3mVzK3xh2rqd6RB4J46qUR19azEHBneZyTZM+c456qOrbbM/5xcR8huNCCcbVt7+UmizG6GuUvPvKUYg==}
@@ -17732,8 +17733,8 @@ packages:
   discord-api-types@0.37.100:
     resolution: {integrity: sha512-a8zvUI0GYYwDtScfRd/TtaNBDTXwP5DiDVX7K5OmE+DRT57gBqKnwtOC5Ol8z0mRW8KQfETIgiB8U0YZ9NXiCA==}
 
-  discord-api-types@0.37.118:
-    resolution: {integrity: sha512-MQkHHZcytmNQ3nQOBj6a0z38swsmHiROX7hdayfd0eWVrLxaQp/6tWBZ7FO2MCKKsc+W3QWnnfOJTbtyk8C4TQ==}
+  discord-api-types@0.37.119:
+    resolution: {integrity: sha512-WasbGFXEB+VQWXlo6IpW3oUv73Yuau1Ig4AZF/m13tXcTKnMpc/mHjpztIlz4+BM9FG9BHQkEXiPto3bKduQUg==}
 
   discord-api-types@0.37.83:
     resolution: {integrity: sha512-urGGYeWtWNYMKnYlZnOnDHm8fVRffQs3U0SpE8RHeiuLKb/u92APS8HoQnPTFbnXmY1vVnXjXO4dOxcAn3J+DA==}
@@ -18347,8 +18348,8 @@ packages:
   estree-util-to-js@2.0.0:
     resolution: {integrity: sha512-WDF+xj5rRWmD5tj6bIqRi6CkLIXbbNQUcxQHzGysQzvHmdYG2G7p/Tf0J0gpxGgkeMZNTIjT/AoSvC9Xehcgdg==}
 
-  estree-util-value-to-estree@3.2.1:
-    resolution: {integrity: sha512-Vt2UOjyPbNQQgT5eJh+K5aATti0OjCIAGc9SgMdOFYbohuifsWclR74l0iZTJwePMgWYdX1hlVS+dedH9XV8kw==}
+  estree-util-value-to-estree@3.3.1:
+    resolution: {integrity: sha512-fL5vv7eGyWFq0LJ4MMXMarRLkHsknJky6Azq1qu27gU0lLSxb0V4YvukBX37Waw9nEb4wieuSz4Qubny0OEkng==}
 
   estree-util-visit@2.0.0:
     resolution: {integrity: sha512-m5KgiH85xAhhW8Wta0vShLcUvOsh3LLPI2YVwcbio1l7E09NTLL1EyMZFM1OyWowoH0skScNbhOPl4kcBgzTww==}
@@ -32741,7 +32742,7 @@ snapshots:
       '@discordjs/formatters': 0.6.0
       '@discordjs/util': 1.1.1
       '@sapphire/shapeshift': 4.0.0
-      discord-api-types: 0.37.118
+      discord-api-types: 0.37.119
       fast-deep-equal: 3.1.3
       ts-mixer: 6.0.4
       tslib: 2.8.1
@@ -32756,7 +32757,7 @@ snapshots:
 
   '@discordjs/formatters@0.6.0':
     dependencies:
-      discord-api-types: 0.37.118
+      discord-api-types: 0.37.119
 
   '@discordjs/node-pre-gyp@0.4.5(encoding@0.1.13)':
     dependencies:
@@ -33013,7 +33014,7 @@ snapshots:
       '@mdx-js/mdx': 3.1.0(acorn@8.14.0)
       '@slorber/remark-comment': 1.0.0
       escape-html: 1.0.3
-      estree-util-value-to-estree: 3.2.1
+      estree-util-value-to-estree: 3.3.1
       file-loader: 6.2.0(webpack@5.97.1(@swc/core@1.10.12(@swc/helpers@0.5.15)))
       fs-extra: 11.2.0
       image-size: 1.2.0
@@ -36770,6 +36771,11 @@ snapshots:
       '@jridgewell/sourcemap-codec': 1.5.0
 
   '@js-sdsl/ordered-map@4.4.2': {}
+
+  '@js-temporal/polyfill@0.4.4':
+    dependencies:
+      jsbi: 4.3.0
+      tslib: 2.8.1
 
   '@jsdevtools/ono@7.1.3': {}
 
@@ -44569,7 +44575,7 @@ snapshots:
 
   '@solana/spl-account-compression@0.1.10(@solana/web3.js@1.95.5(bufferutil@4.0.9)(encoding@0.1.13)(utf-8-validate@5.0.10))(bufferutil@4.0.9)(encoding@0.1.13)(utf-8-validate@5.0.10)':
     dependencies:
-      '@metaplex-foundation/beet': 0.7.2
+      '@metaplex-foundation/beet': 0.7.1
       '@metaplex-foundation/beet-solana': 0.4.1(bufferutil@4.0.9)(encoding@0.1.13)(utf-8-validate@5.0.10)
       '@solana/web3.js': 1.95.5(bufferutil@4.0.9)(encoding@0.1.13)(utf-8-validate@5.0.10)
       bn.js: 5.2.1
@@ -52486,7 +52492,7 @@ snapshots:
 
   discord-api-types@0.37.100: {}
 
-  discord-api-types@0.37.118: {}
+  discord-api-types@0.37.119: {}
 
   discord-api-types@0.37.83: {}
 
@@ -53580,8 +53586,9 @@ snapshots:
       astring: 1.9.0
       source-map: 0.7.4
 
-  estree-util-value-to-estree@3.2.1:
+  estree-util-value-to-estree@3.3.1:
     dependencies:
+      '@js-temporal/polyfill': 0.4.4
       '@types/estree': 1.0.6
 
   estree-util-visit@2.0.0:
