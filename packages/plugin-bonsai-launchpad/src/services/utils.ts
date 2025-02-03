@@ -275,7 +275,6 @@ const SEARCH_CLUBS = gql`
     query SearchClubs($query: String!) {
         clubs(
             where: {
-                v2: true
                 or: [
                     { symbol_contains_nocase: $query }
                     { name_contains_nocase: $query }
