@@ -60,6 +60,11 @@ export default [
                 internalType: "uint256",
             },
             {
+                name: "maxPrice",
+                type: "uint256",
+                internalType: "uint256",
+            },
+            {
                 name: "clientAddress",
                 type: "address",
                 internalType: "address",
@@ -157,10 +162,47 @@ export default [
     },
     {
         type: "function",
+        name: "flatThreshold",
+        inputs: [],
+        outputs: [
+            {
+                name: "",
+                type: "uint256",
+                internalType: "uint256",
+            },
+        ],
+        stateMutability: "view",
+    },
+    {
+        type: "function",
         name: "getBuyPrice",
         inputs: [
             {
                 name: "supply",
+                type: "uint256",
+                internalType: "uint256",
+            },
+            {
+                name: "amount",
+                type: "uint256",
+                internalType: "uint256",
+            },
+        ],
+        outputs: [
+            {
+                name: "price",
+                type: "uint256",
+                internalType: "uint256",
+            },
+        ],
+        stateMutability: "view",
+    },
+    {
+        type: "function",
+        name: "getBuyPriceByClub",
+        inputs: [
+            {
+                name: "clubId",
                 type: "uint256",
                 internalType: "uint256",
             },
@@ -208,6 +250,30 @@ export default [
         inputs: [
             {
                 name: "supply",
+                type: "uint256",
+                internalType: "uint256",
+            },
+            {
+                name: "amount",
+                type: "uint256",
+                internalType: "uint256",
+            },
+        ],
+        outputs: [
+            {
+                name: "price",
+                type: "uint256",
+                internalType: "uint256",
+            },
+        ],
+        stateMutability: "view",
+    },
+    {
+        type: "function",
+        name: "getSellPriceByClub",
+        inputs: [
+            {
+                name: "clubId",
                 type: "uint256",
                 internalType: "uint256",
             },
@@ -331,6 +397,21 @@ export default [
                 type: "uint256",
                 internalType: "uint256",
             },
+            {
+                name: "initialPrice",
+                type: "uint256",
+                internalType: "uint256",
+            },
+            {
+                name: "flatThreshold",
+                type: "uint256",
+                internalType: "uint256",
+            },
+            {
+                name: "targetPriceMultiplier",
+                type: "uint256",
+                internalType: "uint256",
+            },
         ],
         stateMutability: "view",
     },
@@ -418,6 +499,11 @@ export default [
                 internalType: "uint256",
             },
             {
+                name: "minAmountOut",
+                type: "uint256",
+                internalType: "uint256",
+            },
+            {
                 name: "clientAddress",
                 type: "address",
                 internalType: "address",
@@ -442,6 +528,16 @@ export default [
             },
             {
                 name: "_quoteTokenPercentForPool",
+                type: "uint256",
+                internalType: "uint256",
+            },
+            {
+                name: "_flatThreshold",
+                type: "uint256",
+                internalType: "uint256",
+            },
+            {
+                name: "_targetPriceMultiplier",
                 type: "uint256",
                 internalType: "uint256",
             },
@@ -554,6 +650,19 @@ export default [
     },
     {
         type: "function",
+        name: "targetPriceMultiplier",
+        inputs: [],
+        outputs: [
+            {
+                name: "",
+                type: "uint256",
+                internalType: "uint256",
+            },
+        ],
+        stateMutability: "view",
+    },
+    {
+        type: "function",
         name: "transferOwnership",
         inputs: [
             {
@@ -632,6 +741,18 @@ export default [
                 indexed: false,
                 internalType: "uint256",
             },
+            {
+                name: "flatThreshold",
+                type: "uint256",
+                indexed: false,
+                internalType: "uint256",
+            },
+            {
+                name: "targetPriceMultiplier",
+                type: "uint256",
+                indexed: false,
+                internalType: "uint256",
+            },
         ],
         anonymous: false,
     },
@@ -689,6 +810,12 @@ export default [
                 indexed: false,
                 internalType: "address",
             },
+            {
+                name: "uniTokenLp",
+                type: "uint256",
+                indexed: false,
+                internalType: "uint256",
+            },
         ],
         anonymous: false,
     },
@@ -728,16 +855,34 @@ export default [
                 internalType: "address",
             },
             {
+                name: "tokenAddress",
+                type: "address",
+                indexed: true,
+                internalType: "address",
+            },
+            {
                 name: "initialSupply",
                 type: "uint256",
                 indexed: false,
                 internalType: "uint256",
             },
             {
-                name: "tokenInfo",
-                type: "bytes",
+                name: "cliffPercent",
+                type: "uint256",
                 indexed: false,
-                internalType: "bytes",
+                internalType: "uint256",
+            },
+            {
+                name: "vestingDuration",
+                type: "uint256",
+                indexed: false,
+                internalType: "uint256",
+            },
+            {
+                name: "hasNFT",
+                type: "bool",
+                indexed: false,
+                internalType: "bool",
             },
         ],
         anonymous: false,
@@ -884,5 +1029,21 @@ export default [
                 internalType: "address",
             },
         ],
+    },
+    {
+        type: "error",
+        name: "Slippage",
+        inputs: [
+            {
+                name: "price",
+                type: "uint256",
+                internalType: "uint256",
+            },
+        ],
+    },
+    {
+        type: "error",
+        name: "ZeroPrice",
+        inputs: [],
     },
 ];

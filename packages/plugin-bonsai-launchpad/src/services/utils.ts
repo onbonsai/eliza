@@ -24,8 +24,8 @@ import { searchToken } from "./searchToken";
 export const IS_PRODUCTION = true; // NOTE: always true
 export const CHAIN: Chain = IS_PRODUCTION ? base : baseSepolia;
 export const LAUNCHPAD_CONTRACT_ADDRESS = IS_PRODUCTION
-    ? "0xA44dD13Bd66C4C4aDF8F70c3DFA26334764C1d64" // TODO: v2
-    : "0x7EDE9a32e8bCD20dcaF962de5EC3Fa0b95705692"; // v2
+    ? "0xb43a85C7369FA6535abCbBB9Da71f8eDCE067E03" // TODO: v2
+    : "0x717138EbACFbbD9787b84c220E7BDA230C93dfB8"; // v2
 
 const REGISTERED_CLUB = gql`
     query Club(
@@ -283,7 +283,9 @@ export const MONEY_CLUBS_SUBGRAPH_URL = `https://gateway.thegraph.com/api/${proc
 export const MONEY_CLUBS_SUBGRAPH_TESTNET_URL = `https://api.studio.thegraph.com/query/18207/bonsai-launchpad/version/latest`;
 
 export function baseScanUrl(txHash: string) {
-    return `https://${!IS_PRODUCTION ? "sepolia." : ""}basescan.org/tx/${txHash}`;
+    return `https://${
+        !IS_PRODUCTION ? "sepolia." : ""
+    }basescan.org/tx/${txHash}`;
 }
 
 export const subgraphClient = () => {
