@@ -19,7 +19,6 @@ import { Wallet } from "@coinbase/coinbase-sdk";
 import BonsaiLaunchpadAbi from "./BonsaiLaunchpad"; // v2
 import { toHexString } from "../utils/utils";
 import { CHAIN_TO_RPC } from "../utils/constants";
-import { searchToken } from "./searchToken";
 
 export const IS_PRODUCTION = true; // NOTE: always true
 export const CHAIN: Chain = IS_PRODUCTION ? base : baseSepolia;
@@ -52,6 +51,10 @@ const REGISTERED_CLUB = gql`
             tokenAddress
             creatorFees
             holders
+            v2
+            name
+            symbol
+            uri
             prevTrade24h: trades(
                 where: { createdAt_gt: $twentyFourHoursAgo }
                 orderBy: createdAt
@@ -268,6 +271,38 @@ const CLUB_HOLDINGS_PAGINATED = gql`
     }
 `;
 
+const SEARCH_CLUBS = gql`
+    query SearchClubs($query: String!) {
+        clubs(
+            where: {
+                v2: true
+                or: [
+                    { symbol_contains_nocase: $query }
+                    { name_contains_nocase: $query }
+                ]
+            }
+        ) {
+            id
+            clubId
+            creator
+            initialSupply
+            createdAt
+            supply
+            feesEarned
+            currentPrice
+            liquidity
+            holders
+            marketCap
+            complete
+            name
+            symbol
+            uri
+            v2
+            tokenAddress
+        }
+    }
+`;
+
 export const INITIAL_CHIP_SUPPLY_CAP = 10; // with 6 decimals in the contract
 export const DECIMALS = 6;
 export const USDC_DECIMALS = 6;
@@ -337,13 +372,17 @@ export const getTokenAnalytics = async (symbol: string) => {
           100
         : 0;
 
-    const [clubName, clubSymbol] = decodeAbiParameters(
-        [
-            { name: "name", type: "string" },
-            { name: "symbol", type: "string" },
-        ],
-        club.tokenInfo as `0x${string}`
-    );
+    let { name: clubName, symbol: clubSymbol } = club;
+
+    if (!club.v2) {
+        [clubName, clubSymbol] = decodeAbiParameters(
+            [
+                { name: "name", type: "string" },
+                { name: "symbol", type: "string" },
+            ],
+            club.tokenInfo as `0x${string}`
+        );
+    }
 
     return {
         name: clubName,
@@ -361,6 +400,7 @@ export const getTokenAnalytics = async (symbol: string) => {
         tokenAddress: club.tokenAddress,
         createdAt: club.createdAt,
         age: Math.floor((Date.now() / 1000 - club.createdAt) / (60 * 60 * 24)),
+        v2: club.v2,
     };
 };
 
@@ -396,14 +436,17 @@ export const getTrendingClub = async (count: number = 1) => {
         const trendingClubs = await Promise.all(
             trendingClubIds.map(async (clubId) => {
                 const club = await getRegisteredClubById(clubId);
-                const [name, symbol, image] = decodeAbiParameters(
-                    [
-                        { name: "name", type: "string" },
-                        { name: "symbol", type: "string" },
-                        { name: "uri", type: "string" },
-                    ],
-                    club.tokenInfo
-                );
+                let { name, symbol, uri: image } = club;
+                if (!club.v2) {
+                    [name, symbol, image] = decodeAbiParameters(
+                        [
+                            { name: "name", type: "string" },
+                            { name: "symbol", type: "string" },
+                            { name: "uri", type: "string" },
+                        ],
+                        club.tokenInfo
+                    );
+                }
 
                 const volume =
                     clubVolumes.find(([id]) => id === clubId)?.[1].volume || 0;
@@ -958,4 +1001,19 @@ export const roundedToFixed = (input: number, digits = 4): string => {
         minimumFractionDigits: digits,
         maximumFractionDigits: digits,
     });
+};
+
+export const searchToken = async (query: string): Promise<any | undefined> => {
+    const client = subgraphClient();
+    query = query.replace("$", "");
+
+    const { clubs } = await client.request(SEARCH_CLUBS, { query });
+    const res = clubs
+        ?.map((club) => {
+            const { name, symbol, uri: image } = club;
+            return { token: { name, symbol, image }, ...club };
+        })
+        .filter((c) => c);
+
+    return res?.length ? res[0]?.clubId : undefined;
 };
