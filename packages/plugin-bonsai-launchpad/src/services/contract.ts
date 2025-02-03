@@ -49,8 +49,8 @@ export const registerClub = async (
             tokenInfo,
             initialSupply: params.initialSupply,
             creator,
-            cliffPercent: params.cliffPercent || 1000,
-            vestingDuration: params.vestingDuration || 7200,
+            cliffPercent: (params.cliffPercent || 1000).toString(),
+            vestingDuration: (params.vestingDuration || 7200).toString(),
         },
     });
     await contractInvocation.wait();
