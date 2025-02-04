@@ -441,8 +441,6 @@ export class AgentRuntime implements IAgentRuntime {
         });
 
         this.verifiableInferenceAdapter = opts.verifiableInferenceAdapter;
-
-        this.clients = {};
     }
 
     async initialize() {

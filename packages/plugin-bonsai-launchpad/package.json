@@ -7,6 +7,7 @@
     "dependencies": {
         "@elizaos/core": "workspace:*",
         "@elizaos/plugin-token-analysis": "workspace:*",
+        "@elizaos/client-lens": "workspace:*",
         "graphql": "^16.9.0",
         "graphql-request": "^7.1.2",
         "lodash": "^4.17.21"

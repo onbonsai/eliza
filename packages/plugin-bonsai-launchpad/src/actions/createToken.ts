@@ -13,6 +13,7 @@ import {
     elizaLogger,
     type Clients,
 } from "@elizaos/core";
+import { LensAgentClient } from "@elizaos/client-lens";
 import { CHAIN, searchToken } from "./../helpers/utils.ts";
 import { createToken } from "../helpers/contract.ts";
 import { getWalletClient } from "../utils/viem.ts";
@@ -213,7 +214,9 @@ https://launch.bonsai.meme/token/${id}`;
 
         // reply to the lens post and cache lens data for the launchpad
         if (params.replyTo?.lensPubId) {
-            const { id: pubId } = await runtime.clients.lens.posts.sendPublication({
+            let lensClient = runtime.clients?.lens;
+            lensClient = lensClient || new LensAgentClient(runtime); // HACK: until the orb/bonsai client inits its own
+            const { id: pubId } = await lensClient.posts.sendPublication({
                 content: reply,
                 commentOn: params.replyTo?.lensPubId,
             });

@@ -1481,6 +1481,7 @@ export class OrbClient {
 }
 
 export const OrbClientInterface: Client = {
+    // TODO: orb client on its own does not post right now (external cron job; need to either merge into lens client or expose a lens client core)
     start: async (runtime: AgentRuntime) => {
         console.log("OrbClientInterface start");
         const client = new OrbClient();
