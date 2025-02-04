@@ -4,7 +4,7 @@ interface SetLensDataParams {
     txHash: `0x${string}`;
     pubId: string;
     profileId?: string;
-    handle: string;
+    handle?: string;
 }
 
 export default async (data: SetLensDataParams): Promise<boolean> => {

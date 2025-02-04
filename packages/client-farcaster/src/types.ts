@@ -27,7 +27,7 @@ export type Cast = {
         fid: number;
     };
     timestamp: Date;
-    embeds?: [{ url: string }];
+    embeds?: any[];
 };
 
 export type CastId = {

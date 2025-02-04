@@ -57,6 +57,8 @@ export class FarcasterInteractionManager {
     }
 
     private async handleInteractions() {
+        elizaLogger.info("Handle Farcaster interactions");
+
         const agentFid = this.client.farcasterConfig?.FARCASTER_FID ?? 0;
         if (!agentFid) {
             elizaLogger.info("No FID found, skipping interactions");
@@ -282,10 +284,11 @@ export class FarcasterInteractionManager {
 
         const newState = await this.runtime.updateRecentMessageState(state);
 
-        // payload for plugin-bonsai-launchpad
+        // payload for actions
         newState.payload = {
             client: Clients.FARCASTER,
             replyTo: {
+                fid: cast.authorFid,
                 farcasterCastHash: cast.hash,
             },
         };

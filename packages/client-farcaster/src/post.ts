@@ -132,6 +132,8 @@ export class FarcasterPostManager {
             inReplyTo,
         });
 
+        console.log(cast);
+
         return cast;
     }
 

@@ -55,8 +55,9 @@ An example input would be: "Create $blondegirl as a token for blonde girls"
 interface StatePayloadCreateToken {
     client: Clients.LENS | Clients.FARCASTER;
     replyTo?: {
-        lensPubId: string;
-        farcasterCastHash: string;
+        lensPubId?: string;
+        farcasterCastHash?: string;
+        fid?: string;
     };
     imageURL?: string;
     creatorAddress?: `0x${string}`;
@@ -147,6 +148,7 @@ export const createTokenAction: Action = {
             );
             const profile = await await runtime.clients.farcaster.client.getProfile(cast.authorFid);
             creatorAddress = creatorAddress || profile.ethAddress;
+            // TODO: cast.embeds undefined even though it exists
             imageURL =
                 imageURL ||
                 (cast.embeds?.length > 0 && cast.embeds[0].metadata?.image
@@ -246,7 +248,7 @@ https://launch.bonsai.meme/token/${id}`;
                 content: reply
             });
 
-            if (!(await setLensData({ txHash, pubId, handle: farcasterProfile.username }))) {
+            if (!(await setLensData({ txHash, pubId }))) {
                 elizaLogger.error(
                     "plugin-bonsai-launchpad:: createToken:: failed to set lens data"
                 );
@@ -293,6 +295,36 @@ https://launch.bonsai.meme/token/${id}`;
                 user: "{{user1}}",
                 content: {
                     text: "Create this token on the bonsai launchpad $CAT",
+                },
+            },
+            {
+                user: "Sage",
+                content: {
+                    text: "Creating the token",
+                    action: "CREATE_LAUNCHPAD_TOKEN",
+                },
+            },
+        ],
+        [
+            {
+                user: "{{user1}}",
+                content: {
+                    text: "Create the token $CAT to guide the cats to their home",
+                },
+            },
+            {
+                user: "Sage",
+                content: {
+                    text: "Creating the token",
+                    action: "CREATE_LAUNCHPAD_TOKEN",
+                },
+            },
+        ],
+        [
+            {
+                user: "{{user1}}",
+                content: {
+                    text: "@agentdotbonsai create $ANON for all the anons",
                 },
             },
             {

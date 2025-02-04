@@ -107,6 +107,7 @@ export class FarcasterClient {
                   }
                 : {}),
             timestamp: new Date(response.cast.timestamp),
+            embeds: response.cast.embeds,
         };
 
         this.cache.set(`farcaster/cast/${castHash}`, cast);

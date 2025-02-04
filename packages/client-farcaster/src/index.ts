@@ -73,7 +73,7 @@ export const FarcasterClientInterface: Client = {
 
         // Start all services
         await manager.start();
-        runtime.clients.farcaster = manager;
+
         return manager;
     },
 

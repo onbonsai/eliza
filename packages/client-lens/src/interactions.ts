@@ -307,7 +307,7 @@ export class LensInteractionManager {
 
         const newState = await this.runtime.updateRecentMessageState(state);
 
-        // payload for plugin-bonsai-launchpad
+        // payload for actions
         newState.payload = {
             client: Clients.LENS,
             replyTo: {

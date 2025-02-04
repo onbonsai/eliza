@@ -183,7 +183,7 @@ Link below 👇`;
 
             attachments.push({
                 button: {
-                    url: `https://warpcast.com/${farcasterProfile.username}/${castHash}`,
+                    url: `https://warpcast.com/${farcasterProfile.username}/${castHash.slice(0, 10)}`,
                 },
             });
         }
