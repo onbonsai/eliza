@@ -3,7 +3,7 @@ const LAUNCHPAD_API_URL = "https://launch.bonsai.meme/api";
 interface SetLensDataParams {
     txHash: `0x${string}`;
     pubId: string;
-    profileId: string;
+    profileId?: string;
     handle: string;
 }
 

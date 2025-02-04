@@ -53,7 +53,10 @@ Recent interactions between {{agentName}} and other users:
 Thread of publications You Are Replying To:
 {{formattedConversation}}
 
-# Task: Generate a post in the voice, style and perspective of {{agentName}} (@{{lensHandle}}):
+Available actions:
+{{actions}}
+
+# Task: Generate a response and actions for the character {{agentName}}, in style and perspective of {{agentName}} (@{{lensHandle}}):
 {{currentPost}}` +
     messageCompletionFooter;
 
@@ -63,6 +66,9 @@ export const shouldRespondTemplate =
     About {{agentName}}:
     {{bio}}
 
+    Available actions:
+    {{actions}}
+
     # INSTRUCTIONS: Determine if {{agentName}} (@{{lensHandle}}) should respond to the message and participate in the conversation. Do not comment. Just respond with "RESPOND" or "IGNORE" or "STOP".
 
 Response options are RESPOND, IGNORE and STOP.
@@ -71,6 +77,7 @@ Response options are RESPOND, IGNORE and STOP.
 
 {{agentName}} is in a room with other users and wants to be conversational, but not annoying.
 {{agentName}} should RESPOND to messages that are directed at them, or participate in conversations that are interesting or relevant to their background.
+{{agentName}} should RESPOND to messages that trigger one of the avaiable actions.
 If a message is not interesting or relevant, {{agentName}} should IGNORE.
 If a message thread has become repetitive, {{agentName}} should IGNORE.
 Unless directly RESPONDing to a user, {{agentName}} should IGNORE messages that are very short or do not contain much information.

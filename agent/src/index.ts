@@ -7,7 +7,7 @@ import { SupabaseDatabaseAdapter } from "@elizaos/adapter-supabase";
 import { AutoClientInterface } from "@elizaos/client-auto";
 import { DiscordClientInterface } from "@elizaos/client-discord";
 import { InstagramClientInterface } from "@elizaos/client-instagram";
-import { LensAgentClient } from "@elizaos/client-lens";
+import { LensAgentClientInterface } from "@elizaos/client-lens";
 import { SlackClientInterface } from "@elizaos/client-slack";
 import { TelegramClientInterface } from "@elizaos/client-telegram";
 import { TelegramAccountClientInterface } from "@elizaos/client-telegram-account";
@@ -857,8 +857,7 @@ export async function initializeClients(
     }
 
     if (clientTypes.includes("lens")) {
-        const lensClient = new LensAgentClient(runtime);
-        lensClient.start();
+        const lensClient = await LensAgentClientInterface.start(runtime);
         clients.lens = lensClient;
     }
 

@@ -13,7 +13,6 @@ import {
     elizaLogger,
     type Clients,
 } from "@elizaos/core";
-import { LensAgentClient } from "@elizaos/client-lens";
 import { CHAIN, searchToken } from "./../helpers/utils.ts";
 import { createToken } from "../helpers/contract.ts";
 import { getWalletClient } from "../utils/viem.ts";
@@ -65,7 +64,7 @@ interface StatePayloadCreateToken {
 
 export const createTokenAction: Action = {
     name: "CREATE_LAUNCHPAD_TOKEN",
-    similes: ["CREATE_TOKEN", "CREATE_BONSAI_TOKEN"],
+    similes: ["CREATE_TOKEN", "CREATE_TOKEN_LAUNCHPAD"],
     validate: async (runtime: IAgentRuntime, _: Memory) => {
         const enabledFarcaster =
             !!runtime.getSetting("FARCASTER_NEYNAR_SIGNER_UUID") &&
@@ -179,7 +178,8 @@ export const createTokenAction: Action = {
         // prepare transaction
         const walletClient = getWalletClient(
             runtime.getSetting("EVM_PRIVATE_KEY") as `0x${string}`,
-            CHAIN
+            CHAIN,
+            runtime.getSetting("BASE_RPC_URL") as `0x${string}`,
         );
         const registerParams = {
             tokenName: name,
@@ -196,7 +196,7 @@ export const createTokenAction: Action = {
             const { txHash: hash, id: clubId } = await createToken(
                 walletClient,
                 creatorAddress,
-                registerParams
+                registerParams,
             );
 
             id = clubId;
@@ -214,23 +214,16 @@ https://launch.bonsai.meme/token/${id}`;
 
         // reply to the lens post and cache lens data for the launchpad
         if (params.replyTo?.lensPubId) {
-            let lensClient = runtime.clients?.lens;
-            lensClient = lensClient || new LensAgentClient(runtime); // HACK: until the orb/bonsai client inits its own
-            const { id: pubId } = await lensClient.posts.sendPublication({
-                content: reply,
-                commentOn: params.replyTo?.lensPubId,
-            });
-
             const { handle, id: profileId } = publication.by;
 
-            if (!(await setLensData({ txHash, pubId, handle: handle.localName, profileId }))) {
+            if (!(await setLensData({ txHash, pubId: params.replyTo?.lensPubId, handle: handle.localName, profileId }))) {
                 elizaLogger.error(
                     "plugin-bonsai-launchpad:: createToken:: failed to set lens data"
                 );
             }
         }
 
-        // reply to the farcaster post
+        // reply to the farcaster post, create a lens post and cache it for the launchpad
         if (params.replyTo?.farcasterCastHash) {
             const fid = Number(runtime.getSetting("FARCASTER_FID"));
             const farcasterProfile = await runtime.clients.farcaster.client.getProfile(fid);
@@ -247,13 +240,20 @@ https://launch.bonsai.meme/token/${id}`;
                     fid: cast.authorFid,
                 },
             });
+
+            // post to lens so we can reference in the launchpad, for comments
+            const { id: pubId } = await runtime.clients.lens.posts.sendPublication({
+                content: reply
+            });
+
+            if (!(await setLensData({ txHash, pubId, handle: farcasterProfile.username }))) {
+                elizaLogger.error(
+                    "plugin-bonsai-launchpad:: createToken:: failed to set lens data"
+                );
+            }
         }
 
-        callback?.({
-            text: reply,
-            attachments: [],
-            action: "NONE",
-        });
+        // do not invoke `callback` as it will likely create a new post
 
         return {};
     },
@@ -293,6 +293,21 @@ https://launch.bonsai.meme/token/${id}`;
                 user: "{{user1}}",
                 content: {
                     text: "Create this token on the bonsai launchpad $CAT",
+                },
+            },
+            {
+                user: "Sage",
+                content: {
+                    text: "Creating the token",
+                    action: "CREATE_LAUNCHPAD_TOKEN",
+                },
+            },
+        ],
+        [
+            {
+                user: "{{user1}}",
+                content: {
+                    text: "Hey @bons_ai create a token on the launchpad $AGI with description: AGI needs a token platform",
                 },
             },
             {

@@ -16,8 +16,8 @@ import { getEventFromReceipt, encodeAbi } from "../utils/viem";
 import { DECIMALS, IS_PRODUCTION, CHAIN } from "./utils";
 
 export const LAUNCHPAD_CONTRACT_ADDRESS = IS_PRODUCTION
-    ? "0xA44dD13Bd66C4C4aDF8F70c3DFA26334764C1d64"
-    : "0x60aaa60eb9a11f3e82e2ca87631d4b37e1b88891";
+    ? "0xb43a85C7369FA6535abCbBB9Da71f8eDCE067E03"
+    : "0x717138EbACFbbD9787b84c220E7BDA230C93dfB8";
 export const USDC_CONTRACT_ADDRESS = IS_PRODUCTION
     ? "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
     : "0x036CbD53842c5426634e7929541eC2318f3dCF7e";
@@ -30,8 +30,8 @@ export const BONSAI_TOKEN_ADDRESS_BASE = IS_PRODUCTION
 
 export const publicClient = () => {
     const chain = IS_PRODUCTION ? base : baseSepolia;
-    // TODO: fetch these from runtime instead
-    const url = IS_PRODUCTION ? process.env.BASE_RPC_URL : process.env.BASE_SEPOLIA_RPC;
+    // TODO: fetch from runtime
+    const url = IS_PRODUCTION ? process.env.BASE_RPC_URL : process.env.BASE_SEPOLIA_RPC_URL;
     return createPublicClient({
         chain,
         transport: http(url),
@@ -51,15 +51,14 @@ type CreateTokenParams = {
 export const createToken = async (
     walletClient: WalletClient,
     creator: `0x${string}`,
-    params: CreateTokenParams
+    params: CreateTokenParams,
 ): Promise<{ txHash?: `0x${string}`; id?: string }> => {
     const tokenInfo = encodeAbi(
         ["string", "string", "string"],
         [params.tokenName, params.tokenSymbol, params.tokenImage]
     );
-    const [account] = await walletClient.getAddresses();
     const hash = await walletClient.writeContract({
-        account,
+        account: walletClient.account,
         address: LAUNCHPAD_CONTRACT_ADDRESS,
         abi: BonsaiLaunchpadAbi,
         functionName: "registerClub",
@@ -68,8 +67,8 @@ export const createToken = async (
             tokenInfo,
             params.initialSupplyWei,
             creator,
-            params.cliffPercent || 1000,
-            params.vestingDuration || 7200,
+            (params.cliffPercent || 1000).toString(),
+            (params.vestingDuration || 7200).toString(),
         ],
         chain: CHAIN,
     });
@@ -134,9 +133,8 @@ export const buyTokens = async (
     clientAddress: `0x${string}` = zeroAddress,
     referral: `0x${string}` = zeroAddress
 ) => {
-    const [account] = await walletClient.getAddresses();
     const hash = await walletClient.writeContract({
-        account,
+        account: walletClient.account,
         address: LAUNCHPAD_CONTRACT_ADDRESS,
         abi: BonsaiLaunchpadAbi,
         functionName: "buyChips",
@@ -160,9 +158,8 @@ export const sellTokens = async (
     minAmountOut: string
 ) => {
     const amountWithDecimals = parseUnits(sellAmount, DECIMALS);
-    const [account] = await walletClient.getAddresses();
     const hash = await walletClient.writeContract({
-        account,
+        account: walletClient.account,
         address: LAUNCHPAD_CONTRACT_ADDRESS,
         abi: BonsaiLaunchpadAbi,
         functionName: "sellChips",

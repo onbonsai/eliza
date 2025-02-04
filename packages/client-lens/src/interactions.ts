@@ -145,12 +145,12 @@ export class LensInteractionManager {
         thread: AnyPublicationFragment[];
     }) {
         if (publication.by.id === agent.id) {
-            elizaLogger.info("skipping cast from bot itself", publication.id);
+            elizaLogger.info("skipping publication from bot itself", publication.id);
             return;
         }
 
         if (!memory.content.text) {
-            elizaLogger.info("skipping cast with no text", publication.id);
+            elizaLogger.info("skipping publication with no text", publication.id);
             return { text: "", action: "IGNORE" };
         }
 
@@ -213,10 +213,10 @@ export class LensInteractionManager {
             pubId: publication.id,
         });
 
-        const castMemory =
+        const pubMemory =
             await this.runtime.messageManager.getMemoryById(memoryId);
 
-        if (!castMemory) {
+        if (!pubMemory) {
             await this.runtime.messageManager.createMemory(
                 createPublicationMemory({
                     roomId: memory.roomId,
@@ -292,8 +292,14 @@ export class LensInteractionManager {
                 await this.runtime.messageManager.createMemory(result.memory!);
                 return [result.memory!];
             } catch (error) {
-                console.error("Error sending response cast:", error);
-                return [];
+                console.error("Error sending response publication:", error);
+                // attempt to still process actions
+                return [{
+                    content: { action: content.action, text: content.text },
+                    userId: state.userId!,
+                    agentId: state.agentId!,
+                    roomId: state.roomId!
+                }];
             }
         };
 
@@ -309,7 +315,7 @@ export class LensInteractionManager {
             },
         };
 
-        await this.runtime.processActions(
+    await this.runtime.processActions(
             memory,
             responseMessages,
             newState,

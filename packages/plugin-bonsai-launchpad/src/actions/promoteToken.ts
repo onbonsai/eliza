@@ -10,7 +10,6 @@ import {
 } from "@elizaos/core";
 import { erc20Abi } from "viem";
 import { ModelClass } from "@elizaos/core";
-import { LensAgentClient } from "@elizaos/client-lens";
 import { getTokenAnalytics } from "../helpers/utils";
 import { getEventFromReceipt } from "../utils/viem";
 import { publicClient } from "../helpers/contract";
@@ -151,8 +150,7 @@ Link below 👇`;
         }
 
         if (!!runtime.getSetting("EVM_PRIVATE_KEY") && !!runtime.getSetting("LENS_PROFILE_ID")) {
-            let lensClient = runtime.clients?.lens;
-            lensClient = lensClient || new LensAgentClient(runtime); // HACK: until the orb/bonsai client inits its own
+            const lensClient = runtime.clients.lens;
             const content = `${response}
         ${link}`;
             const { id: publicationId } = await lensClient.posts.sendPublication({ content });
