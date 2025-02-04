@@ -177,7 +177,6 @@ const SEARCH_CLUBS = gql`
     query SearchClubs($query: String!) {
         clubs(
             where: {
-                v2: true,
                 or: [
                     { symbol_contains_nocase: $query }
                     { name_contains_nocase: $query }
@@ -512,7 +511,6 @@ export const searchToken = async (query: string): Promise<any | undefined> => {
     const { clubs } = await client.request(SEARCH_CLUBS, { query });
     const res = clubs
         ?.map((club) => {
-            if (!club.v2) return;
             const { name, symbol, uri: image } = club;
             return { token: { name, symbol, image }, ...club };
         })

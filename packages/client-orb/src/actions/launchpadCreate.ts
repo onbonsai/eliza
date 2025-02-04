@@ -136,7 +136,9 @@ export const launchpadCreate: Action = {
             name ||
             (symbol ? symbol.charAt(0).toUpperCase() + symbol.slice(1) : null);
         console.log(
-            `Parsed token details - Name: ${name}, Symbol: ${symbol}, Description: ${description || "n/a"}. Self as creator?: ${selfAsCreator}`
+            `Parsed token details - Name: ${name}, Symbol: ${symbol}, Description: ${
+                description || "n/a"
+            }. Self as creator?: ${selfAsCreator}`
         );
         if (!(symbol && name)) {
             callback?.({
