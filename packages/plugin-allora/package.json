@@ -5,16 +5,24 @@
 	"type": "module",
 	"types": "dist/index.d.ts",
 	"dependencies": {
-		"@alloralabs/allora-sdk": "0.0.4",
 		"@elizaos/core": "workspace:*",
 		"node-cache": "5.1.2",
-		"vitest": "2.1.8",
+		"vitest": "2.1.9",
 		"@alloralabs/allora-sdk": "^0.1.0"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "1.9.4",
+		"tsup": "8.3.5",
+		"vitest": "2.1.8"
 	},
 	"scripts": {
 		"build": "tsup --format esm --dts",
 		"dev": "tsup --format esm --dts --watch",
-		"test": "vitest run"
+		"test": "vitest run",
+		"lint": "biome lint .",
+		"lint:fix": "biome check --apply .",
+		"format": "biome format .",
+		"format:fix": "biome format --write ."
 	},
 	"peerDependencies": {
 		"whatwg-url": "7.1.0"

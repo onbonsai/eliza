@@ -24,7 +24,7 @@
         "o1js": "^2.2.0",
         "bignumber.js": "9.1.2",
         "tsup": "8.3.5",
-        "vitest": "3.0.2"
+        "vitest": "3.0.5"
     },
     "scripts": {
         "build": "tsup --format esm --dts",

@@ -28,7 +28,7 @@
     "devDependencies": {
         "tsup": "8.3.5",
         "@types/sharp": "^0.32.0",
-        "vitest": "^1.2.1"
+        "vitest": "^3.0.0"
     },
     "scripts": {
         "build": "tsup --format esm --dts",

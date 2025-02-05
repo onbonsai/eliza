@@ -27,7 +27,7 @@
 		"esbuild-plugin-polyfill-node": "^0.3.0",
 		"esmify": "^2.1.1",
 		"tsup": "8.3.5",
-		"vitest": "2.1.5",
+		"vitest": "2.1.9",
 		"graphql-request": "7.1.2"
 	},
 	"scripts": {

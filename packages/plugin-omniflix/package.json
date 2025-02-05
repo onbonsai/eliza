@@ -17,7 +17,7 @@
         "cosmjs-types": "^0.8.0",
         "node-cache": "5.1.2",
         "tsup": "8.3.5",
-        "vitest": "2.1.4"
+        "vitest": "2.1.9"
     },
     "scripts": {
         "build": "tsup --format esm --dts",

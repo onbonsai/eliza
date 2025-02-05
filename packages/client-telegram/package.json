@@ -26,7 +26,7 @@
 	},
 	"devDependencies": {
 		"tsup": "8.3.5",
-		"vitest": "1.2.1"
+		"vitest": "1.6.1"
 	},
 	"scripts": {
 		"build": "tsup --format esm --dts",

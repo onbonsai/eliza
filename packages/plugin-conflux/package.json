@@ -23,7 +23,8 @@
 		"cive": "0.7.1"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "1.9.4"
+		"@biomejs/biome": "1.9.4",
+		"vitest": "1.4.0"
 	},
 	"scripts": {
 		"build": "tsup --format esm --dts",
@@ -32,6 +33,7 @@
 		"lint": "biome lint .",
 		"lint:fix": "biome check --apply .",
 		"format": "biome format .",
-		"format:fix": "biome format --write ."
+		"format:fix": "biome format --write .",
+		"test": "vitest run"
 	}
 }

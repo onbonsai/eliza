@@ -38,7 +38,7 @@
         "rimraf": "^5.0.5",
         "tsup": "^8.0.0",
         "typescript": "^5.2.2",
-        "vitest": "^1.0.0"
+        "vitest": "^3.0.0"
     },
     "peerDependencies": {
         "@elizaos/core": "^0.1.7"

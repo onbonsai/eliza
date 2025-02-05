@@ -29,7 +29,7 @@
 	"devDependencies": {
 		"@types/node": "^20.0.0",
 		"tsup": "8.3.5",
-		"vitest": "^1.0.0"
+		"vitest": "^3.0.0"
 	},
 	"scripts": {
 		"build": "tsup --format esm --dts",

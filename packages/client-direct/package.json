@@ -38,7 +38,7 @@
 		"tsup": "8.3.5"
 	},
 	"scripts": {
-		"build": "tsup --format esm --dts",
+		"build": "echo 'skipping this build'",
 		"dev": "tsup --format esm --dts --watch"
 	},
 	"peerDependencies": {

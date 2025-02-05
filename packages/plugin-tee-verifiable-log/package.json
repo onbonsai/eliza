@@ -12,14 +12,20 @@
         "ethereum-cryptography": "^3.0.0",
         "tsup": "8.3.5",
         "uuid": "11.0.3",
-        "vitest": "2.1.5"
+        "vitest": "2.1.9"
     },
     "scripts": {
         "build": "tsup --format esm --dts",
+        "dev": "tsup --format esm --dts --watch",
+        "lint": "biome check src/",
+        "lint:fix": "biome check --apply src/",
+        "format": "biome format src/",
+        "format:fix": "biome format --write src/",
         "test": "vitest run",
         "test:watch": "vitest"
     },
     "devDependencies": {
+        "@biomejs/biome": "1.5.3",
         "@types/dompurify": "3.2.0",
         "ts-node": "^10.9.2"
     },

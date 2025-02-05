@@ -45,7 +45,7 @@
         "typescript": "^5.7.3",
         "@types/dotenv": "^8.2.0",
         "tsup": "^8.0.2",
-        "vitest": "^2.1.4",
+        "vitest": "^3.0.0",
         "@vitest/coverage-v8": "^2.1.4"
     },
     "peerDependencies": {

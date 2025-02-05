@@ -3,10 +3,15 @@
 	"version": "0.1.9",
 	"description": "Spheron Protocol Plugin for Eliza",
 	"main": "dist/index.js",
+	"type": "module",
 	"types": "dist/index.d.ts",
 	"scripts": {
 		"build": "tsup --format esm --dts",
-		"test": "jest"
+		"dev": "tsup --format esm --dts --watch",
+		"lint": "biome check src/",
+		"lint:fix": "biome check --apply src/",
+		"format": "biome format src/",
+		"format:fix": "biome format --write src/"
 	},
 	"dependencies": {
 		"@elizaos/core": "workspace:*",
@@ -15,6 +20,8 @@
 	},
 	"devDependencies": {
 		"@types/node": "^20.0.0",
-		"typescript": "^5.0.0"
+		"typescript": "^5.0.0",
+		"@biomejs/biome": "1.5.3",
+		"tsup": "^8.3.5"
 	}
 }

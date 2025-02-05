@@ -28,12 +28,16 @@
 		"build": "tsup --format esm --dts",
 		"dev": "tsup --format esm --dts --watch",
 		"test": "vitest run",
-		"lint": "eslint --fix  --cache ."
+		"lint": "biome check src/",
+		"lint:fix": "biome check --apply src/",
+		"format": "biome format src/",
+		"format:fix": "biome format --write src/"
 	},
 	"peerDependencies": {
 		"whatwg-url": "7.1.0"
 	},
 	"devDependencies": {
-		"@types/node": "^22.10.1"
+		"@types/node": "^22.10.1",
+		"@biomejs/biome": "1.5.3"
 	}
 }
