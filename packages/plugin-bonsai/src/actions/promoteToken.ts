@@ -96,20 +96,15 @@ export const promoteTokenAction: Action = {
         }
         console.log(`parsed symbol: ${symbol}`);
 
-        // verify payment
-        if (!(verifyTransfer && userId)) {
-            callback?.({
-                text: "Missing required verifyTransfer object or userId string in state.payload",
-                attachments: [],
-            });
-            return;
-        }
-        if (!(await _verifyTransfer(verifyTransfer, userId))) {
-            callback?.({
-                text: "Failed to verify transfer tx",
-                attachments: [],
-            });
-            return;
+        // verify payment if present
+        if (verifyTransfer && userId) {
+            if (!(await _verifyTransfer(verifyTransfer, userId))) {
+                callback?.({
+                    text: "Failed to verify transfer tx",
+                    attachments: [],
+                });
+                return;
+            }
         }
 
         const analytics = await getTokenAnalytics(symbol);
@@ -131,31 +126,27 @@ export const promoteTokenAction: Action = {
 
         const attachments = [];
 
-        // post to x, lens, farcaster
-        if (!!runtime.getSetting("TWITTER_USERNAME") && !!runtime.getSetting("TWITTER_PASSWORD")) {
-            const client = runtime.clients.twitter?.client?.twitterClient;
+        // post to any client that's initialized
+        if (runtime.clients.twitter?.client?.twitterClient) {
             const content = `${response}
 Link below 👇`;
-
-            const standardTweetResult = await client.sendTweet(content);
+            const standardTweetResult = await runtime.clients.twitter.client.twitterClient.sendTweet(content);
             const body = await standardTweetResult.json();
-            console.log(body);
             const tweetId = body.data.create_tweet?.tweet_results?.result?.rest_id;
             if (tweetId) {
-                await client.sendTweet(link, tweetId);
+                await runtime.clients.twitter.client.twitterClient.sendTweet(link, tweetId);
                 attachments.push({
                     button: {
-                        url: `https://x.com/${client.profile.username}/status/${tweetId}`,
+                        url: `https://x.com/${runtime.clients.twitter.client.profile.username}/status/${tweetId}`,
                     },
                 });
             }
         }
 
-        if (!!runtime.getSetting("EVM_PRIVATE_KEY") && !!runtime.getSetting("LENS_PROFILE_ID")) {
-            const lensClient = runtime.clients.lens;
+        if (runtime.clients.lens.posts) {
             const content = `${response}
-        ${link}`;
-            const { id: publicationId } = await lensClient.posts.sendPublication({ content });
+${link}`;
+            const { id: publicationId } = await runtime.clients.lens.posts.sendPublication({ content });
 
             attachments.push({
                 button: {
@@ -164,16 +155,12 @@ Link below 👇`;
             });
         }
 
-        if (
-            !!runtime.getSetting("FARCASTER_NEYNAR_SIGNER_UUID") &&
-            !!runtime.getSetting("FARCASTER_NEYNAR_API_KEY") &&
-            !!runtime.getSetting("FARCASTER_FID")
-        ) {
-            const farcasterClient = runtime.clients.farcaster;
-            const fid = Number(runtime.getSetting("FARCASTER_FID")!);
-            const farcasterProfile = await farcasterClient.client.getProfile(fid);
+        if (runtime.clients.farcaster.client) {
+            const farcasterProfile = await runtime.clients.farcaster.client.getProfile(
+                Number(runtime.getSetting("FARCASTER_FID"))
+            );
             const content = response;
-            const { hash: castHash } = await farcasterClient.posts.sendCast({
+            const { hash: castHash } = await runtime.clients.farcaster.posts.sendCast({
                 content,
                 profile: farcasterProfile,
                 embeds: [
@@ -192,6 +179,7 @@ Link below 👇`;
 
         callback?.({
             text: response,
+            // @ts-ignore not returning the typical Media response; for the bonsai terminal
             attachments,
             action: "NONE",
         });

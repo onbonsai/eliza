@@ -1,5 +1,5 @@
 {
-    "name": "@elizaos/plugin-bonsai-launchpad",
+    "name": "@elizaos/plugin-bonsai",
     "version": "0.0.1",
     "type": "module",
     "main": "dist/index.js",

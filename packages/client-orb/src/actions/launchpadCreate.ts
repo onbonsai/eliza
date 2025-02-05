@@ -24,7 +24,7 @@ import {
     searchToken,
     createToken,
     getTokenBalance,
-} from "@elizaos/plugin-bonsai-launchpad";
+} from "@elizaos/plugin-bonsai";
 import { createClub } from "../services/launchpad/database.ts";
 import { getLensImageURL } from "../services/lens/ipfs.ts";
 import { getProfileById } from "../services/lens/profiles.ts";

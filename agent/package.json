@@ -48,7 +48,7 @@
         "@elizaos/plugin-binance": "workspace:*",
         "@elizaos/plugin-avail": "workspace:*",
         "@elizaos/plugin-bnb": "workspace:*",
-        "@elizaos/plugin-bonsai-launchpad": "workspace:*",
+        "@elizaos/plugin-bonsai": "workspace:*",
         "@elizaos/plugin-bootstrap": "workspace:*",
         "@elizaos/plugin-di": "workspace:*",
         "@elizaos/plugin-intiface": "workspace:*",

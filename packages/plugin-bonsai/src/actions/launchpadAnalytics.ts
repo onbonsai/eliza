@@ -109,29 +109,16 @@ export const launchpadAnalyticsAction = {
             modelClass: ModelClass.LARGE,
         });
 
-        // if (!isActionContent(response.object)) {
-        //     callback?.(
-        //         {
-        //             text: "A request could not be parsed for launchpad data",
-        //         },
-        //         []
-        //     );
-        //     return;
-        // }
-
         const { operation, symbol } = response;
-
-        // // for some reason it likes to return this sometimes instead of "operation"
-        // if (response.object[", "]) {
-        //     operation = response.object[", "];
-        // }
 
         let result = "";
 
         switch (operation) {
-            case "tokenMatch":
+            case "tokenMatch": {
                 if (!symbol) break;
+
                 const analytics = await getTokenAnalytics(symbol);
+
                 if (!analytics) {
                     result = `Could not find token ${symbol} on the launchpad.`;
                 } else if (analytics.complete) {
@@ -144,6 +131,7 @@ export const launchpadAnalyticsAction = {
                     result = formatActiveTokenAnalytics(analytics);
                 }
                 break;
+            }
 
             case "topGainers":
                 result = await getTopGainersAnalytics();

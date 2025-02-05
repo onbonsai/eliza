@@ -287,19 +287,21 @@ export class LensInteractionManager {
                     throw new Error("publication not sent");
 
                 // sendPublication lost response action, so we need to add it back here?
-                result.memory!.content.action = content.action;
+                if (result.memory) {
+                    result.memory.content.action = content.action;
+                }
 
-                await this.runtime.messageManager.createMemory(result.memory!);
-                return [result.memory!];
+                await this.runtime.messageManager.createMemory(result.memory as Memory);
+                return [result.memory as Memory];
             } catch (error) {
                 console.error("Error sending response publication:", error);
                 // attempt to still process actions
                 return [{
                     content: { action: content.action, text: content.text },
-                    userId: state.userId!,
-                    agentId: state.agentId!,
-                    roomId: state.roomId!
-                }];
+                    userId: state.userId,
+                    agentId: state.agentId,
+                    roomId: state.roomId
+                } as Memory];
             }
         };
 

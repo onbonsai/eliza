@@ -1,6 +1,6 @@
-import { decodeAbiParameters, formatUnits } from "viem";
+import { decodeAbiParameters, formatEther, formatUnits } from "viem";
 import {
-    DECIMALS,
+    USDC_DECIMALS,
     getAllTrades,
     getRegisteredClubs,
     getTrendingClub,
@@ -94,9 +94,9 @@ export const getTopGainersAnalytics = async () => {
             }
 
             const startPrice = Number.parseFloat(
-                formatUnits(BigInt(club.firstTrade.price), DECIMALS)
+                formatUnits(BigInt(club.firstTrade.price), USDC_DECIMALS)
             );
-            const endPrice = Number.parseFloat(formatUnits(BigInt(club.lastTrade.price), DECIMALS));
+            const endPrice = Number.parseFloat(formatUnits(BigInt(club.lastTrade.price), USDC_DECIMALS));
             const priceChange = (endPrice / startPrice - 1) * 100;
 
             return {
@@ -122,8 +122,8 @@ export const getLiquidityAnalytics = async () => {
 
     response = "Tokens with highest liquidity:\n";
     liquid.forEach((club, i) => {
-        const liquidity = formatUnits(BigInt(club.liquidity), DECIMALS);
-        response += `${i + 1}. $${club.token.symbol}: $${Number.parseFloat(liquidity).toFixed(2)}\n`;
+        const liquidity = formatUnits(BigInt(club.liquidity), USDC_DECIMALS);
+        response += `${i + 1}. $${club.token.symbol}: $${kFormatter(Number.parseFloat(liquidity))}\n`;
     });
     return response;
 };
@@ -176,8 +176,8 @@ export const getTrendingAnalytics = async () => {
     trending.forEach((data, index) => {
         const symbol = data.token?.symbol || data.id;
         // Since the volume isn't in the current data structure, we'll use marketCap or liquidity
-        const volume = Number.parseFloat(formatUnits(BigInt(data.liquidity), DECIMALS));
-        response += `${index + 1}. $${symbol}: $${volume.toFixed(2)} liquidity\n`;
+        const volume = kFormatter(Number.parseFloat(formatUnits(BigInt(data.liquidity), USDC_DECIMALS)));
+        response += `${index + 1}. $${symbol}: $${volume} liquidity\n`;
     });
     return response;
 };
@@ -204,7 +204,22 @@ export const getNewestTokensAnalytics = async () => {
 
         response += `${index + 1}. $${symbol}\n`;
         response += `   • Created: ${new Date(club.createdAt * 1000).toLocaleString()}\n`;
-        response += `   • Initial Supply: ${club.initialSupply}\n`;
+        response += `   • Initial Supply: ${kFormatter(Number.parseFloat(formatEther(BigInt(club.initialSupply))))}\n`;
     });
     return response;
+};
+
+
+const kFormatter = (num: number): string => {
+    if (Math.abs(num) > 999_999) {
+        // @ts-ignore
+        return `${Math.sign(num) * (Math.abs(num) / 1_000_000).toFixed(1)}mil`;
+    }
+
+    if (Math.abs(num) > 999) {
+        // @ts-ignore
+        return `${Math.sign(num) * (Math.abs(num) / 1000).toFixed(1)}k`;
+    }
+
+    return `${Math.sign(num) * Math.abs(num)}`;
 };

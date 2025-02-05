@@ -84,7 +84,7 @@ export const createToken = async (
         });
         id = event.args.clubId;
     } else {
-        elizaLogger.error("plugin-bonsai-launchpad:: createToken:: ERROR - TX REVERTED");
+        elizaLogger.error("plugin-bonsai:: createToken:: ERROR - TX REVERTED");
     }
 
     return { id, txHash: hash };
@@ -147,7 +147,7 @@ export const buyTokens = async (
     });
 
     if (receipt.status === "reverted") {
-        elizaLogger.error("plugin-bonsai-launchpad:: buyTokens:: ERROR - TX REVERTED");
+        elizaLogger.error("plugin-bonsai:: buyTokens:: ERROR - TX REVERTED");
     }
 };
 
@@ -172,7 +172,7 @@ export const sellTokens = async (
     });
 
     if (receipt.status === "reverted") {
-        elizaLogger.error("plugin-bonsai-launchpad:: sellTokens:: ERROR - TX REVERTED");
+        elizaLogger.error("plugin-bonsai:: sellTokens:: ERROR - TX REVERTED");
     }
 };
 
@@ -204,7 +204,7 @@ export const approveToken = async (
         });
 
         if (receipt.status === "reverted") {
-            elizaLogger.error("plugin-bonsai-launchpad:: approveToken:: ERROR - TX REVERTED");
+            elizaLogger.error("plugin-bonsai:: approveToken:: ERROR - TX REVERTED");
         }
     }
 };

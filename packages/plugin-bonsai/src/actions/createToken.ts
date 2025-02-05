@@ -13,7 +13,7 @@ import {
     elizaLogger,
     type Clients,
 } from "@elizaos/core";
-import { CHAIN, searchToken } from "./../helpers/utils.ts";
+import { CHAIN, searchToken } from "../helpers/utils.ts";
 import { createToken } from "../helpers/contract.ts";
 import { getWalletClient } from "../utils/viem.ts";
 import setLensData from "../helpers/setLensData.ts";
@@ -220,7 +220,7 @@ https://launch.bonsai.meme/token/${id}`;
 
             if (!(await setLensData({ txHash, pubId: params.replyTo?.lensPubId, handle: handle.localName, profileId }))) {
                 elizaLogger.error(
-                    "plugin-bonsai-launchpad:: createToken:: failed to set lens data"
+                    "plugin-bonsai:: createToken:: failed to set lens data"
                 );
             }
         }
@@ -250,7 +250,7 @@ https://launch.bonsai.meme/token/${id}`;
 
             if (!(await setLensData({ txHash, pubId }))) {
                 elizaLogger.error(
-                    "plugin-bonsai-launchpad:: createToken:: failed to set lens data"
+                    "plugin-bonsai:: createToken:: failed to set lens data"
                 );
             }
         }

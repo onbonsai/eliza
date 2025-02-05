@@ -463,7 +463,7 @@ export const getVolumeStats = async () => {
     }
 
     return {
-        last24hVolume: Number.parseFloat(formatUnits(totalVolume, DECIMALS)),
+        last24hVolume: Number.parseFloat(formatUnits(BigInt(totalVolume), USDC_DECIMALS)),
         tradeCount: totalTrades,
     };
 };

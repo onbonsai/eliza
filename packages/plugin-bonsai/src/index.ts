@@ -6,12 +6,12 @@ import { promoteTokenAction } from "./actions/promoteToken";
 export * from "./helpers/contract";
 export * from "./helpers/utils";
 
-export const bonsaiLaunchpadPlugin: Plugin = {
-    name: "bonsaiLaunchpad",
-    description: "Bonsai Launchpad Plugin for Eliza",
+export const bonsaiPlugin: Plugin = {
+    name: "bonsai",
+    description: "Bonsai Plugin for Eliza: token launchpad for agentic content",
     actions: [createTokenAction, launchpadAnalyticsAction, promoteTokenAction],
     evaluators: [],
     providers: [],
 };
 
-export default bonsaiLaunchpadPlugin;
+export default bonsaiPlugin;
