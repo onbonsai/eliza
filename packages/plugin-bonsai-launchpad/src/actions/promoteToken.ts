@@ -18,7 +18,9 @@ const messageHandlerTemplate = `Provide some commentary to this token analytics 
 
 Given the token analytics report: {{analytics}}
 
-Generate a 1-3 sentence commentary (no more than 280 characters), and mention the symbol with $ in front in your response at least once. Speak of the token as if it were a movement, a cult, or a community, not a singular entity.`;
+Generate a 1-3 sentence commentary (no more than 280 characters), and mention the symbol with $ in front in your response at least once. Speak of the token as if it were a movement, a cult, or a community, not a singular entity.
+
+If the token age is 0, or there's no/low marketcap, then phrase the commentary without these stats, and phrase it as a new launch, with potential.`;
 
 interface VerifyTransferParams {
     hash: `0x${string}`;
@@ -80,6 +82,7 @@ export const promoteTokenAction: Action = {
         _options: { [key: string]: unknown },
         callback?: HandlerCallback
     ): Promise<{}> => {
+        // state.payload must be set in the calling client
         const { verifyTransfer, userId } = state.payload as StatePayloadPromoteToken;
         const symbolMatch = message.content.text.match(/\$(\w+)/);
         const symbol = symbolMatch ? symbolMatch[0] : null;
@@ -114,7 +117,6 @@ export const promoteTokenAction: Action = {
 
         state.analytics = JSON.stringify(analytics);
 
-        console.log(state);
         const context = composeContext({
             state,
             template: messageHandlerTemplate,
