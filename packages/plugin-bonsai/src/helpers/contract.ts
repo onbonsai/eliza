@@ -51,7 +51,7 @@ type CreateTokenParams = {
 export const createToken = async (
     walletClient: WalletClient,
     creator: `0x${string}`,
-    params: CreateTokenParams,
+    params: CreateTokenParams
 ): Promise<{ txHash?: `0x${string}`; id?: string }> => {
     const tokenInfo = encodeAbi(
         ["string", "string", "string"],
@@ -189,7 +189,7 @@ export const approveToken = async (
         args: [account, LAUNCHPAD_CONTRACT_ADDRESS],
     });
 
-    if (allowance == 0n) {
+    if (allowance === 0n) {
         const hash = await walletClient.writeContract({
             account,
             address: token,

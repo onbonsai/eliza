@@ -1,7 +1,7 @@
 import { GraphQLClient, gql } from "graphql-request";
 import { decodeAbiParameters, formatUnits, type Chain } from "viem";
 import { base, baseSepolia } from "viem/chains";
-import pkg from "lodash/collection";
+import pkg from 'lodash/collection';
 const { groupBy } = pkg;
 
 export const IS_PRODUCTION = true; // NOTE: always true unless in dev mode
@@ -209,16 +209,15 @@ export const USDC_DECIMALS = 6;
 
 export const CONTRACT_CHAIN_ID = IS_PRODUCTION ? base.id : baseSepolia.id;
 
-export const MONEY_CLUBS_SUBGRAPH_URL = `https://gateway.thegraph.com/api/${process.env.SUBGRAPH_API_KEY}/subgraphs/id/E1jXM6QybxvtA71cbiFbyyQYJwn2AHJNk7AAH1frZVyc`;
-// export const MONEY_CLUBS_SUBGRAPH_URL = "https://api.studio.thegraph.com/query/18207/bonsai-launchpad-base/version/latest"; // DEV URL
-export const MONEY_CLUBS_SUBGRAPH_TESTNET_URL = `https://api.studio.thegraph.com/query/18207/bonsai-launchpad/version/latest`;
+export const SUBGRAPH_URL = `https://gateway.thegraph.com/api/${process.env.SUBGRAPH_API_KEY}/subgraphs/id/E1jXM6QybxvtA71cbiFbyyQYJwn2AHJNk7AAH1frZVyc`;
+export const SUBGRAPH_TESTNET_URL = "https://api.studio.thegraph.com/query/18207/bonsai-launchpad/version/latest";
 
 export function baseScanUrl(txHash: string) {
     return `https://${!IS_PRODUCTION ? "sepolia." : ""}basescan.org/tx/${txHash}`;
 }
 
 export const subgraphClient = () => {
-    const uri = IS_PRODUCTION ? MONEY_CLUBS_SUBGRAPH_URL : MONEY_CLUBS_SUBGRAPH_TESTNET_URL;
+    const uri = IS_PRODUCTION ? SUBGRAPH_URL : SUBGRAPH_TESTNET_URL;
     return new GraphQLClient(uri);
 };
 
@@ -297,7 +296,7 @@ export const getTrendingClub = async (count = 1) => {
 
         // Calculate volume for each club
         const clubVolumes = Object.entries(grouped).map(([clubId, trades]) => {
-            const volume = trades.reduce(
+            const volume = (trades as any[]).reduce(
                 (acc, trade) =>
                     acc + Number.parseFloat(formatUnits(BigInt(trade.price), USDC_DECIMALS)),
                 0
@@ -305,21 +304,22 @@ export const getTrendingClub = async (count = 1) => {
             return [
                 clubId,
                 {
-                    trades: trades.length,
+                    trades: (trades as any[]).length,
                     volume,
                 },
             ];
         });
 
         // Sort clubs by volume in descending order and take requested number
+        type ClubVolume = [string, { trades: number; volume: number }];
         const trendingClubIds = clubVolumes
-            .sort(([, dataA], [, dataB]) => dataB.volume - dataA.volume)
+            .sort(([, dataA]: ClubVolume, [, dataB]: ClubVolume) => dataB.volume - dataA.volume)
             .slice(0, count)
             .map(([clubId]) => clubId);
 
         // Fetch and process all trending clubs in parallel
         const trendingClubs = await Promise.all(
-            trendingClubIds.map(async (clubId) => {
+            trendingClubIds.map(async (clubId: string) => {
                 const club = await getRegisteredClubById(clubId);
                 let { name, symbol, uri: image } = club;
 
@@ -334,8 +334,12 @@ export const getTrendingClub = async (count = 1) => {
                     );
                 }
 
-                const volume = clubVolumes.find(([id]) => id === clubId)?.[1].volume || 0;
-                const trades = clubVolumes.find(([id]) => id === clubId)?.[1].trades || 0;
+                const volume =
+                    (clubVolumes.find(([id]) => id === clubId) as ClubVolume | undefined)?.[1]
+                        .volume || 0;
+                const trades =
+                    (clubVolumes.find(([id]) => id === clubId) as ClubVolume | undefined)?.[1]
+                        .trades || 0;
 
                 club.marketCap = formatUnits(
                     BigInt(club.supply) * BigInt(club.currentPrice),
@@ -371,7 +375,7 @@ export const getRegisteredClubById = async (clubId: string) => {
     const fiveMinutesAgo = Math.floor(now / 1000) - 5 * 60;
 
     const client = subgraphClient();
-    const { club } = await client.request(REGISTERED_CLUB, {
+    const { club } = await client.request<{ club: any }>(REGISTERED_CLUB, {
         id,
         twentyFourHoursAgo,
         sixHoursAgo,
@@ -399,7 +403,7 @@ export const getRegisteredClubs = async (page = 0): Promise<{ clubs: any[]; hasM
     const skip = page * limit;
 
     try {
-        const { clubs } = await client.request(REGISTERED_CLUBS, { skip });
+        const { clubs } = await client.request<{ clubs: any[] }>(REGISTERED_CLUBS, { skip });
 
         // Process clubs to set token and marketCap
         const processedClubs = clubs?.map((club) => {
@@ -477,12 +481,12 @@ export const getTrades = async (
     const limit = 50;
     const skip = page * limit;
 
-    const { trades } = await client.request(CLUB_TRADES_PAGINATED, {
+    const { trades } = await client.request<{ trades: any[] }>(CLUB_TRADES_PAGINATED, {
         club: id,
         skip,
     });
 
-    return { trades: trades || [], hasMore: trades?.length == limit };
+    return { trades: trades || [], hasMore: trades?.length === limit };
 };
 
 export const getAllTrades = async (page = 0): Promise<{ trades: any[]; hasMore: boolean }> => {
@@ -490,25 +494,25 @@ export const getAllTrades = async (page = 0): Promise<{ trades: any[]; hasMore: 
     const limit = 50;
     const skip = page * limit;
 
-    const { trades } = await client.request(ALL_CLUB_TRADES_PAGINATED, {
+    const { trades } = await client.request<{ trades: any[] }>(ALL_CLUB_TRADES_PAGINATED, {
         skip,
     });
 
-    return { trades: trades || [], hasMore: trades?.length == limit };
+    return { trades: trades || [], hasMore: trades?.length === limit };
 };
 
 export const getLatestTrades = async (): Promise<any[]> => {
     const client = subgraphClient();
-    const { trades } = await client.request(CLUB_TRADES_LATEST);
+    const { trades } = await client.request<{ trades: any[] }>(CLUB_TRADES_LATEST);
 
     return trades || [];
 };
 
-export const searchToken = async (query: string): Promise<any | undefined> => {
+export const searchToken = async (_query: string): Promise<any | undefined> => {
     const client = subgraphClient();
-    query = query.replace("$", "");
+    const query = _query.replace("$", "");
 
-    const { clubs } = await client.request(SEARCH_CLUBS, { query });
+    const { clubs } = await client.request<{ clubs: any[] }>(SEARCH_CLUBS, { query });
     const res = clubs
         ?.map((club) => {
             const { name, symbol, uri: image } = club;

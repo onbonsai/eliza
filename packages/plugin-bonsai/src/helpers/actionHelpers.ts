@@ -79,8 +79,8 @@ export const getTopGainersAnalytics = async () => {
 
     // Calculate price changes and decode symbols
     const gainers = Object.values(clubPrices)
-        .filter((club) => !club.complete)
-        .map((club) => {
+        .filter((club: any) => !club.complete)
+        .map((club: any) => {
             let symbol = club.symbol;
             if (!symbol && club.tokenInfo) {
                 [, symbol] = decodeAbiParameters(
@@ -96,7 +96,9 @@ export const getTopGainersAnalytics = async () => {
             const startPrice = Number.parseFloat(
                 formatUnits(BigInt(club.firstTrade.price), USDC_DECIMALS)
             );
-            const endPrice = Number.parseFloat(formatUnits(BigInt(club.lastTrade.price), USDC_DECIMALS));
+            const endPrice = Number.parseFloat(
+                formatUnits(BigInt(club.lastTrade.price), USDC_DECIMALS)
+            );
             const priceChange = (endPrice / startPrice - 1) * 100;
 
             return {
@@ -163,10 +165,8 @@ export const getDailyStatsAnalytics = async () => {
 };
 
 export const getVolumeAnalytics = async () => {
-    let response;
     const stats = await getVolumeStats();
-    response = `Trading volume in the last 24h: $${stats.last24hVolume} across ${stats.tradeCount} trades`;
-    return response;
+    return `Trading volume in the last 24h: $${stats.last24hVolume} across ${stats.tradeCount} trades`;
 };
 
 export const getTrendingAnalytics = async () => {
@@ -176,7 +176,9 @@ export const getTrendingAnalytics = async () => {
     trending.forEach((data, index) => {
         const symbol = data.token?.symbol || data.id;
         // Since the volume isn't in the current data structure, we'll use marketCap or liquidity
-        const volume = kFormatter(Number.parseFloat(formatUnits(BigInt(data.liquidity), USDC_DECIMALS)));
+        const volume = kFormatter(
+            Number.parseFloat(formatUnits(BigInt(data.liquidity), USDC_DECIMALS))
+        );
         response += `${index + 1}. $${symbol}: $${volume} liquidity\n`;
     });
     return response;
@@ -208,7 +210,6 @@ export const getNewestTokensAnalytics = async () => {
     });
     return response;
 };
-
 
 const kFormatter = (num: number): string => {
     if (Math.abs(num) > 999_999) {

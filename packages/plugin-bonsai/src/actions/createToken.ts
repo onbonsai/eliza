@@ -67,16 +67,7 @@ export const createTokenAction: Action = {
     name: "CREATE_LAUNCHPAD_TOKEN",
     similes: ["CREATE_TOKEN", "CREATE_TOKEN_LAUNCHPAD"],
     validate: async (runtime: IAgentRuntime, _: Memory) => {
-        const enabledFarcaster =
-            !!runtime.getSetting("FARCASTER_NEYNAR_SIGNER_UUID") &&
-            !!runtime.getSetting("FARCASTER_NEYNAR_API_KEY") &&
-            !!runtime.getSetting("FARCASTER_FID");
-        const enabledLens =
-            !!runtime.getSetting("EVM_PRIVATE_KEY") && !!runtime.getSetting("LENS_PROFILE_ID");
-
-        return (
-            (enabledLens && runtime.clients.lens) || (enabledFarcaster && runtime.clients.farcaster)
-        );
+        return runtime.clients.lens || runtime.clients.farcaster;
     },
     description: "Create a token on the Bonsai Launchpad",
     handler: async (
@@ -85,7 +76,7 @@ export const createTokenAction: Action = {
         state: State,
         _options: { [key: string]: unknown },
         callback?: HandlerCallback
-    ): Promise<{}> => {
+    ) => {
         // entry point was a direct message or social post mention
         const params = state?.payload as StatePayloadCreateToken;
 
@@ -181,7 +172,7 @@ export const createTokenAction: Action = {
         const walletClient = getWalletClient(
             runtime.getSetting("EVM_PRIVATE_KEY") as `0x${string}`,
             CHAIN,
-            runtime.getSetting("BASE_RPC_URL") as `0x${string}`,
+            runtime.getSetting("BASE_RPC_URL") as `0x${string}`
         );
         const registerParams = {
             tokenName: name,
@@ -198,7 +189,7 @@ export const createTokenAction: Action = {
             const { txHash: hash, id: clubId } = await createToken(
                 walletClient,
                 creatorAddress,
-                registerParams,
+                registerParams
             );
 
             id = clubId;
@@ -218,10 +209,15 @@ https://launch.bonsai.meme/token/${id}`;
         if (params.replyTo?.lensPubId) {
             const { handle, id: profileId } = publication.by;
 
-            if (!(await setLensData({ txHash, pubId: params.replyTo?.lensPubId, handle: handle.localName, profileId }))) {
-                elizaLogger.error(
-                    "plugin-bonsai:: createToken:: failed to set lens data"
-                );
+            if (
+                !(await setLensData({
+                    txHash,
+                    pubId: params.replyTo?.lensPubId,
+                    handle: handle.localName,
+                    profileId,
+                }))
+            ) {
+                elizaLogger.error("plugin-bonsai:: createToken:: failed to set lens data");
             }
         }
 
@@ -245,19 +241,16 @@ https://launch.bonsai.meme/token/${id}`;
 
             // post to lens so we can reference in the launchpad, for comments
             const { id: pubId } = await runtime.clients.lens.posts.sendPublication({
-                content: reply
+                content: reply,
+                commentOn: params.replyTo?.lensPubId
             });
 
             if (!(await setLensData({ txHash, pubId }))) {
-                elizaLogger.error(
-                    "plugin-bonsai:: createToken:: failed to set lens data"
-                );
+                elizaLogger.error("plugin-bonsai:: createToken:: failed to set lens data");
             }
         }
 
         // do not invoke `callback` as it will likely create a new post
-
-        return {};
     },
     examples: [
         [

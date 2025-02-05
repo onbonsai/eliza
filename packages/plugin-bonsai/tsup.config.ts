@@ -14,11 +14,8 @@ export default defineConfig({
         "@node-llama-cpp",
         "https",
         "http",
-        "agentkeepalive",
-        "viem",
-        "@elizaos/core",
-        "graphql",
-        "graphql-request",
-        "lodash",
+        "agentkeepalive"
     ],
+    platform: "node",
+    target: "node18",
 });

@@ -4,22 +4,33 @@
     "type": "module",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
+    "exports": {
+        "./package.json": "./package.json",
+        ".": {
+            "import": {
+                "@elizaos/source": "./src/index.ts",
+                "types": "./dist/index.d.ts",
+                "default": "./dist/index.js"
+            }
+        }
+    },
+    "files": [
+		"dist"
+	],
     "dependencies": {
         "@elizaos/core": "workspace:*",
-        "@elizaos/plugin-token-analysis": "workspace:*",
-        "@elizaos/client-lens": "workspace:*",
         "graphql": "^16.9.0",
         "graphql-request": "^7.1.2",
         "lodash": "^4.17.21"
     },
     "devDependencies": {
         "@biomejs/biome": "1.9.4",
-        "@types/node": "^20.0.0",
-        "typescript": "^5.0.0"
+        "tsup": "8.3.5",
+		"typescript": "5.6.3"
     },
     "scripts": {
-        "build": "tsup --format esm",
-        "dev": "tsup --format esm --dts --watch",
+        "build": "tsup --format esm --no-dts",
+        "dev": "tsup --format esm --no-dts --watch",
         "clean": "rm -rf dist",
         "lint": "biome lint .",
         "lint:fix": "biome check --apply .",

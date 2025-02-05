@@ -63,16 +63,7 @@ export const promoteTokenAction: Action = {
     name: "PROMOTE_LAUNCHPAD_TOKEN",
     similes: ["SHILL_LAUNCHPAD_TOKEN"],
     validate: async (runtime: IAgentRuntime, _: Memory) => {
-        const enabledTwitter =
-            !!runtime.getSetting("TWITTER_USERNAME") && !!runtime.getSetting("TWITTER_PASSWORD");
-        const enabledFarcaster =
-            !!runtime.getSetting("FARCASTER_NEYNAR_SIGNER_UUID") &&
-            !!runtime.getSetting("FARCASTER_NEYNAR_API_KEY") &&
-            !!runtime.getSetting("FARCASTER_FID");
-        const enabledLens =
-            !!runtime.getSetting("EVM_PRIVATE_KEY") && !!runtime.getSetting("LENS_PROFILE_ID");
-
-        return enabledTwitter || enabledFarcaster || enabledLens;
+        return runtime.clients.lens || runtime.clients.farcaster || runtime.clients.twitter;
     },
     description: "Creates social posts to promote a token from the Bonsai Launchpad",
     handler: async (
@@ -81,7 +72,7 @@ export const promoteTokenAction: Action = {
         state: State,
         _options: { [key: string]: unknown },
         callback?: HandlerCallback
-    ): Promise<{}> => {
+    ) => {
         // state.payload must be set in the calling client
         const { verifyTransfer, userId } = state.payload as StatePayloadPromoteToken;
         const symbolMatch = message.content.text.match(/\$(\w+)/);
@@ -130,7 +121,8 @@ export const promoteTokenAction: Action = {
         if (runtime.clients.twitter?.client?.twitterClient) {
             const content = `${response}
 Link below 👇`;
-            const standardTweetResult = await runtime.clients.twitter.client.twitterClient.sendTweet(content);
+            const standardTweetResult =
+                await runtime.clients.twitter.client.twitterClient.sendTweet(content);
             const body = await standardTweetResult.json();
             const tweetId = body.data.create_tweet?.tweet_results?.result?.rest_id;
             if (tweetId) {
@@ -146,7 +138,9 @@ Link below 👇`;
         if (runtime.clients.lens.posts) {
             const content = `${response}
 ${link}`;
-            const { id: publicationId } = await runtime.clients.lens.posts.sendPublication({ content });
+            const { id: publicationId } = await runtime.clients.lens.posts.sendPublication({
+                content,
+            });
 
             attachments.push({
                 button: {
@@ -183,8 +177,6 @@ ${link}`;
             attachments,
             action: "NONE",
         });
-
-        return {};
     },
     examples: [
         [

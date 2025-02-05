@@ -8,7 +8,6 @@ import {
     ModelClass,
     type State,
 } from "@elizaos/core";
-import { technicalAnalysis } from "@elizaos/plugin-token-analysis";
 import { getTokenAnalytics } from "../helpers/utils";
 import {
     formatActiveTokenAnalytics,
@@ -51,29 +50,6 @@ Respond with a JSON markdown block containing only the operation and symbol if a
 
 Respond with a single JSON object ONLY, EXACTLY as shown and the first key MUST BE "operation" with one of those listed values ("tokenMatch", "topGainers", etc.).
 `;
-
-const ActionSchema = z.object({
-    operation: z.string().optional(),
-    ", ": z.string().optional(),
-    symbol: z.string().nullable(),
-});
-
-interface ActionContent {
-    operation:
-        | "tokenMatch"
-        | "topGainers"
-        | "liquidity"
-        | "holders"
-        | "dailyStats"
-        | "volume"
-        | "trending"
-        | "newest";
-    symbol: string;
-}
-
-const isActionContent = (object: any): object is ActionContent => {
-    return ActionSchema.safeParse(object).success;
-};
 
 export const launchpadAnalyticsAction = {
     name: ACTION,
@@ -122,11 +98,7 @@ export const launchpadAnalyticsAction = {
                 if (!analytics) {
                     result = `Could not find token ${symbol} on the launchpad.`;
                 } else if (analytics.complete) {
-                    const { formattedReport } = await technicalAnalysis(
-                        analytics.tokenAddress,
-                        "base"
-                    );
-                    result = `Token has graduated from the Launchpad to Uniswap! \n\n${formattedReport}`;
+                    result = `Token has graduated from to a Uni v4 pool! \n\n The CA is: ${analytics.tokenAddress}`;
                 } else {
                     result = formatActiveTokenAnalytics(analytics);
                 }
