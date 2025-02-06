@@ -6,36 +6,47 @@ import { promoteTokenAction } from "./actions/promoteToken";
 export * from "./helpers/contract";
 export * from "./helpers/utils";
 
-console.log("\n┌════════════════════════════════════════════════════════════════════┐");
-console.log("│                                                                    │");
-console.log("│                        @@@@@@@@@@@@@@@@@@@                         │");
-console.log("│                    @@@@@@@@            @@@@@@@                     │");
-console.log("│                  @@@@@       ( @@          @@@@@                   │");
-console.log("│                @@@@      @ #@@@@*@@@,@        @@@@                 │");
-console.log("│               @@@         . @ @@  @@           @@@@                │");
-console.log("│              @@@     @ @@@@@@   @@@@@@@@#       @@@@               │");
-console.log("│             @@         @   *      @   @@@@@      @@@               │");
-console.log("│             @                @@@    @@@  @@@@    @@@               │");
-console.log("│             @              @@                    @@@               │");
-console.log("│              @               @@@@                @@@               │");
-console.log("│               @(          @@@@@@@@@@@@@         @@@                │");
-console.log("│                ( &         @@@@@@@@@@@        @@@@                 │");
-console.log("│                  @@@                        @@@@                   │");
-console.log("│                      @.                  &@@@                      │");
-console.log("│                        @@@@@.@ .. @@@@@@@@                         │");
-console.log("│                                                                    │");
-console.log("├────────────────────────────────────────────────────────────────────┤");
-console.log("│                    Initializing Bonsai Plugin...                   │");
-console.log("│                    Version: 1.0.0                                  │");
-console.log("└════════════════════════════════════════════════════════════════════┘");
+const initActions = async () => {
+    const {
+        SUBGRAPH_API_KEY,
+        EVM_PRIVATE_KEY,
+        BASE_RPC_URL,
+    } = process.env;
 
-// ... existing code ...
+    if (SUBGRAPH_API_KEY && EVM_PRIVATE_KEY && BASE_RPC_URL) {
+        console.log("\n┌════════════════════════════════════════════════════════════════════┐");
+        console.log("│                                                                    │");
+        console.log("│                        @@@@@@@@@@@@@@@@@@@                         │");
+        console.log("│                    @@@@@@@@            @@@@@@@                     │");
+        console.log("│                  @@@@@       ( @@          @@@@@                   │");
+        console.log("│                @@@@      @ #@@@@*@@@,@        @@@@                 │");
+        console.log("│               @@@         . @ @@  @@           @@@@                │");
+        console.log("│              @@@     @ @@@@@@   @@@@@@@@#       @@@@               │");
+        console.log("│             @@         @   *      @   @@@@@      @@@               │");
+        console.log("│             @                @@@    @@@  @@@@    @@@               │");
+        console.log("│             @              @@                    @@@               │");
+        console.log("│              @               @@@@                @@@               │");
+        console.log("│               @(          @@@@@@@@@@@@@         @@@                │");
+        console.log("│                ( &         @@@@@@@@@@@        @@@@                 │");
+        console.log("│                  @@@                        @@@@                   │");
+        console.log("│                      @.                  &@@@                      │");
+        console.log("│                        @@@@@.@ .. @@@@@@@@                         │");
+        console.log("│                                                                    │");
+        console.log("├────────────────────────────────────────────────────────────────────┤");
+        console.log("│                    Initializing Bonsai Plugin...                   │");
+        console.log("│                    Version: 1.0.0                                  │");
+        console.log("└════════════════════════════════════════════════════════════════════┘");
 
-// ... existing code ...
+        return [createTokenAction, launchpadAnalyticsAction, promoteTokenAction];
+    }
+
+    return [];
+}
+
 export const bonsaiPlugin: Plugin = {
     name: "bonsai",
     description: "Bonsai Plugin for Eliza: token launchpad for agentic content",
-    actions: [createTokenAction, launchpadAnalyticsAction, promoteTokenAction],
+    actions: await initActions(),
     evaluators: [],
     providers: [],
 };
