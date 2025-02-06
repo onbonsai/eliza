@@ -5,6 +5,7 @@ export type Profile = {
     pfp?: string;
     bio?: string;
     url?: string;
+    ethAddress?: string;
     // location?: string;
     // twitter?: string;
     // github?: string;
@@ -26,7 +27,7 @@ export type Cast = {
         fid: number;
     };
     timestamp: Date;
-    embeds?: [{ url: string }];
+    embeds?: any[];
 };
 
 export type CastId = {

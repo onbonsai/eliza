@@ -1,3 +1,5 @@
+// DEPRECATED BUT KEEPING FOR REFERENCE
+
 import {
     composeContext,
     generateObject,
@@ -20,13 +22,12 @@ import {
     DECIMALS,
     BONSAI_TOKEN_ADDRESS_BASE,
     searchToken,
-    registerClub,
+    createToken,
     getTokenBalance,
-} from "@elizaos/plugin-bonsai-launchpad";
+} from "@elizaos/plugin-bonsai";
 import { createClub } from "../services/launchpad/database.ts";
 import { getLensImageURL } from "../services/lens/ipfs.ts";
 import { getProfileById } from "../services/lens/profiles.ts";
-import { approveToken } from "../services/coinbase.ts";
 import createPost from "../services/orb/createPost.ts";
 import { AGENT_HANDLE } from "../utils/constants.ts";
 import {
@@ -201,51 +202,24 @@ export const launchpadCreate: Action = {
                 BONSAI_TOKEN_ADDRESS_BASE
             )) > parseEther("100000");
 
-        const initialSupply = "0"; // not buying till we have a good strategy
-        // const registrationFee = await getRegistrationFee(
-        //     DEFAULT_INITIAL_SUPPLY,
-        //     DEFAULT_CURVE_TYPE,
-        //     address
-        // );
-        // const balance = await getTokenBalance(address);
-        // const initialSupply =
-        //     balance > registrationFee ? DEFAULT_INITIAL_SUPPLY : "0";
-        // if (balance > registrationFee) {
-        //     await approveToken(
-        //         USDC_CONTRACT_ADDRESS,
-        //         wallet,
-        //         address,
-        //         LAUNCHPAD_CONTRACT_ADDRESS,
-        //         CHAIN
-        //     );
-        // }
-        const handle = selfAsCreator
-            ? AGENT_HANDLE
-            : withPost
-            ? lensProfile.handle.localName
-            : userAddress;
         const registerParams = {
-            pubId: params?.publication_id,
-            handle,
-            profileId: params?.profile_id,
             tokenName: name,
             tokenSymbol: symbol.replace("$", ""),
-            tokenDescription: description,
             tokenImage: imageURL,
-            initialSupply: parseUnits(initialSupply, DECIMALS).toString(),
+            initialSupply: "0", // TOOD: not immediately buying the first supply until we have user delegated wallets
         };
-        const existingClubId = await searchToken(registerParams.tokenSymbol);
+        const existingClub = await searchToken(registerParams.tokenSymbol);
 
         let reply;
         let attachments;
-        if (!existingClubId) {
-            const { clubId } = await registerClub(
+        if (!existingClub) {
+            const clubId = await createToken(
                 wallet,
                 creator,
                 registerParams
             );
             if (clubId) {
-                let pubId = registerParams.pubId;
+                let pubId = params?.publication_id;
                 const message = `$${symbol} has been created! 👇
 https://launch.bonsai.meme/token/${clubId}`;
 
@@ -260,16 +234,21 @@ https://launch.bonsai.meme/token/${clubId}`;
                 }
 
                 // store in our db
+                const handle = selfAsCreator
+                    ? AGENT_HANDLE
+                    : withPost
+                        ? lensProfile.handle.localName
+                        : userAddress;
                 await createClub(clubId, {
                     pubId,
-                    handle: registerParams.handle,
-                    profileId: registerParams.profileId,
+                    handle,
+                    profileId: params?.profile_id,
                     strategy: "lens",
                     token: {
                         name: registerParams.tokenName,
                         symbol: registerParams.tokenSymbol,
                         image: registerParams.tokenImage,
-                        description: registerParams.tokenDescription,
+                        description,
                     },
                     featureStartAt: hasBonsaiNFT
                         ? Math.floor(Date.now() / 1000)
@@ -328,7 +307,9 @@ https://launch.bonsai.meme/token/${clubId}`;
                 reply = "Failed to create your token, try again later";
             }
         } else {
-            console.log(`skipping, token already exists: ${existingClubId}`);
+            console.log(
+                `skipping, token already exists: ${existingClub.clubId}`
+            );
             reply = `Ticker $${registerParams.tokenSymbol} already exists!`;
             attachments = [
                 {

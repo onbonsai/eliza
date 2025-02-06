@@ -1,4 +1,4 @@
-import { Character, Clients, ModelProviderName } from "./types.ts";
+import { type Character, Clients, ModelProviderName } from "./types.ts";
 
 // Sage as the default character
 export const defaultCharacter: Character = {

@@ -2,13 +2,14 @@ import {
     composeContext,
     generateMessageResponse,
     generateShouldRespond,
-    Memory,
+    type Memory,
     ModelClass,
     stringToUuid,
     elizaLogger,
-    HandlerCallback,
-    Content,
+    type HandlerCallback,
+    type Content,
     type IAgentRuntime,
+    Clients,
 } from "@elizaos/core";
 import type { LensClient } from "./client";
 import { toHex } from "viem";
@@ -21,9 +22,9 @@ import {
 } from "./prompts";
 import { publicationUuid } from "./utils";
 import { sendPublication } from "./actions";
-import { AnyPublicationFragment } from "@lens-protocol/client";
-import { Profile } from "./types";
-import StorjProvider from "./providers/StorjProvider";
+import type { AnyPublicationFragment } from "@lens-protocol/client";
+import type { Profile } from "./types";
+import type StorjProvider from "./providers/StorjProvider";
 
 export class LensInteractionManager {
     private timeout: NodeJS.Timeout | undefined;
@@ -97,13 +98,29 @@ export class LensInteractionManager {
                 publication: mention,
             });
 
-            const memory: Memory = {
-                // @ts-ignore Metadata
-                content: { text: mention.metadata.content, hash: mention.id },
-                agentId: this.runtime.agentId,
-                userId,
-                roomId,
-            };
+            function hasContent(metadata: any): metadata is { content: string } {
+                return metadata && typeof metadata.content === 'string';
+            }
+
+            let memory: Memory;
+            if (
+                (mention.__typename === 'Post' || mention.__typename === 'Comment' || mention.__typename === 'Quote') &&
+                hasContent(mention.metadata)
+            ) {
+                memory = {
+                    content: { text: mention.metadata.content, hash: mention.id },
+                    agentId: this.runtime.agentId,
+                    userId,
+                    roomId,
+                };
+            } else {
+                memory = {
+                    content: { text: '[No Content]', hash: mention.id },
+                    agentId: this.runtime.agentId,
+                    userId,
+                    roomId,
+                };
+            }
 
             await this.handlePublication({
                 agent,
@@ -128,12 +145,12 @@ export class LensInteractionManager {
         thread: AnyPublicationFragment[];
     }) {
         if (publication.by.id === agent.id) {
-            elizaLogger.info("skipping cast from bot itself", publication.id);
+            elizaLogger.info("skipping publication from bot itself", publication.id);
             return;
         }
 
         if (!memory.content.text) {
-            elizaLogger.info("skipping cast with no text", publication.id);
+            elizaLogger.info("skipping publication with no text", publication.id);
             return { text: "", action: "IGNORE" };
         }
 
@@ -146,10 +163,24 @@ export class LensInteractionManager {
             timeline
         );
 
+        function hasContent(metadata: any): metadata is { content: string } {
+            return metadata && typeof metadata.content === 'string';
+        }
+
         const formattedConversation = thread
             .map((pub) => {
-                // @ts-ignore Metadata
-                const content = pub.metadata.content;
+                if ('metadata' in pub && hasContent(pub.metadata)) {
+                    const content = pub.metadata.content;
+                    return `@${pub.by.handle?.localName} (${new Date(
+                        pub.createdAt
+                    ).toLocaleString("en-US", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        month: "short",
+                        day: "numeric",
+                    })}):
+                    ${content}`;
+                }
                 return `@${pub.by.handle?.localName} (${new Date(
                     pub.createdAt
                 ).toLocaleString("en-US", {
@@ -158,7 +189,7 @@ export class LensInteractionManager {
                     month: "short",
                     day: "numeric",
                 })}):
-                ${content}`;
+                [No Content Available]`;
             })
             .join("\n\n");
 
@@ -182,10 +213,10 @@ export class LensInteractionManager {
             pubId: publication.id,
         });
 
-        const castMemory =
+        const pubMemory =
             await this.runtime.messageManager.getMemoryById(memoryId);
 
-        if (!castMemory) {
+        if (!pubMemory) {
             await this.runtime.messageManager.createMemory(
                 createPublicationMemory({
                     roomId: memory.roomId,
@@ -238,7 +269,7 @@ export class LensInteractionManager {
 
         const callback: HandlerCallback = async (
             content: Content,
-            files: any[]
+            _files: any[]
         ) => {
             try {
                 if (memoryId && !content.inReplyTo) {
@@ -256,13 +287,21 @@ export class LensInteractionManager {
                     throw new Error("publication not sent");
 
                 // sendPublication lost response action, so we need to add it back here?
-                result.memory!.content.action = content.action;
+                if (result.memory) {
+                    result.memory.content.action = content.action;
+                }
 
-                await this.runtime.messageManager.createMemory(result.memory!);
-                return [result.memory!];
+                await this.runtime.messageManager.createMemory(result.memory as Memory);
+                return [result.memory as Memory];
             } catch (error) {
-                console.error("Error sending response cast:", error);
-                return [];
+                console.error("Error sending response publication:", error);
+                // attempt to still process actions
+                return [{
+                    content: { action: content.action, text: content.text },
+                    userId: state.userId,
+                    agentId: state.agentId,
+                    roomId: state.roomId
+                } as Memory];
             }
         };
 
@@ -270,7 +309,15 @@ export class LensInteractionManager {
 
         const newState = await this.runtime.updateRecentMessageState(state);
 
-        await this.runtime.processActions(
+        // payload for actions
+        newState.payload = {
+            client: Clients.LENS,
+            replyTo: {
+                lensPubId: publication.id
+            },
+        };
+
+    await this.runtime.processActions(
             memory,
             responseMessages,
             newState,

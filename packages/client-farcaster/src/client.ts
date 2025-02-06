@@ -1,7 +1,8 @@
-import { IAgentRuntime, elizaLogger } from "@elizaos/core";
-import { NeynarAPIClient, isApiErrorResponse } from "@neynar/nodejs-sdk";
-import { NeynarCastResponse, Cast, Profile, FidRequest, CastId } from "./types";
+import { type IAgentRuntime, elizaLogger } from "@elizaos/core";
+import { type NeynarAPIClient, isApiErrorResponse,  } from "@neynar/nodejs-sdk";
 import { PostCastReqBodyEmbeds } from "@neynar/nodejs-sdk/build/api";
+import type { NeynarCastResponse, Cast, Profile, FidRequest, CastId } from "./types";
+import type { FarcasterConfig } from "./environment";
 
 export class FarcasterClient {
     runtime: IAgentRuntime;
@@ -9,6 +10,7 @@ export class FarcasterClient {
     signerUuid: string;
     cache: Map<string, any>;
     lastInteractionTimestamp: Date;
+    farcasterConfig: FarcasterConfig;
 
     constructor(opts: {
         runtime: IAgentRuntime;
@@ -17,12 +19,14 @@ export class FarcasterClient {
         neynar: NeynarAPIClient;
         signerUuid: string;
         cache: Map<string, any>;
+        farcasterConfig: FarcasterConfig;
     }) {
         this.cache = opts.cache;
         this.runtime = opts.runtime;
         this.neynar = opts.neynar;
         this.signerUuid = opts.signerUuid;
         this.lastInteractionTimestamp = new Date();
+        this.farcasterConfig = opts.farcasterConfig;
     }
 
     async loadCastFromNeynarResponse(neynarResponse: any): Promise<Cast> {
@@ -48,6 +52,7 @@ export class FarcasterClient {
         cast: string,
         parentCastId: CastId | undefined,
         embeds?: [PostCastReqBodyEmbeds],
+        // eslint-disable-next-line
         retryTimes?: number
     ): Promise<NeynarCastResponse | undefined> {
         try {
@@ -102,6 +107,7 @@ export class FarcasterClient {
                   }
                 : {}),
             timestamp: new Date(response.cast.timestamp),
+            embeds: response.cast.embeds,
         };
 
         this.cache.set(`farcaster/cast/${castHash}`, cast);
@@ -188,6 +194,7 @@ export class FarcasterClient {
             username: "",
         };
 
+        /*
         const userDataBodyType = {
             1: "pfp",
             2: "name",
@@ -198,11 +205,15 @@ export class FarcasterClient {
             // 8: "twitter",
             // 9: "github",
         } as const;
+        */
 
         profile.name = neynarUserProfile.display_name!;
         profile.username = neynarUserProfile.username;
         profile.bio = neynarUserProfile.profile.bio.text;
         profile.pfp = neynarUserProfile.pfp_url;
+        profile.ethAddress = neynarUserProfile.verified_addresses?.eth_addresses?.length
+            ? neynarUserProfile.verified_addresses?.eth_addresses[0]
+            : neynarUserProfile.custody_address;
 
         this.cache.set(`farcaster/profile/${fid}`, profile);
 
