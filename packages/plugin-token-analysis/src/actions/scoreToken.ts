@@ -16,6 +16,7 @@ import {
     OptionalArrayScoreSchema,
     OptionalArrayTokenInfoSchema,
 } from "./../types/schema.ts";
+import { searchTokens } from "../services/codex.ts";
 
 const messageTemplate = `Respond with a JSON markdown block, containing only the extracted values. Use null for any values that cannot be determined.
 
@@ -198,6 +199,12 @@ export const scoreToken: Action = {
                 context: messageContext,
                 modelClass: ModelClass.SMALL,
             });
+
+            const tokens = await searchTokens(response.ticker?.replace("$", "").toLowerCase());
+            if (tokens?.length) {
+                response.imageURL = tokens[0].token.info.imageSmallUrl;
+                console.log(`response.imageURL: ${response.imageURL}`)
+            }
         }
 
         console.log("response:", response);

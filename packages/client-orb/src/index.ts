@@ -334,6 +334,7 @@ export class OrbClient {
                 state.payload = {
                     ...payload,
                     imageURL,
+                    userId: req.body.userId,
                     creatorAddress: req.body.userId
                         ? isAddress(req.body.userId)
                             ? req.body.userId
