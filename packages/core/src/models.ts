@@ -1152,7 +1152,7 @@ export const models: Models = {
         },
     },
     [ModelProviderName.TITLES]: {
-        endpoint: "https://wallflower-service-prod.herokuapp.com/api/v1", // TODO: temporary url
+        endpoint: "https://wallflower-service-prod.herokuapp.com/api/v1",
         // no text generation
         model: {
             [ModelClass.IMAGE]: {

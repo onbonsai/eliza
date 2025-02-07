@@ -2036,7 +2036,7 @@ export const generateImage = async (
             const defaultModelId = "EHhr62whbgnIHtADxrro"; // bonsai
             // generate inference
             const response = await fetch(
-                `${models.titles.endpoint}/images/inference`,
+                `${models.titles.endpoint}/inference/text-to-image`,
                 {
                     method: "POST",
                     headers: {
@@ -2052,19 +2052,19 @@ export const generateImage = async (
             );
 
             const result = await response.json();
-            if (!result.transformation_id) {
+            if (!result.inference_id) {
                 throw new Error("Failed to submit generation");
             }
 
             elizaLogger.log("Submitted inference request to Titles");
 
-            const id = result.transformation_id;
+            const id = result.inference_id;
             let polling = true;
             let images;
             let success = false;
             while (polling) {
                 const pollingResponse = await fetch(
-                    `${models.titles.endpoint}/images/inference/status?transformation_id=${id}`,
+                    `${models.titles.endpoint}/inference/text-to-image/${id}`,
                     {
                         method: "GET",
                         headers: {
@@ -2085,7 +2085,7 @@ export const generateImage = async (
                     ) {
                         success = true;
                         images = await Promise.all(
-                            pollingResult.images.map(async (url) => {
+                            pollingResult.inference_output.images.map(async (url) => {
                                 if (data.returnRawResponse) return url;
 
                                 const response = await fetch(url);
@@ -2101,7 +2101,7 @@ export const generateImage = async (
                     polling = false;
                 } else {
                     elizaLogger.log("Polling ...");
-                    await new Promise((resolve) => setTimeout(resolve, 5000)); // 5sec polling
+                    await new Promise((resolve) => setTimeout(resolve, 4000)); // 4sec polling
                 }
             }
 
