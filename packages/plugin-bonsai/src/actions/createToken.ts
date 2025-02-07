@@ -106,7 +106,7 @@ export const createTokenAction: Action = {
         // parse out the token info
         let { symbol, name, description } = response;
         symbol = symbol ? symbol.replace("$", "") : null;
-        name = name || (symbol ? symbol.charAt(0).toUpperCase() + symbol.slice(1) : null);
+        name = (name && name !== "null") ? name : (symbol ? symbol.charAt(0).toUpperCase() + symbol.slice(1) : null);
         console.log(
             `Parsed token details - Name: ${name}, Symbol: ${symbol}, Description: ${description || "n/a"}`
         );
@@ -124,7 +124,7 @@ export const createTokenAction: Action = {
         let cast;
         let imageURL = params.imageURL;
         let creatorAddress = params.creatorAddress;
-        if (params.replyTo.lensPubId) {
+        if (params.replyTo?.lensPubId) {
             publication = await runtime.clients.lens.client.getPublication(
                 params.replyTo.lensPubId
             );
@@ -133,7 +133,7 @@ export const createTokenAction: Action = {
                 imageURL ||
                 publication.metadata?.asset?.image?.optimized?.uri ||
                 publication.metadata?.asset?.image?.raw?.uri;
-        } else {
+        } else if (params.replyTo?.farcasterCastHash) {
             cast = await runtime.clients.farcaster.client.getCast(
                 params.replyTo?.farcasterCastHash
             );
@@ -188,7 +188,7 @@ export const createTokenAction: Action = {
         if (!(await searchToken(registerParams.tokenSymbol))) {
             const { txHash: hash, id: clubId } = await createToken(
                 walletClient,
-                creatorAddress,
+                creatorAddress || (await walletClient.getAddresses())[0], // set agent as creator if no creator present
                 registerParams
             );
 
@@ -238,8 +238,10 @@ https://launch.bonsai.meme/token/${id}`;
                     fid: cast.authorFid,
                 },
             });
+        }
 
-            // post to lens so we can reference in the launchpad, for comments
+        // if not replying to a lens post, post to lens so we can reference in the launchpad, for comments
+        if (!params.replyTo?.lensPubId) {
             const { id: pubId } = await runtime.clients.lens.posts.sendPublication({
                 content: reply,
                 commentOn: params.replyTo?.lensPubId
@@ -250,7 +252,18 @@ https://launch.bonsai.meme/token/${id}`;
             }
         }
 
-        // do not invoke `callback` as it will likely create a new post
+        // only invoke `callback` if not triggered from a post
+        if (!(params.replyTo?.lensPubId || params.replyTo?.farcasterCastHash)) {
+            callback?.({
+                text: reply,
+                attachments: [{
+                    // @ts-ignore Media
+                    button: {
+                        url: `https://launch.bonsai.meme/token/${id}`,
+                    },
+                }],
+            });
+        }
     },
     examples: [
         [

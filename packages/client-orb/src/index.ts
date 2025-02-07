@@ -329,16 +329,17 @@ export class OrbClient {
                 const state = (await runtime.composeState(userMessage, {
                     agentName: runtime.character.name,
                 })) as State;
+
+                // for bonsai plugin
                 state.payload = {
                     ...payload,
-                    userId: req.body.userId,
+                    imageURL,
+                    creatorAddress: req.body.userId
+                        ? isAddress(req.body.userId)
+                            ? req.body.userId
+                            : undefined
+                        : undefined,
                 };
-                state.imageURL = imageURL;
-                state.userAddress = req.body.userId
-                    ? isAddress(req.body.userId)
-                        ? req.body.userId
-                        : undefined
-                    : undefined;
 
                 const context = composeContext({
                     state,
