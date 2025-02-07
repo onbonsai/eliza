@@ -2040,7 +2040,7 @@ export const generateImage = async (
                 {
                     method: "POST",
                     headers: {
-                        "X-Api-External-Key": apiKey,
+                        "X-TITLES-Key": apiKey,
                         "Content-Type": "application/json",
                     },
                     body: JSON.stringify({
@@ -2068,7 +2068,7 @@ export const generateImage = async (
                     {
                         method: "GET",
                         headers: {
-                            "X-Api-External-Key": apiKey,
+                            "X-TITLES-Key": apiKey,
                             "Content-Type": "application/json",
                         },
                     }
