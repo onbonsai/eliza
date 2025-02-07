@@ -2081,7 +2081,7 @@ export const generateImage = async (
                 ) {
                     if (
                         pollingResult.state === "processed" &&
-                        pollingResult.images?.length > 0
+                        pollingResult.inference_output.images?.length > 0
                     ) {
                         success = true;
                         images = await Promise.all(
