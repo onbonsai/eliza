@@ -1506,10 +1506,12 @@ export async function generateObjectDeprecated({
     runtime,
     context,
     modelClass,
+    modelProvider,
 }: {
     runtime: IAgentRuntime;
     context: string;
     modelClass: ModelClass;
+    modelProvider?: ModelProviderName;
 }): Promise<any> {
     if (!context) {
         elizaLogger.error("generateObjectDeprecated context is empty");
@@ -1524,6 +1526,7 @@ export async function generateObjectDeprecated({
                 runtime,
                 context,
                 modelClass,
+                modelProvider,
             });
             const parsedResponse = parseJSONObjectFromText(response);
             if (parsedResponse) {

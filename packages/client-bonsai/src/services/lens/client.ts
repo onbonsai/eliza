@@ -1,4 +1,4 @@
-import { PublicClient, testnet } from "@lens-protocol/client-canary";
+import { PublicClient, testnet } from "@lens-protocol/client";
 import {
     StorageClient,
     testnet as storageTestnet,
@@ -6,7 +6,7 @@ import {
 
 export const client = PublicClient.create({
     environment: testnet,
-    origin: "https://eliza.bonsai.meme", // ignored on browser
+    origin: "https://eliza.bonsai.meme",
 });
 
 export const storageClient = StorageClient.create(storageTestnet);

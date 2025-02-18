@@ -1,7 +1,7 @@
-import { fetchAccount } from "@lens-protocol/client-canary/actions";
+import { fetchAccount } from "@lens-protocol/client/actions";
+import type { PrivateKeyAccount } from "viem";
+import type { SessionClient } from "@lens-protocol/client";
 import { client } from "./client";
-import { PrivateKeyAccount } from "viem";
-import { SessionClient } from "@lens-protocol/client-canary";
 
 const LENS_APP_CONTRACT = "0xe5439696f4057aF073c0FB2dc6e5e755392922e1"; // TODO: create one for bonsai
 

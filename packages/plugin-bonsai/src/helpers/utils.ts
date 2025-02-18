@@ -523,7 +523,8 @@ export const searchToken = async (_query: string): Promise<any | undefined> => {
     return res?.length ? res[0] : undefined;
 };
 
-const toHexString = (id: number) => {
-    const hexValue = id.toString(16);
-    return `0x${hexValue.length === 3 ? hexValue.padStart(4, "0") : hexValue.padStart(2, "0")}`;
-};
+export const toHexString = (id: number | string, minLength: number = 2): string => {
+    const numericId = typeof id === 'string' ? parseInt(id, 10) : id;
+    const stringId = numericId.toString(16);
+    return `0x${stringId.length === 3 ? stringId.padStart(4, "0") : stringId.padStart(2, "0")}`;
+}

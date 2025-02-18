@@ -1,4 +1,4 @@
-import { IAgentRuntime } from "@elizaos/core";
+import type { IAgentRuntime } from "@elizaos/core";
 import RunwayML from "@runwayml/sdk";
 
 export const generateVideoRunway = async (

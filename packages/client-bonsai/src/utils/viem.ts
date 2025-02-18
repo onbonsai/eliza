@@ -1,17 +1,18 @@
 import {
     decodeEventLog,
     getAddress,
-    TransactionReceipt,
+    type TransactionReceipt,
     createPublicClient,
     http,
-    Log,
+    type Log,
     maxUint256,
-    WalletClient,
+    type WalletClient,
     erc20Abi,
-    Account,
+    type Account,
     encodeAbiParameters,
     parseAbiParameters,
-    Chain,
+    type Chain,
+    type PublicClient,
 } from "viem";
 import { base, polygon, zksync } from "viem/chains";
 import { CHAIN_TO_RPC } from "./constants";
@@ -97,4 +98,18 @@ export const approveToken = async (
         console.log(`hash: ${hash}`);
         await client.waitForTransactionReceipt({ hash });
     }
+};
+
+export const balanceOfBatched = async (
+    chain: Chain,
+    accounts: `0x${string}`[],
+    token: `0x${string}`
+) => {
+    const client = getPublicClient(chain);
+    return await Promise.all(accounts.map((account) => client.readContract({
+        address: token,
+        abi: erc20Abi,
+        functionName: "balanceOf",
+        args: [account],
+    })));
 };

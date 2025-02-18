@@ -16,12 +16,14 @@ import { AlexaClientInterface } from "@elizaos/client-alexa";
 import { MongoDBDatabaseAdapter } from "@elizaos/adapter-mongodb";
 import { DevaClientInterface } from "@elizaos/client-deva";
 import { OrbClientInterface } from "@elizaos/client-orb";
+import { BonsaiClientInterface } from "@elizaos/client-bonsai";
 
 import { FarcasterClientInterface } from "@elizaos/client-farcaster";
 import { OmniflixPlugin } from "@elizaos/plugin-omniflix";
 import { JeeterClientInterface } from "@elizaos/client-simsai";
 import { XmtpClientInterface } from "@elizaos/client-xmtp";
 import { DirectClient } from "@elizaos/client-direct";
+// import { BonsaiClient } from "@elizaos/client-bonsai";
 import { agentKitPlugin } from "@elizaos/plugin-agentkit";
 import { gelatoPlugin } from "@elizaos/plugin-gelato";
 import { PrimusAdapter } from "@elizaos/plugin-primus";
@@ -858,7 +860,7 @@ export async function initializeClients(
         }
     }
 
-    if (clientTypes.includes("lens")) {
+    if (clientTypes.includes(Clients.LENS)) {
         const lensClient = await LensAgentClientInterface.start(runtime);
         clients.lens = lensClient;
     }
@@ -871,6 +873,11 @@ export async function initializeClients(
     if (clientTypes.includes(Clients.SIMSAI)) {
         const simsaiClient = await JeeterClientInterface.start(runtime);
         if (simsaiClient) clients.simsai = simsaiClient;
+    }
+
+    if (clientTypes.includes(Clients.BONSAI)) {
+        const bonsaiClient = await BonsaiClientInterface.start(runtime);
+        clients.bonsai = bonsaiClient;
     }
 
     elizaLogger.log("client keys", Object.keys(clients));

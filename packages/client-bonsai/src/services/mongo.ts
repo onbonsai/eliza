@@ -1,6 +1,5 @@
 import { MongoClient } from "mongodb";
 
-const IS_PRODUCTION = process.env.LAUNCHPAD_CHAIN_ID === "8453";
 let client: MongoClient;
 let connecting: Promise<MongoClient> | null = null;
 
@@ -9,7 +8,7 @@ const _client = async () => {
     if (connecting) return connecting;
 
     connecting = (async () => {
-        client = new MongoClient(process.env.MONGO_URI!);
+        client = new MongoClient(process.env.BONSAI_CLIENT_MONGO_URI);
         await client.connect();
         return client;
     })();
@@ -17,13 +16,11 @@ const _client = async () => {
     return connecting;
 };
 
+// TODO:
 export const getClient = async () => {
     const client = await _client();
-    const database = client.db("moonshot");
-    const collection = database.collection("agents");
-    const tips = database.collection("user-tips");
-    const tickers = database.collection("tickers");
-    const clubs = database.collection(IS_PRODUCTION ? "clubs-prod" : "clubs");
+    const database = client.db(process.env.MONGO_DB_BONSAI || "client-bonsai");
+    const media = database.collection(process.env.MONGO_COLLECTION_MEDIA || "media");
 
-    return { client, collection, tips, tickers, clubs };
+    return { client, media };
 };

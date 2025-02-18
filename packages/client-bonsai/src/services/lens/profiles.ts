@@ -1,12 +1,12 @@
 import {
-    Account,
-    AccountManaged,
+    type Account,
+    type AccountManaged,
     evmAddress,
-} from "@lens-protocol/client-canary";
+} from "@lens-protocol/client";
 import {
     fetchAccount,
     fetchAccountsAvailable,
-} from "@lens-protocol/client-canary/actions";
+} from "@lens-protocol/client/actions";
 import { client } from "./client";
 
 export const getProfileById = async (

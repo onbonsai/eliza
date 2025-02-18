@@ -1,11 +1,12 @@
-import { evmAddress, Post } from "@lens-protocol/client-canary";
-import { fetchTimeline } from "@lens-protocol/client-canary/actions";
+import { evmAddress, Post } from "@lens-protocol/client";
+import { fetchTimeline } from "@lens-protocol/client/actions";
 import { client } from "./client";
 
 export const fetchFeed = async (
     account: `0x${string}`,
     limit = 20
 ): Promise<any[]> => {
+    // TODO: how to pass along limit
     const result = await fetchTimeline(client, {
         account: evmAddress(account),
     });

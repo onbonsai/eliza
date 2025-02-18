@@ -1,5 +1,5 @@
-import { Post, PostStats } from "@lens-protocol/client-canary";
-import { fetchPosts } from "@lens-protocol/client-canary/actions";
+import type { Post, PostStats } from "@lens-protocol/client";
+import { fetchPosts } from "@lens-protocol/client/actions";
 import { client } from "./client";
 
 export interface LensPost {

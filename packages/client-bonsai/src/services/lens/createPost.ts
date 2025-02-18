@@ -1,15 +1,15 @@
-import { SessionClient, uri, postId } from "@lens-protocol/client-canary";
-import { post } from "@lens-protocol/client-canary/actions";
+import { type SessionClient, uri, postId, type URI } from "@lens-protocol/client";
+import { post } from "@lens-protocol/client/actions";
 import {
     textOnly,
     image,
     video,
-    MediaImageMimeType,
-    MediaVideoMimeType,
+    type MediaImageMimeType,
+    type MediaVideoMimeType,
     MetadataLicenseType,
-} from "@lens-protocol/metadata-next";
-import { handleOperationWith } from "@lens-protocol/client-canary/viem";
-import { WalletClient } from "viem";
+} from "@lens-protocol/metadata";
+import { handleOperationWith } from "@lens-protocol/client/viem";
+import type { WalletClient } from "viem";
 import { storageClient } from "./client";
 
 interface PostParams {
@@ -25,14 +25,9 @@ interface PostParams {
     };
 }
 
-export default async (
-    walletClient: WalletClient,
-    sessionClient: SessionClient,
-    params: PostParams,
-    commentOn?: `0x${string}`,
-    quoteOf?: `0x${string}`
-): Promise<string | undefined> => {
-    let metadata;
+export const uploadMetadata = async (params: PostParams): Promise<URI> => {
+    let metadata: unknown;
+
     if (!(params.image || params.video)) {
         metadata = textOnly({
             content: params.text,
@@ -58,10 +53,23 @@ export default async (
         });
     }
 
+    // TODO: uploadAsJson does exist?
     const { uri: hash } = await storageClient.uploadAsJson(metadata);
 
+    return uri(hash);
+};
+
+export const createPost = async (
+    walletClient: WalletClient,
+    sessionClient: SessionClient,
+    params: PostParams,
+    commentOn?: `0x${string}`,
+    quoteOf?: `0x${string}`
+): Promise<string | undefined> => {
+    const contentUri = await uploadMetadata(params);
+
     const result = await post(sessionClient, {
-        contentUri: uri(hash),
+        contentUri,
         commentOn: commentOn
             ? {
                   post: postId(commentOn),
@@ -78,10 +86,10 @@ export default async (
 
     if (result.isOk()) {
         return result.value; // postId
-    } else {
-        console.log(
-            "lens:: createPost:: failed to post with error:",
-            result.error
-        );
     }
+
+    console.log(
+        "lens:: createPost:: failed to post with error:",
+        result.error
+    );
 };

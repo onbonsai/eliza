@@ -24,3 +24,5 @@ export const CHAIN_TO_BONSAI = {
     [zksync.id]: BONSAI_TOKEN_ADDRESS_ZKSYNC,
     [polygon.id]: BONSAI_TOKEN_ADDRESS_POLYGON,
 };
+
+export const DEFAULT_MAX_STALE_TIME = 1800; // 30min for clients to wait before fetching updated content
