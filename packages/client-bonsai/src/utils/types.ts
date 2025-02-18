@@ -66,9 +66,11 @@ export type TemplateHandler = (
  * Callback function type for handlers
  */
 export interface TemplateHandlerResponse {
-  text?: string,
-  image?: string, // base 64 jpeg/png (depending on the provider)
-  video?: string,
+  preview?: {
+    text: string;
+    image?: string; // base 64 jpeg/png (depending on the provider)
+    video?: string,
+  };
   uri?: string,
   updatedTemplateData?: unknown,
 }

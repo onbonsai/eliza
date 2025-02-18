@@ -20,6 +20,7 @@ import verifyApiKey from "./middleware/verifyApiKey";
 import { DEFAULT_MAX_STALE_TIME } from "./utils/constants";
 import { getClient } from "./services/mongo";
 import adventureTimeTemplate from "./templates/adventureTime";
+import TaskQueue from "./utils/taskQueue";
 
 // only needed to play nice with the rest of ElizaOS
 const GLOBAL_AGENT_ID = "c3bd776c-4465-037f-9c7a-bf94dfba78d9";
@@ -31,12 +32,12 @@ export class BonsaiClient {
     private redis: WrappedNodeRedisClient;
     private cache: Map<string, SmartMediaPreview>;
     private mongo: { client: MongoClient, media: Collection };
+    private tasks: TaskQueue = new TaskQueue();
     private templates: Map<TemplateName, Template>;
 
     constructor() {
         this.app = express();
         this.server = createServer(this.app);
-        // TOOD: make sure the kick policy is FIFO
         this.redis = redisClient;
         this.app.use(cors());
 
@@ -71,7 +72,10 @@ export class BonsaiClient {
                 const runtime = this.agents.get(GLOBAL_AGENT_ID);
                 const template = this.templates.get(templateName);
 
-                // TOOD: template not registered for `templateName`
+                if (!template) {
+                    res.status(400).json({ error: `templateName: ${templateName} not registered` });
+                    return;
+                }
 
                 const response = await template.handler(runtime, false, null, templateData);
 
@@ -98,16 +102,18 @@ export class BonsaiClient {
             "post/create",
             verifyLensId,
             async (req: express.Request, res: express.Response) => {
-                const { agentId, postId, uri, templateData } = req.body;
+                const {
+                    agentId,
+                    postId,
+                    uri,
+                    tokenAddress,
+                }: { agentId?: UUID, postId?: string, uri: string, tokenAddress: `0x${string}` } = req.body;
 
                 // require that a preview was generated and cached
                 const preview = this.cache.get(agentId);
                 if (!preview) {
                     res.status(400).json({ error: "cache miss; please generate a new preview" })
                 }
-
-                // init function on the template to retrieve the final templateData
-                // template.init(templateData) => finalTemplateData
 
                 // prep the final object
                 const ts = Math.floor(Date.now() / 1000);
@@ -118,7 +124,7 @@ export class BonsaiClient {
                     maxStaleTime: DEFAULT_MAX_STALE_TIME,
                     createdAt: ts,
                     updatedAt: ts,
-                    templateData: { ...preview.templateData as unknown },
+                    tokenAddress,
                 };
 
                 // remove from memory cache, save in redis and mongo
@@ -139,52 +145,67 @@ export class BonsaiClient {
                 const data = await this.getPost(postId as string);
 
                 if (data) {
-                    res.status(200).json(data.uri);
+                    res.status(200).json({
+                        uri: data.uri,
+                        updatedAt: data.updatedAt,
+                        // suggest clients to poll every 15s
+                        processing: this.tasks.isProcessing(postId as string) ? true : undefined
+                    });
                 } else {
                     res.status(404);
                 }
             }
         );
 
-        // TODO: task queue with 2-step response { status: "running" } => { status: "complete", uri: "" }
         // trigger the update process for a given post; requires api key
         this.app.post(
             "post/:postId/update",
             verifyApiKey,
             async (req: express.Request, res: express.Response) => {
-                // TODO: check there is a current job
-
                 const { postId } = req.params;
+
+                if (this.tasks.isProcessing(postId)) {
+                    res.status(204).json({ status: "processing" });
+                    return;
+                }
+
                 const data = await this.getPost(postId as string);
                 if (!data) {
-                    res.status(404);
+                    res.status(404).send();
                     return;
                 }
 
-                const runtime = this.agents.get(GLOBAL_AGENT_ID);
-                const template = this.templates.get(data.template);
-                const response = await template.handler(runtime, true, data);
+                this.tasks.add(postId, () => this.handlePostUpdate(postId));
 
-                if (!response.uri) {
-                    elizaLogger.error("Failed to update post ");
-                    res.status(500);
-                    return;
-                }
-
-                // update the cache with the latest template data needed for next generation
-                await this.cachePost({
-                    ...data,
-                    templateData: response.updatedTemplateData,
-                    updatedAt: Math.floor(Date.now() / 1000)
-                });
-
-                await this.mongo.media.updateOne(
-                    { agentId: data.agentId },
-                    { $push: { versions: response.uri as string } } as unknown
-                );
-
-                res.status(200).json({ uri: response.uri });
+                res.status(200).json({ status: "processing" });
             }
+        );
+    }
+
+    private async handlePostUpdate(postId: string): Promise<void> {
+        const data = await this.getPost(postId as string);
+        if (!data) return;
+
+        const runtime = this.agents.get(GLOBAL_AGENT_ID);
+        const template = this.templates.get(data.template);
+        const response = await template.handler(runtime, true, data);
+
+        if (!response.uri) {
+            elizaLogger.error(`Failed to update post: ${postId}`);
+            return;
+        }
+
+        // update the cache with the latest template data needed for next generation
+        await this.cachePost({
+            ...data,
+            templateData: response.updatedTemplateData,
+            updatedAt: Math.floor(Date.now() / 1000)
+        });
+
+        // push the new uri to the db for versioning
+        await this.mongo.media.updateOne(
+            { agentId: data.agentId },
+            { $push: { versions: response.uri as string } } as unknown
         );
     }
 
@@ -216,9 +237,12 @@ export class BonsaiClient {
     public async getPost(postId: string): Promise<SmartMedia | null> {
         const res = await this.redis.get(`post/${postId}`);
 
-        // TODO: if not in redis, fetch from mongo
+        if (!res) {
+            const doc = await this.mongo.media.findOne({ postId }, { projection: { _id: 0 } });
+            return doc as unknown as SmartMedia;
+        }
 
-        return res ? JSON.parse(res) : null;
+        return JSON.parse(res);
     }
 
     public start(port: number) {

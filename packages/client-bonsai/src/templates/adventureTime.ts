@@ -98,8 +98,17 @@ const DEFAULT_MODEL_ID = "stable-diffusion-3.5"; // most creative
 const DEFAULT_STYLE_PRESET = "Film Noir";
 const DEFAULT_MIN_ENGAGEMENT_UPDATE_THREHOLD = 10; // at least 10 upvotes/comments before updating
 
-// TODO: docstrings
-// This template handler should generate the next PostMetadata to use for the SmartMedia, returning the pinned uri
+/**
+ * Handles the generation and updating of a "Choose Your Own Adventure" type post.
+ * This function either generates a new adventure preview based on initial template data
+ * or refreshes an existing adventure by evaluating new comments and votes to decide the next page.
+ *
+ * @param {IAgentRuntime} runtime - The eliza runtime environment providing utilities for generating content and images.
+ * @param {boolean} refresh - Flag indicating whether to generate a new page or update an existing one.
+ * @param {SmartMedia} [media] - The current, persisted media object associated with the adventure, used for updates.
+ * @param {TemplateData} [_templateData] - Initial data for generating a new adventure preview, used when not refreshing.
+ * @returns {Promise<TemplateHandlerResponse | null>} A promise that resolves to the response object containing the new page preview, uri (optional), and updated template data, or null if the operation cannot be completed.
+ */
 const adventureTime = {
     name: TemplateName.ADVENTURE_TIME,
     description: "Choose your own adventure. Creator sets the context and inits the post with the first page. The comment with the most votes dictates the direction of the story.",
@@ -118,94 +127,96 @@ const adventureTime = {
             return;
         }
 
-        // TODO: generalized to return a new `templateData` object to use for the next generation
-        if (refresh) {
-            let comments: Post[]; // latest comments to evaluate for the next decision
+        try {
+            if (refresh) {
+                let comments: Post[]; // latest comments to evaluate for the next decision
 
-            // TODO: simplify further, make sure the conditions are not exclusive
-            // if the post not stale, check if we've passed the min comment threshold
-            if (!isMediaStale(media)) {
-                const allComments = await fetchAllCommentsFor(media.postId);
-                comments = getLatestComments(media, allComments);
-                const threshold = (media.templateData as TemplateData).minCommentUpdateThreshold ||
-                    DEFAULT_MIN_ENGAGEMENT_UPDATE_THREHOLD;
-                if (comments.length < threshold) {
-                    elizaLogger.log(`adventureTime:: media ${media.agentId} is not stale and has not met comment threshold; skipping`);
-                    return {};
+                // if the post not stale, check if we've passed the min comment threshold
+                if (isMediaStale(media)) {
+                    const allComments = await fetchAllCommentsFor(media.postId);
+                    comments = getLatestComments(media, allComments);
+                    const threshold = (media.templateData as TemplateData).minCommentUpdateThreshold ||
+                        DEFAULT_MIN_ENGAGEMENT_UPDATE_THREHOLD;
+                    if (comments.length < threshold) {
+                        elizaLogger.log(`adventureTime:: media ${media.agentId} is not stale and has not met comment threshold; skipping`);
+                        return;
+                    }
+                } else {
+                    // do not update if the media isn't stale; we're paying for generations
+                    return;
                 }
+
+                // fetch the token balances for each comment / upvote to use weighted votes
+                const allCollectors = await fetchAllCollectorsFor(media.postId);
+                const commentsWeighted = await Promise.all(comments.map(async (comment) => {
+                    const voters = await fetchAllUpvotersFor(comment.id);
+                    const balances = await balanceOfBatched(
+                        base,
+                        [
+                            comment.author.address,
+                            ...voters.filter((account) => allCollectors.includes(account))
+                        ],
+                        media.tokenAddress
+                    );
+                    return {
+                        content: (comment.metadata as TextOnlyMetadata).content,
+                        weight: getVoteWeightFromBalance(balances.shift()),
+                        upvotesWeighted: balances.map((b) => getVoteWeightFromBalance(b)),
+                    };
+                }));
+
+                const context = composeContext({
+                    // @ts-expect-error State
+                    state: { decisions: templateData.decisions, comments: commentsWeighted },
+                    template: decisionTemplate,
+                });
+
+                // evaluate next decision
+                const results = (await generateObjectDeprecated({
+                    runtime,
+                    context,
+                    modelClass: ModelClass.SMALL,
+                    modelProvider: ModelProviderName.VENICE,
+                })) as DecisionResponse;
+
+                console.log(JSON.stringify(results, null, 2));
+
+                // push to templateData.previousPages to be immediately used for a new generation
+                templateData.previousPages.push(`${templateData.chapterName}; ${results.decisions[0].content}`);
             }
 
-            // fetch the token balances for each comment / upvote to use weighted votes
-            const allCollectors = await fetchAllCollectorsFor(media.postId);
-            const commentsWeighted = await Promise.all(comments.map(async (comment) => {
-                const voters = await fetchAllUpvotersFor(comment.id);
-                const balances = await balanceOfBatched(
-                    base,
-                    [
-                        comment.author.address,
-                        ...voters.filter((account) => allCollectors.includes(account))
-                    ],
-                    media.tokenAddress
-                );
-                return {
-                    content: (comment.metadata as TextOnlyMetadata).content,
-                    weight: getVoteWeightFromBalance(balances.shift()),
-                    upvotesWeighted: balances.map((b) => getVoteWeightFromBalance(b)),
-                };
-            }));
-
             const context = composeContext({
-                // @ts-expect-error State
-                state: { decisions: templateData.decisions, comments: commentsWeighted },
-                template: decisionTemplate,
+                // @ts-expect-error we don't need the full State object here to produce the context
+                state: {
+                    context: templateData.context,
+                    previousPages: templateData.previousPages,
+                    writingStyle: templateData.writingStyle
+                },
+                template: nextPageTemplate,
             });
 
-            // evaluate next decision
-            const results = (await generateObjectDeprecated({
+            const page = (await generateObjectDeprecated({
                 runtime,
                 context,
                 modelClass: ModelClass.SMALL,
                 modelProvider: ModelProviderName.VENICE,
-            })) as DecisionResponse;
+            })) as NextPageResponse;
 
-            console.log(JSON.stringify(results,null,2));
+            console.log(JSON.stringify(page, null, 2));
 
-            // push to templateData.previousPages to be immediately used for a new generation
-            templateData.previousPages.push(`${templateData.chapterName}; ${results.decisions[0].content}`);
-        }
+            const imageResponse = await generateImage(
+                {
+                    prompt: page.imagePrompt,
+                    width: 1024,
+                    height: 1024,
+                    imageModelProvider: ModelProviderName.VENICE,
+                    modelId: templateData.modelId || DEFAULT_MODEL_ID,
+                    stylePreset: templateData.stylePreset || DEFAULT_STYLE_PRESET,
+                },
+                runtime
+            );
 
-        const context = composeContext({
-            // @ts-expect-error we don't need the full State object here to produce the context
-            state: {
-                context: templateData.context,
-                previousPages: templateData.previousPages,
-                writingStyle: templateData.writingStyle
-            },
-            template: nextPageTemplate,
-        });
-
-        const page = (await generateObjectDeprecated({
-            runtime,
-            context,
-            modelClass: ModelClass.SMALL,
-            modelProvider: ModelProviderName.VENICE,
-        })) as NextPageResponse;
-
-        console.log(JSON.stringify(page, null, 2));
-
-        const imageResponse = await generateImage(
-            {
-                prompt: page.imagePrompt,
-                width: 1024,
-                height: 1024,
-                imageModelProvider: ModelProviderName.VENICE,
-                modelId: templateData.modelId || DEFAULT_MODEL_ID,
-                stylePreset: templateData.stylePreset || DEFAULT_STYLE_PRESET,
-            },
-            runtime
-        );
-
-        const text = `
+            const text = `
 ${page.chapterName}
 ${page.content}
 
@@ -213,28 +224,31 @@ Option A) ${page.decisions[0]}
 Option B) ${page.decisions[1]}
 `;
 
-        let uri: string;
-        if (refresh) {
-            // TODO: how to store the base64 data as an image in lens storage nodes
-            const imageURL = await parseAndUploadBase64Image(imageResponse);
+            let uri: string;
+            if (refresh) {
+                // TODO: how to store the base64 data as an image in lens storage nodes
+                const imageURL = await parseAndUploadBase64Image(imageResponse);
 
-            // TODO: do AgentMetadata
-            uri = await uploadMetadata({
-                text,
-                image: {
-                    url: imageURL,
-                    type: MediaImageMimeType.PNG // see generation.ts for ModelProviderName.VENICE
-                }
-            });
-        }
+                // TODO: use AgentMetadata
+                uri = await uploadMetadata({
+                    text,
+                    image: {
+                        url: imageURL,
+                        type: MediaImageMimeType.PNG // see generation.ts for ModelProviderName.VENICE
+                    }
+                });
+            }
 
-        return {
-            preview: {
-                text,
-                image: imageResponse.success ? imageResponse.data[0] : undefined,
-            },
-            uri,
-            updatedTemplateData: { ...templateData, decisions: page.decisions, chapterName: page.chapterName },
+            return {
+                preview: {
+                    text,
+                    image: imageResponse.success ? imageResponse.data[0] : undefined,
+                },
+                uri,
+                updatedTemplateData: { ...templateData, decisions: page.decisions, chapterName: page.chapterName },
+            }
+        } catch (error) {
+            elizaLogger.error("handler failed", error);
         }
     }
 } as Template;
