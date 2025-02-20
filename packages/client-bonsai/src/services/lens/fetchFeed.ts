@@ -1,4 +1,4 @@
-import { evmAddress, Post } from "@lens-protocol/client";
+import { evmAddress } from "@lens-protocol/client";
 import { fetchTimeline } from "@lens-protocol/client/actions";
 import { client } from "./client";
 

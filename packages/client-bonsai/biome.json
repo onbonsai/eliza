@@ -18,7 +18,8 @@
                 "useConst": "error",
                 "useImportType": "off",
                 "noUnusedTemplateLiteral": "off",
-                "useTemplate": "off"
+                "useTemplate": "off",
+                "noNonNullAssertion": "off"
             },
             "complexity": {
                 "noForEach": "off"

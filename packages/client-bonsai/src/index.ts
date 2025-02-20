@@ -8,7 +8,6 @@ import {
     type Client,
     type IAgentRuntime,
     type UUID,
-    type AgentRuntime,
     elizaLogger,
 } from "@elizaos/core";
 import type { WrappedNodeRedisClient } from "handy-redis";
@@ -28,18 +27,21 @@ const GLOBAL_AGENT_ID = "c3bd776c-4465-037f-9c7a-bf94dfba78d9";
 export class BonsaiClient {
     private app: express.Application;
     private server: HttpServer;
-    private agents: Map<string, AgentRuntime>;
+
     private redis: WrappedNodeRedisClient;
-    private cache: Map<string, SmartMediaPreview>;
-    private mongo: { client: MongoClient, media: Collection };
+    private mongo: { client?: MongoClient, media?: Collection };
+
     private tasks: TaskQueue = new TaskQueue();
-    private templates: Map<TemplateName, Template>;
+    private cache: Map<UUID, SmartMediaPreview> = new Map(); // agentId => preview
+    private agents: Map<string, IAgentRuntime> = new Map();
+    private templates: Map<TemplateName, Template> = new Map();
 
     constructor() {
         this.app = express();
         this.server = createServer(this.app);
         this.redis = redisClient;
         this.app.use(cors());
+        this.mongo = {};
 
         this.app.use(bodyParser.json());
         this.app.use(bodyParser.urlencoded({ extended: true }));
@@ -51,7 +53,7 @@ export class BonsaiClient {
             "/post/create-preview",
             verifyLensId,
             async (req: express.Request, res: express.Response) => {
-                const creator = req.user.sub as `0x${string}`;
+                const creator = req.user?.sub as `0x${string}`;
                 const {
                     category,
                     templateName,
@@ -61,7 +63,11 @@ export class BonsaiClient {
 
                 // throttle to 1 generation per minute
                 if (agentId) {
-                    const lastUpdated = this.cache.get(agentId).updatedAt;
+                    const lastUpdated = this.cache.get(agentId)?.updatedAt;
+                    if (!lastUpdated) {
+                        res.status(404);
+                        return;
+                    }
                     const currentTime = Math.floor(Date.now() / 1000);
                     if (currentTime - lastUpdated < 60) {
                         res.status(400).json({ error: "throttled; only 1 preview per minute" });
@@ -77,7 +83,7 @@ export class BonsaiClient {
                     return;
                 }
 
-                const response = await template.handler(runtime, false, null, templateData);
+                const response = await template.handler(runtime as IAgentRuntime, false, undefined, templateData);
 
                 const ts = Math.floor(Date.now() / 1000);
                 const preview: SmartMediaPreview = {
@@ -107,12 +113,13 @@ export class BonsaiClient {
                     postId,
                     uri,
                     tokenAddress,
-                }: { agentId?: UUID, postId?: string, uri: string, tokenAddress: `0x${string}` } = req.body;
+                }: { agentId: UUID, postId: string, uri: string, tokenAddress: `0x${string}` } = req.body;
 
                 // require that a preview was generated and cached
-                const preview = this.cache.get(agentId);
+                const preview = this.cache.get(agentId as UUID);
                 if (!preview) {
                     res.status(400).json({ error: "cache miss; please generate a new preview" })
+                    return;
                 }
 
                 // prep the final object
@@ -130,7 +137,7 @@ export class BonsaiClient {
                 // remove from memory cache, save in redis and mongo
                 this.deletePreview(agentId);
                 await this.cachePost(media);
-                this.mongo.media.insertOne({
+                this.mongo.media?.insertOne({
                     ...media,
                     versions: [uri]
                 });
@@ -188,9 +195,9 @@ export class BonsaiClient {
 
         const runtime = this.agents.get(GLOBAL_AGENT_ID);
         const template = this.templates.get(data.template);
-        const response = await template.handler(runtime, true, data);
+        const response = await template?.handler(runtime as IAgentRuntime, true, data);
 
-        if (!response.uri) {
+        if (!response?.uri) {
             elizaLogger.error(`Failed to update post: ${postId}`);
             return;
         }
@@ -203,9 +210,10 @@ export class BonsaiClient {
         });
 
         // push the new uri to the db for versioning
-        await this.mongo.media.updateOne(
+        await this.mongo.media?.updateOne(
             { agentId: data.agentId },
-            { $push: { versions: response.uri as string } } as unknown
+            // @ts-ignore $push
+            { $push: { versions: response.uri as string } }
         );
     }
 
@@ -218,7 +226,7 @@ export class BonsaiClient {
         };
     }
 
-    public registerAgent(runtime: AgentRuntime) {
+    public registerAgent(runtime: IAgentRuntime) {
         this.agents.set(runtime.agentId, runtime);
     }
 
@@ -238,7 +246,7 @@ export class BonsaiClient {
         const res = await this.redis.get(`post/${postId}`);
 
         if (!res) {
-            const doc = await this.mongo.media.findOne({ postId }, { projection: { _id: 0 } });
+            const doc = await this.mongo.media?.findOne({ postId }, { projection: { _id: 0 } });
             return doc as unknown as SmartMedia;
         }
 
@@ -255,7 +263,7 @@ export class BonsaiClient {
 }
 
 export const BonsaiClientInterface: Client = {
-    start: async (runtime: AgentRuntime) => {
+    start: async (runtime: IAgentRuntime) => {
         console.log("BonsaiClientInterface:: start");
         const client = new BonsaiClient();
 

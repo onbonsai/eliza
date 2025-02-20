@@ -1,7 +1,7 @@
-import type { IAgentRuntime } from "@elizaos/core";
+import type { IAgentRuntime, UUID } from "@elizaos/core";
 
 export interface SmartMediaBase {
-  agentId: string; // uuid
+  agentId: UUID; // uuid
   creator: `0x${string}`; // lens account
   template: TemplateName;
   category: TemplateCategory;

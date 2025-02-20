@@ -117,11 +117,11 @@ const adventureTime = {
         refresh: boolean,
         media?: SmartMedia,
         _templateData?: TemplateData,
-    ): Promise<TemplateHandlerResponse | null> => {
+    ): Promise<TemplateHandlerResponse | undefined> => {
         elizaLogger.log("Running template:", TemplateName.ADVENTURE_TIME);
 
         // either we are refreshing the persisted `media` object or we're generating a preview using `_templateData`
-        const templateData: TemplateData = refresh ? media.templateData as TemplateData : _templateData;
+        const templateData = refresh ? media?.templateData as TemplateData : _templateData;
         if (!templateData) {
             elizaLogger.error("Missing template data");
             return;
@@ -132,13 +132,13 @@ const adventureTime = {
                 let comments: Post[]; // latest comments to evaluate for the next decision
 
                 // if the post not stale, check if we've passed the min comment threshold
-                if (isMediaStale(media)) {
-                    const allComments = await fetchAllCommentsFor(media.postId);
-                    comments = getLatestComments(media, allComments);
-                    const threshold = (media.templateData as TemplateData).minCommentUpdateThreshold ||
+                if (isMediaStale(media as SmartMedia)) {
+                    const allComments = await fetchAllCommentsFor(media?.postId as string);
+                    comments = getLatestComments(media as SmartMedia, allComments);
+                    const threshold = (media?.templateData as TemplateData).minCommentUpdateThreshold ||
                         DEFAULT_MIN_ENGAGEMENT_UPDATE_THREHOLD;
                     if (comments.length < threshold) {
-                        elizaLogger.log(`adventureTime:: media ${media.agentId} is not stale and has not met comment threshold; skipping`);
+                        elizaLogger.log(`adventureTime:: media ${media?.agentId} is not stale and has not met comment threshold; skipping`);
                         return;
                     }
                 } else {
@@ -156,11 +156,11 @@ const adventureTime = {
                             comment.author.address,
                             ...voters.filter((account) => allCollectors.includes(account))
                         ],
-                        media.tokenAddress
+                        media?.tokenAddress as `0x${string}`
                     );
                     return {
                         content: (comment.metadata as TextOnlyMetadata).content,
-                        weight: getVoteWeightFromBalance(balances.shift()),
+                        weight: getVoteWeightFromBalance(balances?.shift() as bigint),
                         upvotesWeighted: balances.map((b) => getVoteWeightFromBalance(b)),
                     };
                 }));
@@ -182,7 +182,7 @@ const adventureTime = {
                 console.log(JSON.stringify(results, null, 2));
 
                 // push to templateData.previousPages to be immediately used for a new generation
-                templateData.previousPages.push(`${templateData.chapterName}; ${results.decisions[0].content}`);
+                templateData.previousPages?.push(`${templateData.chapterName}; ${results.decisions[0].content}`);
             }
 
             const context = composeContext({
@@ -224,7 +224,7 @@ Option A) ${page.decisions[0]}
 Option B) ${page.decisions[1]}
 `;
 
-            let uri: string;
+            let uri: string | undefined = undefined;
             if (refresh) {
                 // TODO: how to store the base64 data as an image in lens storage nodes
                 const imageURL = await parseAndUploadBase64Image(imageResponse);
@@ -233,7 +233,7 @@ Option B) ${page.decisions[1]}
                 uri = await uploadMetadata({
                     text,
                     image: {
-                        url: imageURL,
+                        url: imageURL as string,
                         type: MediaImageMimeType.PNG // see generation.ts for ModelProviderName.VENICE
                     }
                 });
@@ -242,7 +242,7 @@ Option B) ${page.decisions[1]}
             return {
                 preview: {
                     text,
-                    image: imageResponse.success ? imageResponse.data[0] : undefined,
+                    image: imageResponse.success ? imageResponse.data?.[0] : undefined,
                 },
                 uri,
                 updatedTemplateData: { ...templateData, decisions: page.decisions, chapterName: page.chapterName },
