@@ -11,9 +11,11 @@ export interface SmartMediaBase {
 }
 
 export type SmartMediaPreview = SmartMediaBase & {
-  text?: string;
-  image?: string;
-  video?: string;
+  preview?: {
+    text?: string;
+    image?: string;
+    video?: string;
+  }
 };
 
 export type SmartMedia = SmartMediaBase & {

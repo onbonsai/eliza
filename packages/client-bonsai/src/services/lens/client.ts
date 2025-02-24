@@ -1,11 +1,11 @@
-import { PublicClient, testnet } from "@lens-protocol/client";
+import { PublicClient, testnet, staging } from "@lens-protocol/client";
 import {
     StorageClient,
     testnet as storageTestnet,
 } from "@lens-protocol/storage-node-client";
 
 export const client = PublicClient.create({
-    environment: testnet,
+    environment: staging,
     origin: "https://eliza.bonsai.meme",
 });
 

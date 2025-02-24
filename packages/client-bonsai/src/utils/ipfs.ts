@@ -22,6 +22,29 @@ export const _hash = (uriOrHash: string) =>
 export const storjGatewayURL = (uriOrHash: string) =>
   `${STORJ_API_URL}/ipfs/${_hash(uriOrHash)}`;
 
+export const uploadJson = async (json: any) => {
+  if (typeof json !== "string") {
+    json = JSON.stringify(json);
+  }
+  const formData = new FormData();
+  formData.append("path", Buffer.from(json, "utf-8").toString());
+
+  const headers = {
+    "Content-Type": "multipart/form-data",
+    ...formData.getHeaders(),
+  };
+
+  const { data } = await _client().post(
+    "add?cid-version=1",
+    formData.getBuffer(),
+    {
+      headers,
+    }
+  );
+
+  return storjGatewayURL(data.Hash);
+};
+
 const pinFile = async (file: {
   buffer: Buffer;
   originalname: string;

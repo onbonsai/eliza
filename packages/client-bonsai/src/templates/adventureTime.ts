@@ -52,13 +52,20 @@ Do not acknowledge this request, simply respond with the JSON object.
 export const decisionTemplate = `
 # Instructions
 You must choose one of the two Decisions based on the Comments
-When processing the comments, you must account for the fact that the content might say "Option A", or "Option B", or a word directly referenced in the Decision.
-Each comment will have the content, a list of reactions, and the weight (1-3) on that reaction. Reactions are simply to help tally the vote.
-
-In the following example of a comment, Option A has 6 votes - counting all the weights:
-{ content: \'A\', weight: 2, upvotesWeighted: [1, 3] }
-
-Return the result as a JSON object with the decisions (as mapped to Decisions) and totalVotes for each, sorted by totalVotes descending.
+When processing the comments, you must account for the fact that the content might say "option A", or "option B", or a word directly referenced in the Decision, or anything to reference one of the decisions, which you must map to.
+For example, the first decision could be "option 1" or "option a".
+Each comment will be in this format:
+{ content: string, votes: number }
+Map all the contents to the appropriate decision, and tally the votes.
+Return the result as a JSON object with the decisions and totalVotes for each, sorted by totalVotes descending. Respond with a JSON markdown block containing only the desired values:
+\`\`\`json
+{
+    "decisions": [{
+        "content": string,
+        "totalVotes: number
+    }]
+}
+\`\`\`
 
 # Decisions
 {{decisions}}
@@ -66,7 +73,7 @@ Return the result as a JSON object with the decisions (as mapped to Decisions) a
 # Comments
 {{comments}}
 
-Do not acknowledge this request, simply respond with the JSON object.
+Do not acknowledge this request, simply respond with the JSON block wrapped in triple backticks with 'json' language identifier.
 `;
 
 const DecisionSchema = z.object({
@@ -141,7 +148,7 @@ const adventureTime = {
                 elizaLogger.info("running refresh");
                 // let comments: Post[]; // latest comments to evaluate for the next decision
 
-                // if the post not stale, check if we've passed the min comment threshold
+                // // if the post not stale, check if we've passed the min comment threshold
                 // if (isMediaStale(media as SmartMedia)) {
                 //     elizaLogger.info("is stale");
                 //     const allComments = await fetchAllCommentsFor(media?.postId as string);
@@ -172,15 +179,13 @@ const adventureTime = {
                 //     );
                 //     return {
                 //         content: (comment.metadata as TextOnlyMetadata).content,
-                //         weight: getVoteWeightFromBalance(balances?.shift() as bigint),
-                //         upvotesWeighted: balances.map((b) => getVoteWeightFromBalance(b)),
+                //         votes: balances.reduce((acc, b) => acc + getVoteWeightFromBalance(b), 0),
                 //     };
                 // }));
 
                 const commentsWeighted = [{
                     content: "option b",
-                    weight: 1,
-                    upvotesWeighted: [2]
+                    votes: 3,
                 }];
 
                 console.log({ decisions: templateData.decisions, comments: commentsWeighted });
@@ -192,12 +197,11 @@ const adventureTime = {
 
                 // evaluate next decision
                 elizaLogger.info("generating decision results:: generateObjectDeprecated");
-                const results = (await generateObject({
+                const results = (await generateObjectDeprecated({
                     runtime,
                     context,
-                    modelClass: ModelClass.MEDIUM,
+                    modelClass: ModelClass.SMALL,
                     modelProvider: ModelProviderName.VENICE,
-                    schema: DecisionSchema
                 })) as unknown as DecisionResponse;
                 elizaLogger.info("done");
 
@@ -237,10 +241,11 @@ const adventureTime = {
                     prompt: page.imagePrompt,
                     width: 1024,
                     height: 1024,
-                    // imageModelProvider: ModelProviderName.OPENAI,
-                    imageModelProvider: ModelProviderName.VENICE,
-                    modelId: templateData.modelId || DEFAULT_MODEL_ID,
-                    stylePreset: templateData.stylePreset || DEFAULT_STYLE_PRESET,
+                    imageModelProvider: ModelProviderName.OPENAI,
+                    // TODO: somehow venice fails on some prompts
+                    // imageModelProvider: ModelProviderName.VENICE,
+                    // modelId: templateData.modelId || DEFAULT_MODEL_ID,
+                    // stylePreset: templateData.stylePreset || DEFAULT_STYLE_PRESET,
                 },
                 runtime
             );
@@ -263,7 +268,7 @@ Option B) ${page.decisions[1]}
                     text,
                     image: {
                         url: imageURL as string,
-                        type: MediaImageMimeType.PNG // see generation.ts for ModelProviderName.VENICE
+                        type: MediaImageMimeType.PNG // see generation.ts the provider
                     }
                 });
             }

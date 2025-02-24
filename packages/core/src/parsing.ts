@@ -95,6 +95,7 @@ export function parseJsonArrayFromText(text: string) {
                 /(?<!\\)'([^']*)'(?=\s*[,}\]])/g,
                 '"$1"'
             );
+            console.log(`normalizedJson: ${normalizedJson}`);
             jsonData = JSON.parse(normalizedJson);
         } catch (e) {
             console.error("Error parsing JSON:", e);
@@ -146,13 +147,18 @@ export function parseJSONObjectFromText(
     const jsonBlockMatch = text.match(jsonBlockPattern);
 
     if (jsonBlockMatch) {
-        const parsingText = normalizeJsonString(jsonBlockMatch[1]);
         try {
-            jsonData = JSON.parse(parsingText);
-        } catch (e) {
-            console.error("Error parsing JSON:", e);
-            console.error("Text is not JSON", text);
-            return extractAttributes(text);
+            jsonData = JSON.parse(jsonBlockMatch[1]);
+        } catch {
+            // Only try normalization if direct parsing fails
+            const parsingText = normalizeJsonString(jsonBlockMatch[1]);
+            try {
+                jsonData = JSON.parse(parsingText);
+            } catch (e) {
+                console.error("Error parsing JSON:", e);
+                console.error("Text is not JSON", text);
+                return extractAttributes(text);
+            }
         }
     } else {
         const objectPattern = /{[\s\S]*?}/;

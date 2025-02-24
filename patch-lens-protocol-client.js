@@ -36,70 +36,74 @@ const main = () => {
     {
       filePath: './node_modules/@lens-protocol/client/dist/index.js',
       replacements: [
-        { // ResultAwareError, err, ok, never, okAsync, ResultAsync, errAsync, signatureFrom, invariant
-            searchValue: /import\s*\{\s*ResultAwareError,\s*err,\s*ok,\s*never,\s*okAsync,\s*ResultAsync,\s*errAsync,\s*signatureFrom,\s*invariant\s*\}\s*from\s*'@lens-protocol\/types';/g,
-            replaceValue: `import { ResultAwareError, err, ok, never, okAsync, ResultAsync, errAsync, signatureFrom, invariant } from '@lens-protocol/types/dist/index';`,
-        },
-        {
-          searchValue: /export\s*\*\s*from\s*'@lens-protocol\/types';/g,
-          replaceValue: `export * from '@lens-protocol/types/dist/index';`,
-        },
-        {
-          searchValue: /import\s*\{\s*getLogger\s*\}\s*from\s*'loglevel';/g,
-          replaceValue: `
-import Module from "node:module";
+//         { // ResultAwareError, err, ok, never, okAsync, ResultAsync, errAsync, signatureFrom, invariant
+//             searchValue: /import\s*\{\s*ResultAwareError,\s*err,\s*ok,\s*never,\s*okAsync,\s*ResultAsync,\s*errAsync,\s*signatureFrom,\s*invariant\s*\}\s*from\s*'@lens-protocol\/types';/g,
+//             replaceValue: `import { ResultAwareError, err, ok, never, okAsync, ResultAsync, errAsync, signatureFrom, invariant } from '@lens-protocol/types/dist/index';`,
+//         },
+//         {
+//           searchValue: /export\s*\*\s*from\s*'@lens-protocol\/types';/g,
+//           replaceValue: `export * from '@lens-protocol/types/dist/index';`,
+//         },
+//         {
+//           searchValue: /import\s*\{\s*getLogger\s*\}\s*from\s*'loglevel';/g,
+//           replaceValue: `
+// import Module from "node:module";
 
-const require = Module.createRequire(import.meta.url);
-const { getLogger } = require('loglevel');`,
-        },
-      ],
-    },
-
-    // Patch for @lens-protocol/env/dist/index.js
-    {
-      filePath: './node_modules/@lens-protocol/env/dist/index.js',
-      replacements: [
-        {
-          searchValue: /import\s*\{\s*url\s+as\s+n,\s*never\s+as\s*e\s*\}\s*from\s*["@']@lens-protocol\/types["@'];/g,
-          replaceValue: `import{url as n,never as e}from"@lens-protocol/types/dist/index";`,
+// const require = Module.createRequire(import.meta.url);
+// const { getLogger } = require('loglevel');`,
+//         },
+        { // import { getLogger } from 'loglevel';
+            searchValue: /import\s*\{\s*getLogger\s*\}\s*from\s*'loglevel';/g,
+            replaceValue: `import pkg from 'loglevel';const { getLogger } = pkg;`,
         },
       ],
     },
 
-    // Patch for @lens-protocol/storage/dist/index.js
-    {
-      filePath: './node_modules/@lens-protocol/storage/dist/index.js',
-      replacements: [
-        {
-          searchValue: /import\s*\{\s*assertError\s+as\s+d,\s*invariant\s+as\s+I\s*\}\s*from\s*["@']@lens-protocol\/types["@'];/g,
-          replaceValue: `import{assertError as d,invariant as I}from"@lens-protocol/types/dist/index";`,
-        },
-        {
-          searchValue: /import\s*\{\s*accessToken\s+as\s+h,\s*idToken\s+as\s+l,\s*refreshToken\s+as\s+v\s*\}\s*from\s*["@']@lens-protocol\/types["@'];/g,
-          replaceValue: `import{accessToken as h,idToken as l,refreshToken as v}from"@lens-protocol/types/dist/index";`,
-        },
-      ],
-    },
-    // Patch for @lens-protocol/graph/dist/index.js
-    {
-      filePath: './node_modules/@lens-protocol/graphql/dist/index.js',
-      replacements: [
-        {
-          searchValue: /import\s*\{\s*InvariantError\s*\}\s*from\s*["@']@lens-protocol\/types["@'];/g,
-          replaceValue: `import {InvariantError}from'@lens-protocol/types/dist/index';`,
-        },
-      ],
-    },
-    // Patch for @lens-protocol/client/dist/viem/index.js
-    {
-      filePath: './node_modules/@lens-protocol/client/dist/viem/index.js',
-      replacements: [
-        { // import { okAsync, errAsync, ResultAwareError, ResultAsync, txHash, invariant } from '@lens-protocol/types'
-            searchValue: /import\s*\{\s*okAsync,\s*errAsync,\s*ResultAwareError,\s*ResultAsync,\s*txHash,\s*invariant\s*\}\s*from\s*'@lens-protocol\/types';/g,
-            replaceValue: `import { okAsync, errAsync, ResultAwareError, ResultAsync, txHash, invariant } from '@lens-protocol/types/dist/index';`,
-        },
-      ],
-    },
+    // // Patch for @lens-protocol/env/dist/index.js
+    // {
+    //   filePath: './node_modules/@lens-protocol/env/dist/index.js',
+    //   replacements: [
+    //     {
+    //       searchValue: /import\s*\{\s*url\s+as\s+n,\s*never\s+as\s*e\s*\}\s*from\s*["@']@lens-protocol\/types["@'];/g,
+    //       replaceValue: `import{url as n,never as e}from"@lens-protocol/types/dist/index";`,
+    //     },
+    //   ],
+    // },
+
+    // // Patch for @lens-protocol/storage/dist/index.js
+    // {
+    //   filePath: './node_modules/@lens-protocol/storage/dist/index.js',
+    //   replacements: [
+    //     {
+    //       searchValue: /import\s*\{\s*assertError\s+as\s+d,\s*invariant\s+as\s+I\s*\}\s*from\s*["@']@lens-protocol\/types["@'];/g,
+    //       replaceValue: `import{assertError as d,invariant as I}from"@lens-protocol/types/dist/index";`,
+    //     },
+    //     {
+    //       searchValue: /import\s*\{\s*accessToken\s+as\s+h,\s*idToken\s+as\s+l,\s*refreshToken\s+as\s+v\s*\}\s*from\s*["@']@lens-protocol\/types["@'];/g,
+    //       replaceValue: `import{accessToken as h,idToken as l,refreshToken as v}from"@lens-protocol/types/dist/index";`,
+    //     },
+    //   ],
+    // },
+    // // Patch for @lens-protocol/graph/dist/index.js
+    // {
+    //   filePath: './node_modules/@lens-protocol/graphql/dist/index.js',
+    //   replacements: [
+    //     {
+    //       searchValue: /import\s*\{\s*InvariantError\s*\}\s*from\s*["@']@lens-protocol\/types["@'];/g,
+    //       replaceValue: `import {InvariantError}from'@lens-protocol/types/dist/index';`,
+    //     },
+    //   ],
+    // },
+    // // Patch for @lens-protocol/client/dist/viem/index.js
+    // {
+    //   filePath: './node_modules/@lens-protocol/client/dist/viem/index.js',
+    //   replacements: [
+    //     { // import { okAsync, errAsync, ResultAwareError, ResultAsync, txHash, invariant } from '@lens-protocol/types'
+    //         searchValue: /import\s*\{\s*okAsync,\s*errAsync,\s*ResultAwareError,\s*ResultAsync,\s*txHash,\s*invariant\s*\}\s*from\s*'@lens-protocol\/types';/g,
+    //         replaceValue: `import { okAsync, errAsync, ResultAwareError, ResultAsync, txHash, invariant } from '@lens-protocol/types/dist/index';`,
+    //     },
+    //   ],
+    // },
   ];
 
   // Apply patches

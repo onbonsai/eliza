@@ -1,4 +1,4 @@
-import { type SessionClient, uri, postId, type URI, MetadataAttributeType } from "@lens-protocol/client";
+import { type SessionClient, uri, postId, type URI } from "@lens-protocol/client";
 import { post } from "@lens-protocol/client/actions";
 import {
     textOnly,
@@ -7,11 +7,14 @@ import {
     type MediaImageMimeType,
     type MediaVideoMimeType,
     MetadataLicenseType,
+    MetadataAttributeType,
 } from "@lens-protocol/metadata";
 import { handleOperationWith } from "@lens-protocol/client/viem";
 import { createWalletClient, http, type Account } from "viem";
 import { chains } from "@lens-network/sdk/viem";
 import { storageClient } from "./client";
+import { uploadJson } from "./../../utils/ipfs";
+import { APP_ID } from "../../utils/constants";
 
 interface PostParams {
     text: string;
@@ -26,30 +29,36 @@ interface PostParams {
     };
 }
 
+const baseMetadata = {
+    appId: APP_ID,
+    attributes: [
+        {
+            type: MetadataAttributeType.STRING,
+            key: "framework",
+            value: "ElizaOS"
+        },
+        {
+            type: MetadataAttributeType.STRING,
+            key: "plugin",
+            value: "client_bonsai",
+        },
+        {
+            type: MetadataAttributeType.STRING,
+            key: "url",
+            value: "https://eliza.bonsai.meme/post"
+        }
+    ],
+}
+
 export const uploadMetadata = async (params: PostParams): Promise<URI> => {
     let metadata: unknown;
 
     if (!(params.image || params.video)) {
         metadata = textOnly({
             content: params.text,
-            attributes: [
-                {
-                    type: MetadataAttributeType.String,
-                    value: "ElizaOS",
-                    key: "framework"
-                },
-                {
-                    type: MetadataAttributeType.String,
-                    value: "client-bonsai",
-                    key: "plugin"
-                },
-                {
-                    type: MetadataAttributeType.String,
-                    value: "post_url",
-                    key: "https://eliza.bonsai.meme/post"
-                }
-            ]
+            ...baseMetadata,
         });
+        console.log(metadata, JSON.stringify(metadata,null,2))
     } else if (params.image) {
         metadata = image({
             title: params.text,
@@ -58,6 +67,7 @@ export const uploadMetadata = async (params: PostParams): Promise<URI> => {
                 type: params.image.type,
                 license: MetadataLicenseType.CCO,
             },
+            ...baseMetadata,
         });
     } else if (params.video) {
         metadata = video({
@@ -68,22 +78,37 @@ export const uploadMetadata = async (params: PostParams): Promise<URI> => {
                 type: params.video.type,
                 license: MetadataLicenseType.CCO,
             },
+            ...baseMetadata,
         });
     }
 
-    const { uri: hash } = await storageClient.uploadAsJson(metadata);
+    // TODO: not working?
+    // const { uri: hash } = await storageClient.uploadAsJson(metadata);
+    // return uri(hash);
+    const response = await fetch('https://storage-api.testnet.lens.dev/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(metadata)
+    });
 
-    return uri(hash);
+    if (!response.ok) {
+        throw new Error(`Storage API error: ${response.status} ${response.statusText}`);
+    }
+
+    const res = await response.json();
+
+    return uri(res[0].uri);
 };
 
-// TODO: josh fix: lens storage testnet not working, so need to prod version
 export const createPost = async (
     sessionClient: SessionClient,
     signer: Account,
     params: PostParams,
     commentOn?: `0x${string}`,
     quoteOf?: `0x${string}`
-): Promise<{ postId?: string, txHash?: string } | undefined> => {
+): Promise<string | undefined> => {
     const walletClient = createWalletClient({
         chain: chains.testnet,
         account: signer,
@@ -107,10 +132,10 @@ export const createPost = async (
             : undefined,
     })
         .andThen(handleOperationWith(walletClient))
-        // .andThen(sessionClient.waitForTransaction);
+        .andThen(sessionClient.waitForTransaction);
 
     if (result.isOk()) {
-        return { txHash: result.value }; // txHash or postId
+        return result.value; // postId
     }
 
     console.log(

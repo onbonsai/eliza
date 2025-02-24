@@ -26,3 +26,5 @@ export const CHAIN_TO_BONSAI = {
 };
 
 export const DEFAULT_MAX_STALE_TIME = 1800; // 30min for clients to wait before fetching updated content
+
+export const APP_ID = "BONSAI"

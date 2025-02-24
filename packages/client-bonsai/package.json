@@ -20,9 +20,9 @@
     ],
     "dependencies": {
         "@coinbase/coinbase-sdk": "^0.13.0",
-        "@lens-protocol/client": "0.0.0-canary-20250218142239",
-        "@lens-protocol/metadata": "2.0.0-next.6",
-        "@lens-protocol/storage-node-client": "0.0.0-next-20250114134800",
+        "@lens-protocol/client": "0.0.0-canary-20250224183812",
+        "@lens-protocol/metadata": "next",
+        "@lens-protocol/storage-node-client": "next",
         "@runwayml/sdk": "^1.4.4",
         "body-parser": "1.20.3",
         "cors": "2.8.5",
@@ -43,7 +43,7 @@
         "tsup": "^8.3.5"
     },
     "scripts": {
-        "build": "tsup --format esm --dts",
+        "build": "tsup --format esm --no-dts",
         "dev": "tsup --format esm --dts --watch",
         "clean": "rm -rf dist",
         "lint": "biome lint .",

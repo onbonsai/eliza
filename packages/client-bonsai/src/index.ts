@@ -12,6 +12,8 @@ import {
 } from "@elizaos/core";
 import type { WrappedNodeRedisClient } from "handy-redis";
 import type { Collection, MongoClient } from "mongodb";
+import pkg from "lodash";
+const { omit } = pkg;
 import redisClient from "./services/redis";
 import type { SmartMedia, SmartMediaPreview, Template, TemplateCategory, TemplateName } from "./utils/types";
 import verifyLensId from "./middleware/verifyLensId";
@@ -24,7 +26,6 @@ import createProfile from "./services/lens/createProfile";
 import { privateKeyToAccount } from "viem/accounts";
 import authenticate from "./services/lens/authenticate";
 import { createPost } from "./services/lens/createPost";
-import { fetchPostBy } from "./services/lens/posts";
 
 // only needed to play nice with the rest of ElizaOS
 const GLOBAL_AGENT_ID = "c3bd776c-4465-037f-9c7a-bf94dfba78d9";
@@ -53,6 +54,7 @@ export class BonsaiClient {
 
         this.initialize();
 
+        // TODO: use socketio logic from client-orb with try... catch and ws emit
         // get a preview for the initial state of a smart media
         this.app.post(
             "/post/create-preview",
@@ -98,8 +100,8 @@ export class BonsaiClient {
                     createdAt: ts,
                     updatedAt: ts,
                     creator,
-                    templateData,
-                    ...response,
+                    templateData: response?.updatedTemplateData,
+                    preview: response?.preview,
                 };
 
                 await this.cachePreview(preview as SmartMediaPreview);
@@ -130,7 +132,7 @@ export class BonsaiClient {
                 // prep the final object
                 const ts = Math.floor(Date.now() / 1000);
                 const media: SmartMedia = {
-                    ...preview,
+                    ...omit(preview, 'preview'),
                     postId,
                     uri,
                     maxStaleTime: DEFAULT_MAX_STALE_TIME,
@@ -147,7 +149,7 @@ export class BonsaiClient {
                     versions: [uri]
                 });
 
-                res.status(200);
+                res.status(200).send();
             }
         );
 
@@ -155,21 +157,29 @@ export class BonsaiClient {
         this.app.get(
             "/post/:postId",
             async (req: express.Request, res: express.Response) => {
-                const { postId } = req.query;
+                const { postId } = req.params;
+                const { withVersions } = req.query;
                 const data = await this.getPost(postId as string);
 
-                // TODO: get db versions latest n versions, paginated
-
+                let versions: string[] | undefined;
                 if (data) {
+                    if (withVersions) {
+                        const doc = await this.mongo.media?.findOne(
+                            { postId },
+                            { projection: { _id: 0, versions: { $slice: -10 } } }
+                        );
+                        versions = doc?.versions;
+                    }
+
                     res.status(200).json({
                         uri: data.uri,
                         updatedAt: data.updatedAt,
                         // suggest clients to poll every 15s
                         processing: this.tasks.isProcessing(postId as string) ? true : undefined,
-                        versions: []
+                        versions
                     });
                 } else {
-                    res.status(404);
+                    res.status(404).send();
                 }
             }
         );
@@ -244,8 +254,6 @@ export class BonsaiClient {
             return;
         }
 
-        console.log(`response?.uri: ${response?.uri}`);
-
         // update the cache with the latest template data needed for next generation
         await this.cachePost({
             ...data,
@@ -260,6 +268,10 @@ export class BonsaiClient {
             // @ts-ignore $push
             { $push: { versions: response.uri as string } }
         );
+
+        // TODO: refresh metadata
+
+        elizaLogger.info(`done updating post: ${postId}`);
     }
 
     private async initialize() {
@@ -291,7 +303,10 @@ export class BonsaiClient {
         const res = await this.redis.get(`post/${postId}`);
 
         if (!res) {
-            const doc = await this.mongo.media?.findOne({ postId }, { projection: { _id: 0 } });
+            const doc = await this.mongo.media?.findOne(
+                { postId },
+                { projection: { _id: 0, versions: { $slice: -10 } } }
+            );
             return doc as unknown as SmartMedia;
         }
 

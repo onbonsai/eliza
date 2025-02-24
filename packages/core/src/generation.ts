@@ -1522,12 +1522,19 @@ export async function generateObjectDeprecated({
     while (true) {
         try {
             // this is slightly different than generateObjectArray, in that we parse object, not object array
-            const response = await generateText({
+            let response = await generateText({
                 runtime,
                 context,
                 modelClass,
                 modelProvider,
             });
+
+            // HACK: would add this to handleProvider but ai package not yet compatible
+            if (modelProvider === ModelProviderName.VENICE) {
+                response = response
+                    .replace(/<think>[\s\S]*?<\/think>\s*\n*/g, '');
+            }
+
             const parsedResponse = parseJSONObjectFromText(response);
             if (parsedResponse) {
                 return parsedResponse;
@@ -2235,7 +2242,7 @@ export const generateObject = async ({
     const max_context_length = modelSettings.maxInputTokens;
     const max_response_length = modelSettings.maxOutputTokens;
     const experimental_telemetry = modelSettings.experimental_telemetry;
-    const apiKey = runtime.token;
+    const apiKey = modelProvider ? getToken(runtime, modelProvider) : runtime.token;
 
     try {
         context = await trimTokens(context, max_context_length, runtime);
@@ -2351,6 +2358,13 @@ export async function handleProvider(
             return await handleDeepSeek(options);
         case ModelProviderName.LIVEPEER:
             return await handleLivepeer(options);
+        case ModelProviderName.VENICE:
+            return await generateObjectDeprecated({
+                runtime,
+                context,
+                modelClass,
+                modelProvider: provider,
+            });
         default: {
             const errorMessage = `Unsupported provider: ${provider}`;
             elizaLogger.error(errorMessage);
