@@ -1,4 +1,4 @@
-import { type SessionClient, uri, postId, type URI } from "@lens-protocol/client";
+import { type SessionClient, uri, postId, type URI, MetadataAttributeType } from "@lens-protocol/client";
 import { post } from "@lens-protocol/client/actions";
 import {
     textOnly,
@@ -9,7 +9,8 @@ import {
     MetadataLicenseType,
 } from "@lens-protocol/metadata";
 import { handleOperationWith } from "@lens-protocol/client/viem";
-import type { WalletClient } from "viem";
+import { createWalletClient, http, type Account } from "viem";
+import { chains } from "@lens-network/sdk/viem";
 import { storageClient } from "./client";
 
 interface PostParams {
@@ -31,6 +32,23 @@ export const uploadMetadata = async (params: PostParams): Promise<URI> => {
     if (!(params.image || params.video)) {
         metadata = textOnly({
             content: params.text,
+            attributes: [
+                {
+                    type: MetadataAttributeType.String,
+                    value: "ElizaOS",
+                    key: "framework"
+                },
+                {
+                    type: MetadataAttributeType.String,
+                    value: "client-bonsai",
+                    key: "plugin"
+                },
+                {
+                    type: MetadataAttributeType.String,
+                    value: "post_url",
+                    key: "https://eliza.bonsai.meme/post"
+                }
+            ]
         });
     } else if (params.image) {
         metadata = image({
@@ -53,20 +71,27 @@ export const uploadMetadata = async (params: PostParams): Promise<URI> => {
         });
     }
 
-    // TODO: uploadAsJson does exist?
     const { uri: hash } = await storageClient.uploadAsJson(metadata);
 
     return uri(hash);
 };
 
+// TODO: josh fix: lens storage testnet not working, so need to prod version
 export const createPost = async (
-    walletClient: WalletClient,
     sessionClient: SessionClient,
+    signer: Account,
     params: PostParams,
     commentOn?: `0x${string}`,
     quoteOf?: `0x${string}`
-): Promise<string | undefined> => {
+): Promise<{ postId?: string, txHash?: string } | undefined> => {
+    const walletClient = createWalletClient({
+        chain: chains.testnet,
+        account: signer,
+        transport: http()
+    });
+
     const contentUri = await uploadMetadata(params);
+    console.log(`contentUri: ${contentUri}`);
 
     const result = await post(sessionClient, {
         contentUri,
@@ -82,10 +107,10 @@ export const createPost = async (
             : undefined,
     })
         .andThen(handleOperationWith(walletClient))
-        .andThen(sessionClient.waitForTransaction);
+        // .andThen(sessionClient.waitForTransaction);
 
     if (result.isOk()) {
-        return result.value; // postId
+        return { txHash: result.value }; // txHash or postId
     }
 
     console.log(

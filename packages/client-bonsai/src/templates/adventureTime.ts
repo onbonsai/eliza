@@ -6,10 +6,12 @@ import {
     type IAgentRuntime,
     ModelProviderName,
     generateImage,
+    generateObject,
 } from "@elizaos/core";
 import { MediaImageMimeType } from "@lens-protocol/metadata";
 import type { Post, TextOnlyMetadata } from "@lens-protocol/client";
 import { base } from "viem/chains";
+import { z } from "zod";
 import {
     TemplateName,
     type SmartMedia,
@@ -33,7 +35,7 @@ Start the page with a descriptive chapter name that can be used for future promp
 
 Provide a prompt to use to generate an image that would be a good compliment to the content.
 After you generate the page and image prompt, format your response into a JSON object with these properties:
-{ chapterName: "", content: "", decisions: ["", ""], imagePrompt: "" }
+{ chapterName: string, content: string, decisions: string[2], imagePrompt: string }
 
 # Context
 {{context}}
@@ -43,6 +45,8 @@ After you generate the page and image prompt, format your response into a JSON o
 
 # Previous Pages
 {{previousPages}}
+
+Do not acknowledge this request, simply respond with the JSON object.
 `;
 
 export const decisionTemplate = `
@@ -52,22 +56,27 @@ When processing the comments, you must account for the fact that the content mig
 Each comment will have the content, a list of reactions, and the weight (1-3) on that reaction. Reactions are simply to help tally the vote.
 
 In the following example of a comment, Option A has 6 votes - counting all the weights:
-{ content: "A", weight: 2, upvotesWeighted: [1, 3] }
+{ content: \'A\', weight: 2, upvotesWeighted: [1, 3] }
 
-Return the result as a JSON object with the decisions (as mapped to Decisions) and totalVotes for each, sorted by totalVotes descending, in this format:
-{
-    decisions: [
-        { content: string, totalVotes: number },
-        { content: string, totalVotes: number }
-    ]
-}
+Return the result as a JSON object with the decisions (as mapped to Decisions) and totalVotes for each, sorted by totalVotes descending.
 
 # Decisions
 {{decisions}}
 
 # Comments
 {{comments}}
+
+Do not acknowledge this request, simply respond with the JSON object.
 `;
+
+const DecisionSchema = z.object({
+    decisions: z.array(
+        z.object({
+            content: z.string(),
+            totalVotes: z.number(),
+        })
+    )
+});
 
 type NextPageResponse = {
     chapterName: string;
@@ -129,42 +138,52 @@ const adventureTime = {
 
         try {
             if (refresh) {
-                let comments: Post[]; // latest comments to evaluate for the next decision
+                elizaLogger.info("running refresh");
+                // let comments: Post[]; // latest comments to evaluate for the next decision
 
                 // if the post not stale, check if we've passed the min comment threshold
-                if (isMediaStale(media as SmartMedia)) {
-                    const allComments = await fetchAllCommentsFor(media?.postId as string);
-                    comments = getLatestComments(media as SmartMedia, allComments);
-                    const threshold = (media?.templateData as TemplateData).minCommentUpdateThreshold ||
-                        DEFAULT_MIN_ENGAGEMENT_UPDATE_THREHOLD;
-                    if (comments.length < threshold) {
-                        elizaLogger.log(`adventureTime:: media ${media?.agentId} is not stale and has not met comment threshold; skipping`);
-                        return;
-                    }
-                } else {
-                    // do not update if the media isn't stale; we're paying for generations
-                    return;
-                }
+                // if (isMediaStale(media as SmartMedia)) {
+                //     elizaLogger.info("is stale");
+                //     const allComments = await fetchAllCommentsFor(media?.postId as string);
+                //     comments = getLatestComments(media as SmartMedia, allComments);
+                //     const threshold = (media?.templateData as TemplateData).minCommentUpdateThreshold ||
+                //         DEFAULT_MIN_ENGAGEMENT_UPDATE_THREHOLD;
+                //     if (comments.length < threshold) {
+                //         elizaLogger.info(`adventureTime:: media ${media?.agentId} is not stale and has not met comment threshold; skipping`);
+                //         return;
+                //     }
+                // } else {
+                //     elizaLogger.info("not stale");
+                //     // do not update if the media isn't stale; we're paying for generations
+                //     return;
+                // }
 
-                // fetch the token balances for each comment / upvote to use weighted votes
-                const allCollectors = await fetchAllCollectorsFor(media.postId);
-                const commentsWeighted = await Promise.all(comments.map(async (comment) => {
-                    const voters = await fetchAllUpvotersFor(comment.id);
-                    const balances = await balanceOfBatched(
-                        base,
-                        [
-                            comment.author.address,
-                            ...voters.filter((account) => allCollectors.includes(account))
-                        ],
-                        media?.tokenAddress as `0x${string}`
-                    );
-                    return {
-                        content: (comment.metadata as TextOnlyMetadata).content,
-                        weight: getVoteWeightFromBalance(balances?.shift() as bigint),
-                        upvotesWeighted: balances.map((b) => getVoteWeightFromBalance(b)),
-                    };
-                }));
+                // // fetch the token balances for each comment / upvote to use weighted votes
+                // const allCollectors = await fetchAllCollectorsFor(media?.postId as string);
+                // const commentsWeighted = await Promise.all(comments.map(async (comment) => {
+                //     const voters = await fetchAllUpvotersFor(comment.id);
+                //     const balances = await balanceOfBatched(
+                //         base,
+                //         [
+                //             comment.author.address,
+                //             ...voters.filter((account) => allCollectors.includes(account))
+                //         ],
+                //         media?.tokenAddress as `0x${string}`
+                //     );
+                //     return {
+                //         content: (comment.metadata as TextOnlyMetadata).content,
+                //         weight: getVoteWeightFromBalance(balances?.shift() as bigint),
+                //         upvotesWeighted: balances.map((b) => getVoteWeightFromBalance(b)),
+                //     };
+                // }));
 
+                const commentsWeighted = [{
+                    content: "option b",
+                    weight: 1,
+                    upvotesWeighted: [2]
+                }];
+
+                console.log({ decisions: templateData.decisions, comments: commentsWeighted });
                 const context = composeContext({
                     // @ts-expect-error State
                     state: { decisions: templateData.decisions, comments: commentsWeighted },
@@ -172,29 +191,38 @@ const adventureTime = {
                 });
 
                 // evaluate next decision
-                const results = (await generateObjectDeprecated({
+                elizaLogger.info("generating decision results:: generateObjectDeprecated");
+                const results = (await generateObject({
                     runtime,
                     context,
-                    modelClass: ModelClass.SMALL,
+                    modelClass: ModelClass.MEDIUM,
                     modelProvider: ModelProviderName.VENICE,
-                })) as DecisionResponse;
+                    schema: DecisionSchema
+                })) as unknown as DecisionResponse;
+                elizaLogger.info("done");
 
                 console.log(JSON.stringify(results, null, 2));
 
                 // push to templateData.previousPages to be immediately used for a new generation
-                templateData.previousPages?.push(`${templateData.chapterName}; ${results.decisions[0].content}`);
+                if (templateData.previousPages) {
+                    templateData.previousPages.push(`${templateData.chapterName}; ${results.decisions[0].content}`);
+                } else {
+                    templateData.previousPages = [`${templateData.chapterName}; ${results.decisions[0].content}`];
+                }
+                console.log("templateData.previousPages", templateData.previousPages);
             }
 
             const context = composeContext({
                 // @ts-expect-error we don't need the full State object here to produce the context
                 state: {
                     context: templateData.context,
-                    previousPages: templateData.previousPages,
+                    previousPages: templateData.previousPages || '',
                     writingStyle: templateData.writingStyle
                 },
                 template: nextPageTemplate,
             });
 
+            elizaLogger.info("generating page:: generateObjectDeprecated");
             const page = (await generateObjectDeprecated({
                 runtime,
                 context,
@@ -209,6 +237,7 @@ const adventureTime = {
                     prompt: page.imagePrompt,
                     width: 1024,
                     height: 1024,
+                    // imageModelProvider: ModelProviderName.OPENAI,
                     imageModelProvider: ModelProviderName.VENICE,
                     modelId: templateData.modelId || DEFAULT_MODEL_ID,
                     stylePreset: templateData.stylePreset || DEFAULT_STYLE_PRESET,

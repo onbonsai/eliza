@@ -657,8 +657,6 @@ export enum Clients {
     TELEGRAM = "telegram",
     TELEGRAM_ACCOUNT = "telegram-account",
     FARCASTER = "farcaster",
-    LENS = "lens",
-    ORB = "orb",
     AUTO = "auto",
     SLACK = "slack",
     GITHUB = "github",

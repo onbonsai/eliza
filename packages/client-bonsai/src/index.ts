@@ -20,6 +20,11 @@ import { DEFAULT_MAX_STALE_TIME } from "./utils/constants";
 import { getClient } from "./services/mongo";
 import adventureTimeTemplate from "./templates/adventureTime";
 import TaskQueue from "./utils/taskQueue";
+import createProfile from "./services/lens/createProfile";
+import { privateKeyToAccount } from "viem/accounts";
+import authenticate from "./services/lens/authenticate";
+import { createPost } from "./services/lens/createPost";
+import { fetchPostBy } from "./services/lens/posts";
 
 // only needed to play nice with the rest of ElizaOS
 const GLOBAL_AGENT_ID = "c3bd776c-4465-037f-9c7a-bf94dfba78d9";
@@ -105,7 +110,7 @@ export class BonsaiClient {
 
         // create a new smart media; the creator _must_ have created the lens post first
         this.app.post(
-            "post/create",
+            "/post/create",
             verifyLensId,
             async (req: express.Request, res: express.Response) => {
                 const {
@@ -141,22 +146,27 @@ export class BonsaiClient {
                     ...media,
                     versions: [uri]
                 });
+
+                res.status(200);
             }
         );
 
         // returns the latest uri for a smart media for a given post id
         this.app.get(
-            "post/:postId",
+            "/post/:postId",
             async (req: express.Request, res: express.Response) => {
                 const { postId } = req.query;
                 const data = await this.getPost(postId as string);
+
+                // TODO: get db versions latest n versions, paginated
 
                 if (data) {
                     res.status(200).json({
                         uri: data.uri,
                         updatedAt: data.updatedAt,
                         // suggest clients to poll every 15s
-                        processing: this.tasks.isProcessing(postId as string) ? true : undefined
+                        processing: this.tasks.isProcessing(postId as string) ? true : undefined,
+                        versions: []
                     });
                 } else {
                     res.status(404);
@@ -166,7 +176,7 @@ export class BonsaiClient {
 
         // trigger the update process for a given post; requires api key
         this.app.post(
-            "post/:postId/update",
+            "/post/:postId/update",
             verifyApiKey,
             async (req: express.Request, res: express.Response) => {
                 const { postId } = req.params;
@@ -184,7 +194,39 @@ export class BonsaiClient {
 
                 this.tasks.add(postId, () => this.handlePostUpdate(postId));
 
+                // TODO: call lens api to refresh metadata for postId
+
                 res.status(200).json({ status: "processing" });
+            }
+        );
+
+        // TEST ENDPOINT FOR CREATING PROFILES / POSTS
+        this.app.post(
+            "/lens/profile/create",
+            async (req: express.Request, res: express.Response) => {
+                const { username, name, bio } = req.body;
+
+                const signer = privateKeyToAccount(process.env.EVM_PRIVATE_KEY as `0x${string}`);
+                const account = await createProfile(signer, username, { name, bio })
+
+                res.status(200).json({ account });
+            }
+        );
+
+        this.app.post(
+            "/lens/post/create",
+            async (req: express.Request, res: express.Response) => {
+                const { text } = req.body;
+
+                const signer = privateKeyToAccount(process.env.EVM_PRIVATE_KEY as `0x${string}`);
+                const sessionClient = await authenticate(signer, "bons_ai");
+
+                const result = await createPost(sessionClient!, signer, { text });
+                if (!result) {
+                    res.status(500);
+                }
+
+                res.status(200).json({ ...result });
             }
         );
     }
@@ -202,9 +244,12 @@ export class BonsaiClient {
             return;
         }
 
+        console.log(`response?.uri: ${response?.uri}`);
+
         // update the cache with the latest template data needed for next generation
         await this.cachePost({
             ...data,
+            uri: response.uri,
             templateData: response.updatedTemplateData,
             updatedAt: Math.floor(Date.now() / 1000)
         });

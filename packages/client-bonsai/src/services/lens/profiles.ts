@@ -13,7 +13,7 @@ export const getProfileById = async (
     legacyProfileId: string
 ): Promise<Account | undefined> => {
     const result = await fetchAccount(client, { legacyProfileId });
-    if (!result.isErr()) return result.value;
+    if (!result.isErr()) return result.value as Account;
 };
 
 export const getProfileByUsername = async (
@@ -26,7 +26,7 @@ export const getProfileByUsername = async (
             namespace: namespace ? evmAddress(namespace) : undefined,
         },
     });
-    if (!result.isErr()) return result.value;
+    if (!result.isErr()) return result.value as Account;
 };
 
 export const getProfilesOwned = async (
@@ -38,4 +38,6 @@ export const getProfilesOwned = async (
     });
 
     if (!result.isErr()) return result.value.items as AccountManaged[];
+
+    return [];
 };

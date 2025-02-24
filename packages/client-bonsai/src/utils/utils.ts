@@ -12,10 +12,8 @@ export const bToHexString = (id: bigint) => {
 };
 
 export const isMediaStale = (media: SmartMedia): boolean => {
-    const currentTime = new Date().getTime();
-    const updatedAtTime = new Date(media.updatedAt).getTime();
-
-    return currentTime - updatedAtTime > (media.maxStaleTime * 1000);
+    const currentTime = Math.floor(new Date().getTime() / 1000);
+    return currentTime - media.updatedAt > media.maxStaleTime;
 };
 
 export const getLatestComments = (media: SmartMedia, comments: Post[]): Post[] => (

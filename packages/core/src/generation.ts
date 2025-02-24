@@ -2174,6 +2174,7 @@ export interface GenerationOptions {
     runtime: IAgentRuntime;
     context: string;
     modelClass: ModelClass;
+    modelProvider?: ModelProviderName;
     schema?: ZodSchema;
     schemaName?: string;
     schemaDescription?: string;
@@ -2209,6 +2210,7 @@ export const generateObject = async ({
     runtime,
     context,
     modelClass,
+    modelProvider,
     schema,
     schemaName,
     schemaDescription,
@@ -2224,8 +2226,8 @@ export const generateObject = async ({
         throw new Error(errorMessage);
     }
 
-    const provider = runtime.modelProvider;
-    const modelSettings = getModelSettings(runtime.modelProvider, modelClass);
+    const provider = modelProvider || runtime.modelProvider;
+    const modelSettings = getModelSettings(provider, modelClass);
     const model = modelSettings.name;
     const temperature = modelSettings.temperature;
     const frequency_penalty = modelSettings.frequency_penalty;

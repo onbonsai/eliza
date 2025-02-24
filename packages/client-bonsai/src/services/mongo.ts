@@ -8,7 +8,7 @@ const _client = async () => {
     if (connecting) return connecting;
 
     connecting = (async () => {
-        client = new MongoClient(process.env.BONSAI_CLIENT_MONGO_URI);
+        client = new MongoClient(process.env.BONSAI_CLIENT_MONGO_URI as string);
         await client.connect();
         return client;
     })();

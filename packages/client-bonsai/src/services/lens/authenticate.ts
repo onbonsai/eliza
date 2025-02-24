@@ -1,9 +1,7 @@
 import { fetchAccount } from "@lens-protocol/client/actions";
 import type { PrivateKeyAccount } from "viem";
 import type { SessionClient } from "@lens-protocol/client";
-import { client } from "./client";
-
-const LENS_APP_CONTRACT = "0xe5439696f4057aF073c0FB2dc6e5e755392922e1"; // TODO: create one for bonsai
+import { client, LENS_APP_CONTRACT } from "./client";
 
 const authenticate = async (
     signer: PrivateKeyAccount,
@@ -24,6 +22,8 @@ const authenticate = async (
     }
 
     const account = result.value;
+    if (!account) return;
+
     const authenticated = await client.login({
         accountOwner: {
             account: account.address,

@@ -1,10 +1,20 @@
-import { type Cursor, type Post, postId, PostReactionType, PostReferenceType } from "@lens-protocol/client";
-import { fetchPostReactions, fetchPostReferences, fetchWhoExecutedActionOnPost } from "@lens-protocol/client/actions";
+import { type Cursor, type Post, postId, PostReactionType, PostReferenceType, txHash } from "@lens-protocol/client";
+import { fetchPost, fetchPostReactions, fetchPostReferences, fetchWhoExecutedActionOnPost } from "@lens-protocol/client/actions";
 import { client } from "./client";
 
+export const fetchPostBy = async (_txHash: `0x${string}`): Promise<Post | undefined> => {
+  const result = await fetchPost(client, {
+    txHash: txHash(_txHash),
+  });
+
+  if (result.isErr()) return;
+
+  return result?.value as Post;
+};
+
 export const fetchAllCommentsFor = async (_postId: string): Promise<Post[]> => {
-  let allComments = [];
-  let nextPage: Cursor;
+  let allComments: any[] = [];
+  let nextPage: Cursor | undefined;
 
   do {
     const result = await fetchPostReferences(client, {
@@ -25,7 +35,7 @@ export const fetchAllCommentsFor = async (_postId: string): Promise<Post[]> => {
 }
 
 export const fetchAllCollectorsFor = async (_postId): Promise<`0x${string}`[]> => {
-  let allCollectors = [];
+  let allCollectors: any[] = [];
   let nextPage: Cursor;
 
   do {
@@ -45,7 +55,7 @@ export const fetchAllCollectorsFor = async (_postId): Promise<`0x${string}`[]> =
 };
 
 export const fetchAllUpvotersFor = async (_postId): Promise<`0x${string}`[]> => {
-  let allUpvoters = [];
+  let allUpvoters: any[] = [];
   let nextPage: Cursor;
 
   do {
