@@ -147,47 +147,42 @@ const adventureTime = {
         try {
             if (refresh) {
                 elizaLogger.info("running refresh");
-                // let comments: Post[]; // latest comments to evaluate for the next decision
+                let comments: Post[]; // latest comments to evaluate for the next decision
 
-                // // if the post not stale, check if we've passed the min comment threshold
-                // if (isMediaStale(media as SmartMedia)) {
-                //     elizaLogger.info("is stale");
-                //     const allComments = await fetchAllCommentsFor(media?.postId as string);
-                //     comments = getLatestComments(media as SmartMedia, allComments);
-                //     const threshold = (media?.templateData as TemplateData).minCommentUpdateThreshold ||
-                //         DEFAULT_MIN_ENGAGEMENT_UPDATE_THREHOLD;
-                //     if (comments.length < threshold) {
-                //         elizaLogger.info(`adventureTime:: media ${media?.agentId} is not stale and has not met comment threshold; skipping`);
-                //         return;
-                //     }
-                // } else {
-                //     elizaLogger.info("not stale");
-                //     // do not update if the media isn't stale; we're paying for generations
-                //     return;
-                // }
+                // if the post not stale, check if we've passed the min comment threshold
+                if (isMediaStale(media as SmartMedia)) {
+                    elizaLogger.info("is stale");
+                    const allComments = await fetchAllCommentsFor(media?.postId as string);
+                    comments = getLatestComments(media as SmartMedia, allComments);
+                    const threshold = (media?.templateData as TemplateData).minCommentUpdateThreshold ||
+                        DEFAULT_MIN_ENGAGEMENT_UPDATE_THREHOLD;
+                    if (comments.length < threshold) {
+                        elizaLogger.info(`adventureTime:: media ${media?.agentId} is not stale and has not met comment threshold; skipping`);
+                        return;
+                    }
+                } else {
+                    elizaLogger.info("not stale");
+                    // do not update if the media isn't stale; we're paying for generations
+                    return;
+                }
 
-                // // fetch the token balances for each comment / upvote to use weighted votes
-                // const allCollectors = await fetchAllCollectorsFor(media?.postId as string);
-                // const commentsWeighted = await Promise.all(comments.map(async (comment) => {
-                //     const voters = await fetchAllUpvotersFor(comment.id);
-                //     const balances = await balanceOfBatched(
-                //         base,
-                //         [
-                //             comment.author.address,
-                //             ...voters.filter((account) => allCollectors.includes(account))
-                //         ],
-                //         media?.tokenAddress as `0x${string}`
-                //     );
-                //     return {
-                //         content: (comment.metadata as TextOnlyMetadata).content,
-                //         votes: balances.reduce((acc, b) => acc + getVoteWeightFromBalance(b), 0),
-                //     };
-                // }));
-
-                const commentsWeighted = [{
-                    content: "a",
-                    votes: 22,
-                }, { content: "b", votes: 1 }];
+                // fetch the token balances for each comment / upvote to use weighted votes
+                const allCollectors = await fetchAllCollectorsFor(media?.postId as string);
+                const commentsWeighted = await Promise.all(comments.map(async (comment) => {
+                    const voters = await fetchAllUpvotersFor(comment.id);
+                    const balances = await balanceOfBatched(
+                        base,
+                        [
+                            comment.author.address,
+                            ...voters.filter((account) => allCollectors.includes(account))
+                        ],
+                        media?.tokenAddress as `0x${string}`
+                    );
+                    return {
+                        content: (comment.metadata as TextOnlyMetadata).content,
+                        votes: balances.reduce((acc, b) => acc + getVoteWeightFromBalance(b), 0),
+                    };
+                }));
 
                 console.log({ decisions: templateData.decisions, comments: JSON.stringify(commentsWeighted) });
                 const context = composeContext({
@@ -256,7 +251,7 @@ Option A) ${page.decisions[0]}
 Option B) ${page.decisions[1]}
 `;
 
-            let metadata;
+            let metadata: ImageMetadata | undefined;
             let updatedUri: string | undefined;
             if (refresh) {
                 const url = await storageClient.resolve(media?.uri as URI);
@@ -275,7 +270,7 @@ Option B) ${page.decisions[1]}
                         url: imageUri,
                         type: MediaImageMimeType.PNG // see generation.ts the provider
                     }
-                });
+                }) as ImageMetadata;
 
                 // upload version to storj for versioning
                 updatedUri = await uploadJson(formatMetadata({
