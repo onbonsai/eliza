@@ -5,7 +5,6 @@
     "lint": "biome lint .",
     "check": "biome check --apply .",
     "preinstall": "npx only-allow pnpm",
-    "postinstall": "node patch-lens-protocol-client.js && pnpm build --force",
     "build": "turbo run build --filter=!eliza-docs",
     "build-docker": "turbo run build",
     "cleanstart": "if [ -f agent/data/db.sqlite ]; then rm agent/data/db.sqlite; fi && pnpm --filter \"@elizaos/agent\" start --isRoot",

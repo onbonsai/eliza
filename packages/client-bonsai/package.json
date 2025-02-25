@@ -43,6 +43,7 @@
         "tsup": "^8.3.5"
     },
     "scripts": {
+        "postinstall": "node patch-lens-protocol-client.js",
         "build": "tsup --format esm --no-dts",
         "dev": "tsup --format esm --dts --watch",
         "clean": "rm -rf dist",

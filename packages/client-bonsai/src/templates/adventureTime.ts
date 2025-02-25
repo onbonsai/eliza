@@ -197,7 +197,7 @@ const adventureTime = {
                     runtime,
                     context,
                     modelClass: ModelClass.LARGE,
-                    // modelProvider: ModelProviderName.VENICE,
+                    modelProvider: ModelProviderName.VENICE,
                 })) as unknown as DecisionResponse;
                 elizaLogger.info("generated", results);
 
@@ -225,7 +225,7 @@ const adventureTime = {
                 runtime,
                 context,
                 modelClass: ModelClass.SMALL,
-                // modelProvider: ModelProviderName.VENICE,
+                modelProvider: ModelProviderName.VENICE,
             })) as NextPageResponse;
             elizaLogger.info("generated", page);
 
