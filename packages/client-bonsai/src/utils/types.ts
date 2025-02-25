@@ -1,4 +1,5 @@
 import type { IAgentRuntime, UUID } from "@elizaos/core";
+import type { ImageMetadata, TextOnlyMetadata, URI, VideoMetadata } from "@lens-protocol/metadata";
 
 export interface SmartMediaBase {
   agentId: UUID; // uuid
@@ -10,18 +11,10 @@ export interface SmartMediaBase {
   templateData?: unknown; // specific data needed per template
 }
 
-export type SmartMediaPreview = SmartMediaBase & {
-  preview?: {
-    text?: string;
-    image?: string;
-    video?: string;
-  }
-};
-
 export type SmartMedia = SmartMediaBase & {
   postId: string; // lens post id; will be null for previews
   maxStaleTime: number; // seconds
-  uri: string; // active post uri
+  uri: URI; // lens storage node uri
   tokenAddress: `0x${string}`; // associated token address
   versions?: [string]; // versions of uri; only present in the db
 };
@@ -70,9 +63,10 @@ export type TemplateHandler = (
 export interface TemplateHandlerResponse {
   preview?: {
     text: string;
-    image?: string; // base 64 jpeg/png (depending on the provider)
+    image?: string; // base64
     video?: string,
   };
-  uri?: string,
-  updatedTemplateData?: unknown,
+  metadata?: TextOnlyMetadata | ImageMetadata | VideoMetadata;
+  updatedUri?: string, // in case the handler wants versioning on the media
+  updatedTemplateData?: unknown, // updated payload for the next generation
 }

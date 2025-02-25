@@ -8,6 +8,9 @@ import {
     type MediaVideoMimeType,
     MetadataLicenseType,
     MetadataAttributeType,
+    TextOnlyMetadata,
+    ImageMetadata,
+    VideoMetadata,
 } from "@lens-protocol/metadata";
 import { handleOperationWith } from "@lens-protocol/client/viem";
 import { createWalletClient, http, type Account } from "viem";
@@ -50,7 +53,7 @@ const baseMetadata = {
     ],
 }
 
-export const uploadMetadata = async (params: PostParams): Promise<URI> => {
+export const formatMetadata = (params: PostParams): TextOnlyMetadata | ImageMetadata | VideoMetadata => {
     let metadata: unknown;
 
     if (!(params.image || params.video)) {
@@ -58,7 +61,6 @@ export const uploadMetadata = async (params: PostParams): Promise<URI> => {
             content: params.text,
             ...baseMetadata,
         });
-        console.log(metadata, JSON.stringify(metadata,null,2))
     } else if (params.image) {
         metadata = image({
             title: params.text,
@@ -82,9 +84,16 @@ export const uploadMetadata = async (params: PostParams): Promise<URI> => {
         });
     }
 
+    return metadata;
+}
+
+export const uploadMetadata = async (params: PostParams): Promise<URI> => {
+    const metadata = formatMetadata(params);
+
     // TODO: not working?
     // const { uri: hash } = await storageClient.uploadAsJson(metadata);
     // return uri(hash);
+
     const response = await fetch('https://storage-api.testnet.lens.dev/', {
         method: 'POST',
         headers: {
@@ -143,3 +152,10 @@ export const createPost = async (
         result.error
     );
 };
+
+export const editPost = async (uri: string, metadata: any, signer: Account): Promise<boolean> => {
+    // TODO: need new sdk version
+    // return await storageClient.editJson()
+
+    return true;
+}

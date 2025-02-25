@@ -12,10 +12,11 @@ import {
 } from "@elizaos/core";
 import type { WrappedNodeRedisClient } from "handy-redis";
 import type { Collection, MongoClient } from "mongodb";
+import type { URI } from "@lens-protocol/metadata";
 import pkg from "lodash";
 const { omit } = pkg;
 import redisClient from "./services/redis";
-import type { SmartMedia, SmartMediaPreview, Template, TemplateCategory, TemplateName } from "./utils/types";
+import type { SmartMedia, SmartMediaBase, Template, TemplateCategory, TemplateName } from "./utils/types";
 import verifyLensId from "./middleware/verifyLensId";
 import verifyApiKey from "./middleware/verifyApiKey";
 import { DEFAULT_MAX_STALE_TIME } from "./utils/constants";
@@ -25,7 +26,9 @@ import TaskQueue from "./utils/taskQueue";
 import createProfile from "./services/lens/createProfile";
 import { privateKeyToAccount } from "viem/accounts";
 import authenticate from "./services/lens/authenticate";
-import { createPost } from "./services/lens/createPost";
+import { createPost, editPost } from "./services/lens/createPost";
+import { refreshMetadata, refreshMetadataStatus } from "./services/lens/refreshMetadata";
+import { walletOnly } from "@lens-protocol/storage-node-client";
 
 // only needed to play nice with the rest of ElizaOS
 const GLOBAL_AGENT_ID = "c3bd776c-4465-037f-9c7a-bf94dfba78d9";
@@ -38,7 +41,7 @@ export class BonsaiClient {
     private mongo: { client?: MongoClient, media?: Collection };
 
     private tasks: TaskQueue = new TaskQueue();
-    private cache: Map<UUID, SmartMediaPreview> = new Map(); // agentId => preview
+    private cache: Map<UUID, SmartMediaBase> = new Map(); // agentId => preview
     private agents: Map<string, IAgentRuntime> = new Map();
     private templates: Map<TemplateName, Template> = new Map();
 
@@ -93,20 +96,21 @@ export class BonsaiClient {
                 const response = await template.handler(runtime as IAgentRuntime, false, undefined, templateData);
 
                 const ts = Math.floor(Date.now() / 1000);
-                const preview: SmartMediaPreview = {
+                const finalAgentId = agentId || stringToUuid(`preview-${creator}`);
+                await this.cachePreview({
                     template: templateName,
                     category,
-                    agentId: agentId || stringToUuid(`preview-${creator}`),
+                    agentId: finalAgentId,
                     createdAt: ts,
                     updatedAt: ts,
                     creator,
                     templateData: response?.updatedTemplateData,
-                    preview: response?.preview,
-                };
+                });
 
-                await this.cachePreview(preview as SmartMediaPreview);
+                // required ACL for our backend to edit; this must be used to upload the asset _and_ the post json
+                const acl = walletOnly(process.env.LENS_STORAGE_NODE_ACCOUNT as `0x${string}`);
 
-                res.status(200).json(preview);
+                res.status(200).json({ agentId: finalAgentId, preview: response?.preview, acl });
             }
         );
 
@@ -120,7 +124,7 @@ export class BonsaiClient {
                     postId,
                     uri,
                     tokenAddress,
-                }: { agentId: UUID, postId: string, uri: string, tokenAddress: `0x${string}` } = req.body;
+                }: { agentId: UUID, postId: string, uri: URI, tokenAddress: `0x${string}` } = req.body;
 
                 // require that a preview was generated and cached
                 const preview = this.cache.get(agentId as UUID);
@@ -132,7 +136,7 @@ export class BonsaiClient {
                 // prep the final object
                 const ts = Math.floor(Date.now() / 1000);
                 const media: SmartMedia = {
-                    ...omit(preview, 'preview'),
+                    ...preview,
                     postId,
                     uri,
                     maxStaleTime: DEFAULT_MAX_STALE_TIME,
@@ -204,8 +208,6 @@ export class BonsaiClient {
 
                 this.tasks.add(postId, () => this.handlePostUpdate(postId));
 
-                // TODO: call lens api to refresh metadata for postId
-
                 res.status(200).json({ status: "processing" });
             }
         );
@@ -236,7 +238,7 @@ export class BonsaiClient {
                     res.status(500);
                 }
 
-                res.status(200).json({ ...result });
+                res.status(200).json(result);
             }
         );
     }
@@ -245,32 +247,50 @@ export class BonsaiClient {
         const data = await this.getPost(postId as string);
         if (!data) return;
 
+        // generate the next version of the post metadata
         const runtime = this.agents.get(GLOBAL_AGENT_ID);
         const template = this.templates.get(data.template);
         const response = await template?.handler(runtime as IAgentRuntime, true, data);
-
-        if (!response?.uri) {
+        if (!response?.metadata) {
             elizaLogger.error(`Failed to update post: ${postId}`);
+            return;
+        }
+
+        // edit the post metadata using acl
+        const success = await editPost(
+            data.uri as string,
+            response.metadata,
+            privateKeyToAccount(process.env.LENS_STORAGE_NODE_PRIVATE_KEY as `0x${string}`)
+        );
+        if (!success) {
+            elizaLogger.error("Failed to edit post metadata");
             return;
         }
 
         // update the cache with the latest template data needed for next generation
         await this.cachePost({
             ...data,
-            uri: response.uri,
             templateData: response.updatedTemplateData,
             updatedAt: Math.floor(Date.now() / 1000)
         });
 
-        // push the new uri to the db for versioning
-        await this.mongo.media?.updateOne(
-            { agentId: data.agentId },
-            // @ts-ignore $push
-            { $push: { versions: response.uri as string } }
-        );
+        // push the updated uri to the db for versioning
+        if (response.updatedUri) {
+            await this.mongo.media?.updateOne(
+                { agentId: data.agentId },
+                // @ts-ignore $push
+                { $push: { versions: response.updatedUri as string } }
+            );
+        }
 
-        // TODO: refresh metadata
-
+        // refresh the post metadata
+        const jobId = await refreshMetadata(postId);
+        const status = await refreshMetadataStatus(jobId as string);
+        if (status === "FAILED") {
+            elizaLogger.error("Failed to refresh post metadata");
+            return;
+        }
+        elizaLogger.info(`submitted lens refresh metadata request: ${status}`);
         elizaLogger.info(`done updating post: ${postId}`);
     }
 
@@ -287,7 +307,7 @@ export class BonsaiClient {
         this.agents.set(runtime.agentId, runtime);
     }
 
-    public cachePreview(data: SmartMediaPreview) {
+    public cachePreview(data: SmartMediaBase) {
         this.cache.set(data.agentId, data);
     }
 

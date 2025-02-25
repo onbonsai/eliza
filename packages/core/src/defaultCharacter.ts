@@ -6,7 +6,7 @@ export const defaultCharacter: Character = {
     username: "bons_ai",
     plugins: [],
     clients: [Clients.BONSAI],
-    modelProvider: ModelProviderName.GROK,
+    modelProvider: ModelProviderName.OPENAI,
     imageModelProvider: ModelProviderName.TITLES,
     settings: {
         secrets: {},

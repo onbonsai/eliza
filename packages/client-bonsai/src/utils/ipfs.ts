@@ -97,3 +97,23 @@ export const parseAndUploadBase64Image = async (imageResponse) => {
 
   console.error("No image response");
 };
+
+export const parseBase64Image = (imageResponse): File | undefined => {
+  if (imageResponse.success && imageResponse.data?.[0]) {
+    if (!imageResponse.data[0].includes("base64")) {
+      console.error("Image response does not contain base64 data");
+      return;
+    }
+    // Convert base64 to buffer
+    const base64Data = imageResponse.data[0].replace(
+      /^data:image\/\w+;base64,/,
+      ""
+    );
+    const imageBuffer = Buffer.from(base64Data, "base64");
+
+    // Create a file object that can be used with FormData
+    return new File([imageBuffer], `generated_${Date.now()}.png`, {
+      type: "image/png"
+    });
+  }
+};

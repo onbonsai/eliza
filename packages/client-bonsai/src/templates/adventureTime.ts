@@ -8,8 +8,8 @@ import {
     generateImage,
     generateObject,
 } from "@elizaos/core";
-import { MediaImageMimeType } from "@lens-protocol/metadata";
-import type { Post, TextOnlyMetadata } from "@lens-protocol/client";
+import { ImageMetadata, MediaImageMimeType, URI } from "@lens-protocol/metadata";
+import { uri, type Post, type TextOnlyMetadata } from "@lens-protocol/client";
 import { base } from "viem/chains";
 import { z } from "zod";
 import {
@@ -18,24 +18,34 @@ import {
     type Template,
     type TemplateHandlerResponse,
 } from "../utils/types";
-import { uploadMetadata } from "../services/lens/createPost";
+import { editPost, formatMetadata, uploadMetadata } from "../services/lens/createPost";
 import { isMediaStale, getLatestComments, getVoteWeightFromBalance } from "../utils/utils";
-import { parseAndUploadBase64Image } from "../utils/ipfs";
+import { parseAndUploadBase64Image, parseBase64Image, uploadJson } from "../utils/ipfs";
 import { fetchAllCollectorsFor, fetchAllCommentsFor, fetchAllUpvotersFor } from "../services/lens/posts";
 import { balanceOfBatched } from "../utils/viem";
+import { privateKeyToAccount } from "viem/accounts";
+import { storageClient } from "../services/lens/client";
 
 export const nextPageTemplate = `
 # Instructions
 You are generating the next page in a choose-your-own-adventure story.
 The story is defined by the Context (the overall setting and premise), Writing Style, and Previous Pages (each condensed into this format: CHAPTER_NAME; DECISION_TAKEN).
 Based on this information, write the next page. If there are no Previous Pages, then simply produce the first page which sets up the rest of the story.
-Each “page” should be roughly 1-2 short paragraphs (3-5 sentences each) describing the action or situation.
-End the new page with two distinct decision choices that the reader can pick from. These should be written as two bullet points or short lines. The decision should be related to the events of the current page.
+Each “page” should be roughly 1-2 short paragraphs (4-5 sentences each) describing the action or situation.
+End the new page with two distinct decision choices that the reader can pick from. The decision should be related to the events of the current page.
 Start the page with a descriptive chapter name that can be used for future prompts to summarize the page. Do not include the chapter number in the name.
 
 Provide a prompt to use to generate an image that would be a good compliment to the content.
 After you generate the page and image prompt, format your response into a JSON object with these properties:
-{ chapterName: string, content: string, decisions: string[2], imagePrompt: string }
+ \`\`\`json
+{
+    chapterName: string,
+    content: string,
+    decisions: string[2],
+    imagePrompt: string
+}
+}
+\`\`\`
 
 # Context
 {{context}}
@@ -51,21 +61,12 @@ Do not acknowledge this request, simply respond with the JSON object.
 
 export const decisionTemplate = `
 # Instructions
-You must choose one of the two Decisions based on the Comments
-When processing the comments, you must account for the fact that the content might say "option A", or "option B", or a word directly referenced in the Decision, or anything to reference one of the decisions, which you must map to.
-For example, the first decision could be "option 1" or "option a".
-Each comment will be in this format:
-{ content: string, votes: number }
-Map all the contents to the appropriate decision, and tally the votes.
-Return the result as a JSON object with the decisions and totalVotes for each, sorted by totalVotes descending. Respond with a JSON markdown block containing only the desired values:
-\`\`\`json
-{
-    "decisions": [{
-        "content": string,
-        "totalVotes: number
-    }]
-}
-\`\`\`
+You must choose one of the two Decisions based on the Comments. When processing the comments, you must account for any references to the decisions. For example, a comment might say "option A", "option 1", or include part of a decision's text; all should map to the correct decision.
+Each comment is formatted as: { content: string, votes: number }.
+Important: For each comment that maps to a decision, use the vote count exactly as provided (i.e., the integer in the "votes" field) without applying any scaling, rounding, or additional arithmetic transformations. For example, if a decision receives a comment with { votes: 22 }, then add exactly 22 to that decision's total.
+Map each comment to its corresponding decision by matching textual cues, then sum the votes for each decision by adding up the exact vote values from all matching comments.
+Return the result as a JSON object with the decisions and their corresponding totalVotes, sorted in descending order by totalVotes.
+The output should be a JSON block with the following format: \`\`\`json { "decisions": [{ "content": string, "totalVotes": number }] } \`\`\`
 
 # Decisions
 {{decisions}}
@@ -184,14 +185,14 @@ const adventureTime = {
                 // }));
 
                 const commentsWeighted = [{
-                    content: "option b",
-                    votes: 3,
-                }];
+                    content: "a",
+                    votes: 22,
+                }, { content: "b", votes: 1 }];
 
-                console.log({ decisions: templateData.decisions, comments: commentsWeighted });
+                console.log({ decisions: templateData.decisions, comments: JSON.stringify(commentsWeighted) });
                 const context = composeContext({
                     // @ts-expect-error State
-                    state: { decisions: templateData.decisions, comments: commentsWeighted },
+                    state: { decisions: templateData.decisions, comments: JSON.stringify(commentsWeighted) },
                     template: decisionTemplate,
                 });
 
@@ -200,12 +201,10 @@ const adventureTime = {
                 const results = (await generateObjectDeprecated({
                     runtime,
                     context,
-                    modelClass: ModelClass.SMALL,
-                    modelProvider: ModelProviderName.VENICE,
+                    modelClass: ModelClass.LARGE,
+                    // modelProvider: ModelProviderName.VENICE,
                 })) as unknown as DecisionResponse;
-                elizaLogger.info("done");
-
-                console.log(JSON.stringify(results, null, 2));
+                elizaLogger.info("generated", results);
 
                 // push to templateData.previousPages to be immediately used for a new generation
                 if (templateData.previousPages) {
@@ -231,10 +230,9 @@ const adventureTime = {
                 runtime,
                 context,
                 modelClass: ModelClass.SMALL,
-                modelProvider: ModelProviderName.VENICE,
+                // modelProvider: ModelProviderName.VENICE,
             })) as NextPageResponse;
-
-            console.log(JSON.stringify(page, null, 2));
+            elizaLogger.info("generated", page);
 
             const imageResponse = await generateImage(
                 {
@@ -258,19 +256,35 @@ Option A) ${page.decisions[0]}
 Option B) ${page.decisions[1]}
 `;
 
-            let uri: string | undefined = undefined;
+            let metadata;
+            let updatedUri: string | undefined;
             if (refresh) {
-                // TODO: how to store the base64 data as an image in lens storage nodes
-                const imageURL = await parseAndUploadBase64Image(imageResponse);
+                const url = await storageClient.resolve(media?.uri as URI);
+                const json: ImageMetadata = await fetch(url).then(res => res.json());
+                const imageUri = json.lens.image.item;
 
-                // TODO: use AgentMetadata
-                uri = await uploadMetadata({
+                // edit the image and format the metadata to be used to update
+                await storageClient.editFile(
+                    imageUri,
+                    parseBase64Image(imageResponse) as File,
+                    privateKeyToAccount(process.env.LENS_STORAGE_NODE_PRIVATE_KEY as `0x${string}`)
+                );
+                metadata = formatMetadata({
                     text,
                     image: {
-                        url: imageURL as string,
+                        url: imageUri,
                         type: MediaImageMimeType.PNG // see generation.ts the provider
                     }
                 });
+
+                // upload version to storj for versioning
+                updatedUri = await uploadJson(formatMetadata({
+                    text,
+                    image: {
+                        url: await parseAndUploadBase64Image(imageResponse) as string,
+                        type: MediaImageMimeType.PNG // see generation.ts the provider
+                    }
+                }));
             }
 
             return {
@@ -278,8 +292,9 @@ Option B) ${page.decisions[1]}
                     text,
                     image: imageResponse.success ? imageResponse.data?.[0] : undefined,
                 },
-                uri,
+                metadata,
                 updatedTemplateData: { ...templateData, decisions: page.decisions, chapterName: page.chapterName },
+                updatedUri,
             }
         } catch (error) {
             elizaLogger.error("handler failed", error);
