@@ -1,7 +1,15 @@
 import type { IAgentRuntime, UUID } from "@elizaos/core";
 import type { ImageMetadata, TextOnlyMetadata, URI, VideoMetadata } from "@lens-protocol/metadata";
 
-export interface SmartMediaBase {
+/**
+ * SmartMedia templates
+ */
+export enum LaunchpadChain {
+  BASE = "Base",
+  LENS = "Lens"
+}
+
+export type SmartMediaBase = {
   agentId: UUID; // uuid
   creator: `0x${string}`; // lens account
   template: TemplateName;
@@ -11,11 +19,16 @@ export interface SmartMediaBase {
   templateData?: unknown; // specific data needed per template
 }
 
+export type LaunchpadToken = {
+  chain: LaunchpadChain;
+  address: `0x${string}`;
+}
+
 export type SmartMedia = SmartMediaBase & {
   postId: string; // lens post id; will be null for previews
   maxStaleTime: number; // seconds
   uri: URI; // lens storage node uri
-  tokenAddress: `0x${string}`; // associated token address
+  token: LaunchpadToken; // associated token
   versions?: [string]; // versions of uri; only present in the db
 };
 
@@ -67,7 +80,13 @@ export interface TemplateHandlerResponse {
     image?: string; // base64
     video?: string,
   };
-  metadata?: TextOnlyMetadata | ImageMetadata | VideoMetadata;
+  metadata?: TextOnlyMetadata | ImageMetadata | VideoMetadata; // only undefined on failure or generating preview
   updatedUri?: string, // in case the handler wants versioning on the media
   updatedTemplateData?: unknown, // updated payload for the next generation
+}
+
+export interface CreateTemplateRequestParams {
+  templateName: TemplateName;
+  category: TemplateCategory;
+  templateData: unknown;
 }

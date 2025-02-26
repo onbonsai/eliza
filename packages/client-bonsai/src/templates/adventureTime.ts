@@ -9,10 +9,12 @@ import {
 } from "@elizaos/core";
 import { type ImageMetadata, MediaImageMimeType, type URI } from "@lens-protocol/metadata";
 import type { Post, TextOnlyMetadata } from "@lens-protocol/client";
+import { chains } from "@lens-network/sdk/viem";
 import { base } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
-import { z } from "zod";
+// import { z } from "zod";
 import {
+    LaunchpadChain,
     TemplateName,
     type SmartMedia,
     type Template,
@@ -120,14 +122,13 @@ const DEFAULT_MIN_ENGAGEMENT_UPDATE_THREHOLD = 10; // at least 10 upvotes/commen
  * or refreshes an existing adventure by evaluating new comments and votes to decide the next page.
  *
  * @param {IAgentRuntime} runtime - The eliza runtime environment providing utilities for generating content and images.
- * @param {boolean} refresh - Flag indicating whether to generate a new page or update an existing one.
  * @param {SmartMedia} [media] - The current, persisted media object associated with the adventure, used for updates.
  * @param {TemplateData} [_templateData] - Initial data for generating a new adventure preview, used when not refreshing.
  * @returns {Promise<TemplateHandlerResponse | null>} A promise that resolves to the response object containing the new page preview, uri (optional), and updated template data, or null if the operation cannot be completed.
  */
 const adventureTime = {
     name: TemplateName.ADVENTURE_TIME,
-    description: "Choose your own adventure. Creator sets the context and inits the post with the first page. The comment with the most votes dictates the direction of the story.",
+    description: "Choose your own adventure. Creator sets the context and inits the post with the first page. Weighted comments / upvotes decide the direction of the story.",
     handler: async (
         runtime: IAgentRuntime,
         media?: SmartMedia,
@@ -168,12 +169,12 @@ const adventureTime = {
                 const commentsWeighted = await Promise.all(comments.map(async (comment) => {
                     const voters = await fetchAllUpvotersFor(comment.id);
                     const balances = await balanceOfBatched(
-                        base,
+                        media.token.chain === LaunchpadChain.BASE ? base : chains.testnet,
                         [
                             comment.author.address,
                             ...voters.filter((account) => allCollectors.includes(account))
                         ],
-                        media?.tokenAddress as `0x${string}`
+                        media?.token.address as `0x${string}`
                     );
                     return {
                         content: (comment.metadata as TextOnlyMetadata).content,
@@ -231,11 +232,9 @@ const adventureTime = {
                     prompt: page.imagePrompt,
                     width: 1024,
                     height: 1024,
-                    imageModelProvider: ModelProviderName.OPENAI,
-                    // TODO: somehow venice fails on some prompts
-                    // imageModelProvider: ModelProviderName.VENICE,
-                    // modelId: templateData.modelId || DEFAULT_MODEL_ID,
-                    // stylePreset: templateData.stylePreset || DEFAULT_STYLE_PRESET,
+                    imageModelProvider: ModelProviderName.VENICE,
+                    modelId: templateData.modelId || DEFAULT_MODEL_ID,
+                    stylePreset: templateData.stylePreset || DEFAULT_STYLE_PRESET,
                 },
                 runtime
             );

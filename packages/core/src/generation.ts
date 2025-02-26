@@ -1714,6 +1714,10 @@ export const generateImage = async (
         safeMode?: boolean;
         cfgScale?: number;
         returnRawResponse?: boolean;
+        inpaint?: {
+            strength: number;
+            source_image_base64: string;
+        }
     },
     runtime: IAgentRuntime
 ): Promise<{
@@ -1901,7 +1905,7 @@ export const generateImage = async (
                         "Content-Type": "application/json",
                     },
                     body: JSON.stringify({
-                        model: model,
+                        model: data.modelId || model,
                         prompt: data.prompt,
                         cfg_scale: data.guidanceScale,
                         negative_prompt: data.negativePrompt,
@@ -1912,6 +1916,7 @@ export const generateImage = async (
                         seed: data.seed,
                         style_preset: data.stylePreset,
                         hide_watermark: data.hideWatermark,
+                        inpaint: data.inpaint,
                     }),
                 }
             );
