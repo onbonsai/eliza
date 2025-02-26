@@ -6,11 +6,11 @@ import {
     type IAgentRuntime,
     ModelProviderName,
     generateImage,
-    generateObject,
 } from "@elizaos/core";
-import { ImageMetadata, MediaImageMimeType, URI } from "@lens-protocol/metadata";
-import { uri, type Post, type TextOnlyMetadata } from "@lens-protocol/client";
+import { type ImageMetadata, MediaImageMimeType, type URI } from "@lens-protocol/metadata";
+import type { Post, TextOnlyMetadata } from "@lens-protocol/client";
 import { base } from "viem/chains";
+import { privateKeyToAccount } from "viem/accounts";
 import { z } from "zod";
 import {
     TemplateName,
@@ -18,12 +18,11 @@ import {
     type Template,
     type TemplateHandlerResponse,
 } from "../utils/types";
-import { editPost, formatMetadata, uploadMetadata } from "../services/lens/createPost";
+import { formatMetadata } from "../services/lens/createPost";
 import { isMediaStale, getLatestComments, getVoteWeightFromBalance } from "../utils/utils";
 import { parseAndUploadBase64Image, parseBase64Image, uploadJson } from "../utils/ipfs";
 import { fetchAllCollectorsFor, fetchAllCommentsFor, fetchAllUpvotersFor } from "../services/lens/posts";
 import { balanceOfBatched } from "../utils/viem";
-import { privateKeyToAccount } from "viem/accounts";
 import { storageClient } from "../services/lens/client";
 
 export const nextPageTemplate = `
@@ -43,7 +42,6 @@ After you generate the page and image prompt, format your response into a JSON o
     content: string,
     decisions: string[2],
     imagePrompt: string
-}
 }
 \`\`\`
 
@@ -77,14 +75,15 @@ The output should be a JSON block with the following format: \`\`\`json { "decis
 Do not acknowledge this request, simply respond with the JSON block wrapped in triple backticks with 'json' language identifier.
 `;
 
-const DecisionSchema = z.object({
-    decisions: z.array(
-        z.object({
-            content: z.string(),
-            totalVotes: z.number(),
-        })
-    )
-});
+// TODO: once generateObject handles VENICE
+// const DecisionSchema = z.object({
+//     decisions: z.array(
+//         z.object({
+//             content: z.string(),
+//             totalVotes: z.number(),
+//         })
+//     )
+// });
 
 type NextPageResponse = {
     chapterName: string;
@@ -131,11 +130,11 @@ const adventureTime = {
     description: "Choose your own adventure. Creator sets the context and inits the post with the first page. The comment with the most votes dictates the direction of the story.",
     handler: async (
         runtime: IAgentRuntime,
-        refresh: boolean,
         media?: SmartMedia,
         _templateData?: TemplateData,
     ): Promise<TemplateHandlerResponse | undefined> => {
-        elizaLogger.log("Running template:", TemplateName.ADVENTURE_TIME);
+        const refresh = !!media?.templateData;
+        elizaLogger.log(`Running template (refresh: ${refresh}):`, TemplateName.ADVENTURE_TIME);
 
         // either we are refreshing the persisted `media` object or we're generating a preview using `_templateData`
         const templateData = refresh ? media?.templateData as TemplateData : _templateData;
@@ -151,7 +150,6 @@ const adventureTime = {
 
                 // if the post not stale, check if we've passed the min comment threshold
                 if (isMediaStale(media as SmartMedia)) {
-                    elizaLogger.info("is stale");
                     const allComments = await fetchAllCommentsFor(media?.postId as string);
                     comments = getLatestComments(media as SmartMedia, allComments);
                     const threshold = (media?.templateData as TemplateData).minCommentUpdateThreshold ||
@@ -161,7 +159,6 @@ const adventureTime = {
                         return;
                     }
                 } else {
-                    elizaLogger.info("not stale");
                     // do not update if the media isn't stale; we're paying for generations
                     return;
                 }

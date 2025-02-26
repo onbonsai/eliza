@@ -24,6 +24,7 @@ export type SmartMedia = SmartMediaBase & {
  */
 export enum TemplateName {
   ADVENTURE_TIME = "adventure_time",
+  ARTIST_PRESENT = "artist_present",
 }
 
 /**
@@ -31,6 +32,7 @@ export enum TemplateName {
  */
 export enum TemplateCategory {
   EVOLVING_POST = "evolving_post",
+  EVOLVING_ART = "evolving_art",
 }
 
 /**
@@ -52,7 +54,6 @@ export interface Template {
  */
 export type TemplateHandler = (
   runtime: IAgentRuntime,
-  refresh: boolean,
   media?: SmartMedia,
   templateData?: unknown,
 ) => Promise<TemplateHandlerResponse | null>;
