@@ -3,7 +3,6 @@ import cors from "cors";
 import express from "express";
 import { type Server as HttpServer, createServer } from "node:http";
 import {
-    stringToUuid,
     settings,
     type Client,
     type IAgentRuntime,
@@ -14,25 +13,31 @@ import type { WrappedNodeRedisClient } from "handy-redis";
 import type { Collection, MongoClient } from "mongodb";
 import type { URI } from "@lens-protocol/metadata";
 import { privateKeyToAccount } from "viem/accounts";
-import { walletOnly } from "@lens-protocol/storage-node-client";
+import { walletOnly } from "@lens-chain/storage-client";
 import pkg from "lodash";
 const { omit } = pkg;
 import redisClient from "./services/redis";
-import type { CreateTemplateRequestParams, LaunchpadChain, LaunchpadToken, SmartMedia, SmartMediaBase, Template, TemplateCategory, TemplateName } from "./utils/types";
+import type {
+    CreateTemplateRequestParams,
+    LaunchpadToken,
+    SmartMedia,
+    SmartMediaBase,
+    Template,
+    TemplateName
+} from "./utils/types";
 import verifyLensId from "./middleware/verifyLensId";
 import verifyApiKey from "./middleware/verifyApiKey";
-import { DEFAULT_MAX_STALE_TIME } from "./utils/constants";
 import { getClient } from "./services/mongo";
 import adventureTimeTemplate from "./templates/adventureTime";
+import artistPresentTemplate from "./templates/artistPresent";
 import TaskQueue from "./utils/taskQueue";
 import createProfile from "./services/lens/createProfile";
 import authenticate from "./services/lens/authenticate";
 import { createPost, editPost } from "./services/lens/createPost";
-import { refreshMetadata, refreshMetadataStatus } from "./services/lens/refreshMetadata";
-
-
-// only needed to play nice with the rest of ElizaOS
-const GLOBAL_AGENT_ID = "c3bd776c-4465-037f-9c7a-bf94dfba78d9";
+import { refreshMetadataFor, refreshMetadataStatusFor } from "./services/lens/refreshMetadata";
+import { formatSmartMedia } from "./utils/utils";
+import { BONSAI_CLIENT_VERSION } from "./utils/constants";
+import { LENS_CHAIN_ID } from "./services/lens/client";
 
 /**
  * BonsaiClient provides an Express server for managing smart media posts on Lens Protocol.
@@ -66,6 +71,31 @@ export class BonsaiClient {
 
         this.initialize();
 
+        /**
+         * GET /metadata
+         * Retrieves the configuration for this eliza server including server domain, registered template metadata,
+         * bonsai client version, and storage acl
+         * @returns {Object} domain, version, templates, acl
+         */
+        this.app.get(
+            "/metadata",
+            async (_: express.Request, res: express.Response) => {
+                const templates = Array.from(this.templates.values()).map(template => ({
+                    ...template.clientMetadata,
+                    templateData: {
+                        ...template.clientMetadata.templateData,
+                        form: template.clientMetadata.templateData.form.shape // serialize the zod object
+                    }
+                }));
+                res.status(200).json({
+                    domain: process.env.DOMAIN as string,
+                    version: BONSAI_CLIENT_VERSION,
+                    templates,
+                    acl: walletOnly(process.env.LENS_STORAGE_NODE_ACCOUNT as `0x${string}`, LENS_CHAIN_ID)
+                })
+            }
+        );
+
         // TODO: use socketio logic from client-orb with try... catch and ws emit
         // TODO: handle credits
         /**
@@ -76,7 +106,7 @@ export class BonsaiClient {
          * @param {Object} req.body.category - Template category
          * @param {Object} req.body.templateName - Name of template to use
          * @param {Object} req.body.templateData - Data to populate the template
-         * @returns {Object} Preview data with agentId, preview content, and ACL
+         * @returns {Object} Preview data with agentId, preview content
          * @throws {400} If template is not registered
          */
         this.app.post(
@@ -86,7 +116,7 @@ export class BonsaiClient {
                 const creator = req.user?.sub as `0x${string}`;
                 const { category, templateName, templateData }: CreateTemplateRequestParams = req.body;
 
-                const runtime = this.agents.get(GLOBAL_AGENT_ID);
+                const runtime = this.agents.get(process.env.GLOBAL_AGENT_ID as UUID);
                 const template = this.templates.get(templateName);
                 if (!template) {
                     res.status(400).json({ error: `templateName: ${templateName} not registered` });
@@ -95,7 +125,7 @@ export class BonsaiClient {
 
                 // generate the preview and cache it for the create step
                 const response = await template.handler(runtime as IAgentRuntime, undefined, templateData);
-                const media = this.formatSmartMedia(
+                const media = formatSmartMedia(
                     creator,
                     category,
                     templateName,
@@ -103,10 +133,7 @@ export class BonsaiClient {
                 );
                 await this.cachePreview(media);
 
-                // required ACL for our backend to edit; this must be used to upload the asset _and_ the post json
-                const acl = walletOnly(process.env.LENS_STORAGE_NODE_ACCOUNT as `0x${string}`);
-
-                res.status(200).json({ agentId: media.agentId, preview: response?.preview, acl });
+                res.status(200).json({ agentId: media.agentId, preview: response?.preview });
             }
         );
 
@@ -150,7 +177,7 @@ export class BonsaiClient {
                         res.status(400).json({ error: "preview not found" });
                         return;
                     }
-                    media = this.formatSmartMedia(
+                    media = formatSmartMedia(
                         creator,
                         preview.category,
                         preview.template,
@@ -162,7 +189,7 @@ export class BonsaiClient {
 
                     this.deletePreview(agentId); // remove from memory cache
                 } else if (params) {
-                    const runtime = this.agents.get(GLOBAL_AGENT_ID);
+                    const runtime = this.agents.get(process.env.GLOBAL_AGENT_ID as UUID);
                     const template = this.templates.get(params.templateName);
                     if (!template) {
                         res.status(400).json({ error: `templateName: ${params.templateName} not registered` });
@@ -170,7 +197,7 @@ export class BonsaiClient {
                     }
 
                     const response = await template.handler(runtime as IAgentRuntime, undefined, params.templateData);
-                    media = this.formatSmartMedia(
+                    media = formatSmartMedia(
                         creator,
                         params.category,
                         params.templateName,
@@ -313,44 +340,6 @@ export class BonsaiClient {
     }
 
     /**
-     * Formats smart media data into a consistent structure.
-     *
-     * @param {string} creator - Creator's wallet address
-     * @param {TemplateCategory} category - Template category
-     * @param {TemplateName} templateName - Name of template used
-     * @param {unknown} templateData - Data for template
-     * @param {string} [postId] - Optional Lens post ID
-     * @param {URI} [uri] - Optional IPFS URI
-     * @param {LaunchpadToken} [token] - Associated launchpad token
-     * @returns {SmartMediaBase | SmartMedia} Formatted smart media object
-     */
-    private formatSmartMedia(
-        creator: `0x${string}`,
-        category: TemplateCategory,
-        templateName: TemplateName,
-        templateData: unknown,
-        postId?: string,
-        uri?: URI,
-        token?: LaunchpadToken,
-    ): SmartMediaBase | SmartMedia {
-        const ts = Math.floor(Date.now() / 1000);
-        const finalAgentId = postId ? stringToUuid(postId as string) : stringToUuid(`preview-${creator}`);
-        return {
-            category,
-            template: templateName,
-            agentId: finalAgentId,
-            creator,
-            templateData,
-            postId,
-            uri,
-            token,
-            maxStaleTime: DEFAULT_MAX_STALE_TIME,
-            createdAt: ts,
-            updatedAt: ts,
-        };
-    }
-
-    /**
      * Handles the update process for a smart media post.
      * Generates new content, updates metadata, and refreshes the Lens post.
      *
@@ -362,7 +351,7 @@ export class BonsaiClient {
         if (!data) return;
 
         // generate the next version of the post metadata
-        const runtime = this.agents.get(GLOBAL_AGENT_ID);
+        const runtime = this.agents.get(process.env.GLOBAL_AGENT_ID as UUID);
         const template = this.templates.get(data.template);
         const response = await template?.handler(runtime as IAgentRuntime, data);
         if (!response?.metadata) {
@@ -371,11 +360,7 @@ export class BonsaiClient {
         }
 
         // edit the post metadata using acl
-        const success = await editPost(
-            data.uri as string,
-            response.metadata,
-            privateKeyToAccount(process.env.LENS_STORAGE_NODE_PRIVATE_KEY as `0x${string}`)
-        );
+        const success = await editPost(data.uri as string, response.metadata);
         if (!success) {
             elizaLogger.error("Failed to edit post metadata");
             return;
@@ -398,8 +383,8 @@ export class BonsaiClient {
         }
 
         // refresh the post metadata
-        const jobId = await refreshMetadata(postId);
-        const status = await refreshMetadataStatus(jobId as string);
+        const jobId = await refreshMetadataFor(postId);
+        const status = await refreshMetadataStatusFor(jobId as string);
         if (status === "FAILED") {
             elizaLogger.error("Failed to refresh post metadata");
             return;
@@ -415,8 +400,8 @@ export class BonsaiClient {
         this.mongo = await getClient();
 
         // init templates
-        for (const template of [adventureTimeTemplate]) {
-            this.templates.set(template.name, template);
+        for (const template of [adventureTimeTemplate, artistPresentTemplate]) {
+            this.templates.set(template.clientMetadata.name, template);
         };
     }
 

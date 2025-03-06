@@ -15,8 +15,9 @@ import {
 import { handleOperationWith } from "@lens-protocol/client/viem";
 import { createWalletClient, http, type Account } from "viem";
 import { chains } from "@lens-network/sdk/viem";
-import { storageClient } from "./client";
-import { uploadJson } from "./../../utils/ipfs";
+import { privateKeyToAccount } from "viem/accounts";
+import { walletOnly } from "@lens-chain/storage-client";
+import { LENS_CHAIN_ID, storageClient } from "./client";
 import { APP_ID } from "../../utils/constants";
 
 interface PostParams {
@@ -88,27 +89,10 @@ export const formatMetadata = (params: PostParams): TextOnlyMetadata | ImageMeta
 }
 
 export const uploadMetadata = async (params: PostParams): Promise<URI> => {
+    const acl = walletOnly(process.env.LENS_STORAGE_NODE_ACCOUNT as `0x${string}`, LENS_CHAIN_ID);
     const metadata = formatMetadata(params);
-
-    // TODO: not working?
-    // const { uri: hash } = await storageClient.uploadAsJson(metadata);
-    // return uri(hash);
-
-    const response = await fetch('https://storage-api.testnet.lens.dev/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(metadata)
-    });
-
-    if (!response.ok) {
-        throw new Error(`Storage API error: ${response.status} ${response.statusText}`);
-    }
-
-    const res = await response.json();
-
-    return uri(res[0].uri);
+    const { uri: hash } = await storageClient.uploadAsJson(metadata, { acl });
+    return uri(hash);
 };
 
 export const createPost = async (
@@ -153,9 +137,10 @@ export const createPost = async (
     );
 };
 
-export const editPost = async (uri: string, metadata: any, signer: Account): Promise<boolean> => {
-    // TODO: need new sdk version
-    // return await storageClient.editJson()
+export const editPost = async (uri: string, metadata: any): Promise<boolean> => {
+    const signer = privateKeyToAccount(process.env.LENS_STORAGE_NODE_PRIVATE_KEY as `0x${string}`);
+    const acl = walletOnly(signer.address, LENS_CHAIN_ID);
+    await storageClient.updateJson(uri, metadata, signer, { acl });
 
     return true;
 }

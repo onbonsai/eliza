@@ -12,9 +12,11 @@ import type { Post, TextOnlyMetadata } from "@lens-protocol/client";
 import { chains } from "@lens-network/sdk/viem";
 import { base } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
-// import { z } from "zod";
+import z from "zod";
+import { walletOnly } from "@lens-chain/storage-client";
 import {
     LaunchpadChain,
+    TemplateCategory,
     TemplateName,
     type SmartMedia,
     type Template,
@@ -25,7 +27,8 @@ import { isMediaStale, getLatestComments, getVoteWeightFromBalance } from "../ut
 import { parseAndUploadBase64Image, parseBase64Image, uploadJson } from "../utils/ipfs";
 import { fetchAllCollectorsFor, fetchAllCommentsFor, fetchAllUpvotersFor } from "../services/lens/posts";
 import { balanceOfBatched } from "../utils/viem";
-import { storageClient } from "../services/lens/client";
+import { storageClient, LENS_CHAIN_ID } from "../services/lens/client";
+import { BONSAI_PROTOCOL_FEE_RECIPIENT } from "../utils/constants";
 
 export const nextPageTemplate = `
 # Instructions
@@ -127,8 +130,6 @@ const DEFAULT_MIN_ENGAGEMENT_UPDATE_THREHOLD = 10; // at least 10 upvotes/commen
  * @returns {Promise<TemplateHandlerResponse | null>} A promise that resolves to the response object containing the new page preview, uri (optional), and updated template data, or null if the operation cannot be completed.
  */
 const adventureTime = {
-    name: TemplateName.ADVENTURE_TIME,
-    description: "Choose your own adventure. Creator sets the context and inits the post with the first page. Weighted comments / upvotes decide the direction of the story.",
     handler: async (
         runtime: IAgentRuntime,
         media?: SmartMedia,
@@ -194,8 +195,8 @@ const adventureTime = {
                 const results = (await generateObjectDeprecated({
                     runtime,
                     context,
-                    modelClass: ModelClass.LARGE,
-                    modelProvider: ModelProviderName.VENICE,
+                    modelClass: ModelClass.SMALL,
+                    modelProvider: ModelProviderName.OPENAI,
                 })) as unknown as DecisionResponse;
                 elizaLogger.info("generated", results);
 
@@ -222,8 +223,8 @@ const adventureTime = {
             const page = (await generateObjectDeprecated({
                 runtime,
                 context,
-                modelClass: ModelClass.SMALL,
-                modelProvider: ModelProviderName.VENICE,
+                modelClass: ModelClass.LARGE,
+                modelProvider: ModelProviderName.OPENAI,
             })) as NextPageResponse;
             elizaLogger.info("generated", page);
 
@@ -239,11 +240,11 @@ const adventureTime = {
                 runtime
             );
 
-            const text = `
-${page.chapterName}
+            const text = `${page.chapterName}
 ${page.content}
 
 Option A) ${page.decisions[0]}
+
 Option B) ${page.decisions[1]}
 `;
 
@@ -253,13 +254,12 @@ Option B) ${page.decisions[1]}
                 const url = await storageClient.resolve(media?.uri as URI);
                 const json: ImageMetadata = await fetch(url).then(res => res.json());
                 const imageUri = json.lens.image.item;
+                const signer = privateKeyToAccount(process.env.LENS_STORAGE_NODE_PRIVATE_KEY as `0x${string}`);
+                const acl = walletOnly(signer.address, LENS_CHAIN_ID);
 
-                // edit the image and format the metadata to be used to update
-                await storageClient.editFile(
-                    imageUri,
-                    parseBase64Image(imageResponse) as File,
-                    privateKeyToAccount(process.env.LENS_STORAGE_NODE_PRIVATE_KEY as `0x${string}`)
-                );
+                // edit the image and the metadata json
+                await storageClient.editFile(imageUri, parseBase64Image(imageResponse) as File, signer, { acl });
+                // edit the metadata
                 metadata = formatMetadata({
                     text,
                     image: {
@@ -267,6 +267,7 @@ Option B) ${page.decisions[1]}
                         type: MediaImageMimeType.PNG // see generation.ts the provider
                     }
                 }) as ImageMetadata;
+                await storageClient.updateJson(media?.uri, metadata, signer, { acl });
 
                 // upload version to storj for versioning
                 updatedUri = await uploadJson(formatMetadata({
@@ -289,6 +290,27 @@ Option B) ${page.decisions[1]}
             }
         } catch (error) {
             elizaLogger.error("handler failed", error);
+        }
+    },
+    clientMetadata: {
+        protocolFeeRecipient: BONSAI_PROTOCOL_FEE_RECIPIENT,
+        category: TemplateCategory.EVOLVING_POST,
+        name: TemplateName.ADVENTURE_TIME,
+        displayName: "Adventure Time",
+        description: "Choose your own adventure. Creator sets the context and inits the post with the first page. Weighted comments / upvotes decide the direction of the story.",
+        image: "https://link.storjshare.io/raw/jxf7g334eesksjbdydo3dglc62ua/bonsai/adventureTime.jpg",
+        options: {
+            allowPreview: true,
+            allowPreviousToken: true,
+            requireImage: false,
+        },
+        templateData: {
+            form: z.object({
+                context: z.string().describe("Set the initial context and background for your story. This will help guide the narrative direction."),
+                writingStyle: z.string().describe("Define the writing style and tone - e.g. humorous, dramatic, poetic, etc."),
+                modelId: z.string().optional().nullable().describe("Optional: Specify an AI model to use for image generation"),
+                stylePreset: z.string().optional().nullable().describe("Optional: Choose a style preset to use for image generation"),
+            })
         }
     }
 } as Template;

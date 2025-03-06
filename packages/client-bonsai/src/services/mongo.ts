@@ -16,7 +16,6 @@ const _client = async () => {
     return connecting;
 };
 
-// TODO:
 export const getClient = async () => {
     const client = await _client();
     const database = client.db(process.env.MONGO_DB_BONSAI || "client-bonsai");

@@ -10,10 +10,12 @@ import type { Post, TextOnlyMetadata } from "@lens-protocol/client";
 import { chains } from "@lens-network/sdk/viem";
 import { base } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
+import z from "zod";
 import pkg from "lodash";
 const { orderBy } = pkg;
 import {
   LaunchpadChain,
+  TemplateCategory,
   TemplateName,
   type SmartMedia,
   type Template,
@@ -24,7 +26,9 @@ import { isMediaStale, getLatestComments, getVoteWeightFromBalance } from "../ut
 import { parseAndUploadBase64Image, parseBase64Image, uploadJson } from "../utils/ipfs";
 import { fetchAllCollectorsFor, fetchAllCommentsFor, fetchAllUpvotersFor } from "../services/lens/posts";
 import { balanceOfBatched } from "../utils/viem";
-import { storageClient } from "../services/lens/client";
+import { LENS_CHAIN_ID, storageClient } from "../services/lens/client";
+import { walletOnly } from "@lens-chain/storage-client";
+import { BONSAI_PROTOCOL_FEE_RECIPIENT } from "../utils/constants";
 
 export const nextImageTemplate = `
 # Instructions
@@ -57,8 +61,6 @@ const DEFAULT_MIN_ENGAGEMENT_UPDATE_THREHOLD = 3; // at least 3 upvotes/comments
  * @returns {Promise<TemplateHandlerResponse | null>} A promise that resolves to the response object containing the new image preview, uri (optional), and updated template data, or null if the operation cannot be completed.
  */
 const artistPresent = {
-  name: TemplateName.ARTIST_PRESENT,
-  description: "The artist is present in the evolving art. Creator sets the original image and style. The comment with the most votes dictates how the image evolves.",
   handler: async (
     runtime: IAgentRuntime,
     media?: SmartMedia,
@@ -146,11 +148,15 @@ const artistPresent = {
         runtime
       );
 
-      // edit the image and format the metadata to be used to update
+      const signer = privateKeyToAccount(process.env.LENS_STORAGE_NODE_PRIVATE_KEY as `0x${string}`);
+      const acl = walletOnly(signer.address, LENS_CHAIN_ID);
+
+      // edit the image and the metadata json
       await storageClient.editFile(
         imageUri,
         parseBase64Image(imageResponse) as File,
-        privateKeyToAccount(process.env.LENS_STORAGE_NODE_PRIVATE_KEY as `0x${string}`)
+        signer,
+        { acl }
       );
       const metadata = formatMetadata({
         text: prompt,
@@ -159,6 +165,7 @@ const artistPresent = {
           type: MediaImageMimeType.PNG // see generation.ts the provider
         }
       }) as ImageMetadata;
+      await storageClient.updateJson(media?.uri, metadata, signer, { acl });
 
       // upload version to storj for versioning
       const updatedUri = await uploadJson(formatMetadata({
@@ -175,6 +182,26 @@ const artistPresent = {
       }
     } catch (error) {
       elizaLogger.error("handler failed", error);
+    }
+  },
+  clientMetadata: {
+    protocolFeeRecipient: BONSAI_PROTOCOL_FEE_RECIPIENT,
+    category: TemplateCategory.EVOLVING_ART,
+    name: TemplateName.ARTIST_PRESENT,
+    displayName: "Artist is Present",
+    description: "The artist is present in the evolving art. Creator sets the original image and style. The comment with the most votes dictates how the image evolves.",
+    image: "https://link.storjshare.io/raw/jvudw6oz7g5bui2ypmjtvi46h55q/bonsai/artistPresent.jpg",
+    options: {
+      allowPreview: false,
+      allowPreviousToken: true,
+      requireImage: true,
+    },
+    templateData: {
+      form: z.object({
+        style: z.string().describe("Define the style to maintain for all image generations - e.g. bright, neon green."),
+        modelId: z.string().optional().nullable().describe("Optional: Specify an AI model to use for image generation"),
+        stylePreset: z.string().optional().nullable().describe("Optional: Choose a style preset to use for image generation"),
+      })
     }
   }
 } as Template;

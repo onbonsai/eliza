@@ -20,9 +20,9 @@
     ],
     "dependencies": {
         "@coinbase/coinbase-sdk": "^0.13.0",
-        "@lens-protocol/client": "0.0.0-canary-20250224183812",
+        "@lens-chain/storage-client": "^1.0.3",
+        "@lens-protocol/client": "0.0.0-canary-20250303162048",
         "@lens-protocol/metadata": "next",
-        "@lens-protocol/storage-node-client": "next",
         "@runwayml/sdk": "^1.4.4",
         "body-parser": "1.20.3",
         "cors": "2.8.5",

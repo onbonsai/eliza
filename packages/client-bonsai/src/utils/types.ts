@@ -1,12 +1,13 @@
 import type { IAgentRuntime, UUID } from "@elizaos/core";
 import type { ImageMetadata, TextOnlyMetadata, URI, VideoMetadata } from "@lens-protocol/metadata";
+import type z from "zod";
 
 /**
  * SmartMedia templates
  */
 export enum LaunchpadChain {
-  BASE = "Base",
-  LENS = "Lens"
+  BASE = "base",
+  LENS = "lens"
 }
 
 export type SmartMediaBase = {
@@ -52,18 +53,15 @@ export enum TemplateCategory {
  * Represents a Smart Media template
  */
 export interface Template {
-  /** Action name */
-  name: TemplateName;
-
-  /** Detailed description */
-  description: string;
-
   /** Handler function */
   handler: TemplateHandler;
+
+  /** Client metadata */
+  clientMetadata: TemplateClientMetadata;
 }
 
 /**
- * Handler function type for processing messages
+ * Handler function for generating new metadata for a Smart Media post
  */
 export type TemplateHandler = (
   runtime: IAgentRuntime,
@@ -72,10 +70,10 @@ export type TemplateHandler = (
 ) => Promise<TemplateHandlerResponse | null>;
 
 /**
- * Callback function type for handlers
+ * Handler response where one of preview or metadata must be present
  */
 export interface TemplateHandlerResponse {
-  preview?: {
+  preview?: { // not necessary for all templates
     text: string;
     image?: string; // base64
     video?: string,
@@ -90,3 +88,26 @@ export interface CreateTemplateRequestParams {
   category: TemplateCategory;
   templateData: unknown;
 }
+
+export type TemplateClientMetadata = {
+  category: TemplateCategory;
+  name: TemplateName;
+
+  /** Display info */
+  displayName: string;
+  description: string;
+  image: string;
+
+  /** Form data */
+  options: {
+    allowPreview?: boolean;
+    allowPreviousToken?: boolean;
+    requireImage?: boolean;
+  };
+  templateData: {
+    form: z.ZodObject<any>;
+  };
+
+  /** Developer fee recipient: https://docs.bonsai.meme/elizaos/client-bonsai/developer-fees */
+  protocolFeeRecipient: `0x${string}`;
+};
