@@ -4,7 +4,7 @@ import { account } from "@lens-protocol/metadata";
 import { handleOperationWith } from "@lens-protocol/client/viem";
 import type { Account } from "viem";
 import { createWalletClient, http } from "viem";
-import { client, storageClient } from "./client";
+import { client, LENS_CHAIN, storageClient } from "./client";
 import { chains } from "@lens-chain/sdk/viem";
 import { LENS_BONSAI_APP } from "../../utils/constants";
 
@@ -34,7 +34,7 @@ const createProfile = async (signer: Account, username: string, _metadata: Metad
 
   const { uri: hash } = await storageClient.uploadAsJson(metadata);
   const walletClient = createWalletClient({
-    chain: chains.testnet,
+    chain: LENS_CHAIN,
     account: signer,
     transport: http()
   });

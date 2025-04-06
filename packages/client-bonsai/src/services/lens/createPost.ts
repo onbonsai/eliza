@@ -18,7 +18,7 @@ import { createWalletClient, http, type Account } from "viem";
 import { chains } from "@lens-chain/sdk/viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { walletOnly } from "@lens-chain/storage-client";
-import { LENS_CHAIN_ID, storageClient } from "./client";
+import { LENS_CHAIN, LENS_CHAIN_ID, storageClient } from "./client";
 import type { TemplateCategory, TemplateName } from "../../utils/types";
 import { LENS_BONSAI_DEFAULT_FEED } from "../../utils/constants";
 
@@ -122,7 +122,7 @@ export const createPost = async (
     quoteOf?: string
 ): Promise<string | undefined> => {
     const walletClient = createWalletClient({
-        chain: chains.testnet,
+        chain: LENS_CHAIN,
         account: signer,
         transport: http()
     });

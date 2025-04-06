@@ -32,7 +32,7 @@ import { isMediaStale, getLatestComments, getVoteWeightFromBalance } from "../ut
 import { parseAndUploadBase64Image, parseBase64Image, uploadJson } from "../utils/ipfs";
 import { fetchAllCollectorsFor, fetchAllCommentsFor, fetchAllUpvotersFor } from "../services/lens/posts";
 import { balanceOfBatched } from "../utils/viem";
-import { LENS_CHAIN_ID, storageClient } from "../services/lens/client";
+import { LENS_CHAIN, LENS_CHAIN_ID, storageClient } from "../services/lens/client";
 import { BONSAI_PROTOCOL_FEE_RECIPIENT } from "../utils/constants";
 
 export const nextImageTemplate = `
@@ -127,7 +127,7 @@ const artistPresent = {
 
         // Token-weighted voting
         const balances = await balanceOfBatched(
-          media.token.chain === LaunchpadChain.BASE ? base : chains.testnet,
+          media.token.chain === LaunchpadChain.BASE ? base : LENS_CHAIN,
           voters,
           media.token.address as `0x${string}`
         );

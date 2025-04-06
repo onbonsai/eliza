@@ -36,7 +36,7 @@ import { editPost } from "./services/lens/createPost";
 import { refreshMetadataFor, refreshMetadataStatusFor } from "./services/lens/refreshMetadata";
 import { formatSmartMedia } from "./utils/utils";
 import { BONSAI_CLIENT_VERSION, DEFAULT_FREEZE_TIME, LENS_BONSAI_APP, LENS_BONSAI_DEFAULT_FEED } from "./utils/constants";
-import { client, LENS_CHAIN_ID } from "./services/lens/client";
+import { client, LENS_CHAIN, LENS_CHAIN_ID } from "./services/lens/client";
 import { canUpdate, decrementCredits, DEFAULT_MODEL_ID } from "./utils/apicredits";
 import { privateKeyToAccount } from "viem/accounts";
 import { authenticateAsBuilder } from "./services/lens/authenticate";
@@ -387,10 +387,10 @@ export class BonsaiClient {
             "/test/lens/create",
             async (req: express.Request, res: express.Response) => {
                 const signer = privateKeyToAccount(process.env.PERSONAL_PRIVATE_KEY as `0x${string}`);
-                // const sessionClient = await authenticateAsBuilder(signer);
+                const sessionClient = await authenticateAsBuilder(signer);
 
                 const walletClient = createWalletClient({
-                    chain: chains.testnet,
+                    chain: LENS_CHAIN,
                     account: signer,
                     transport: http()
                 });
@@ -407,7 +407,7 @@ export class BonsaiClient {
                 //     platforms: ["web"],
                 // });
 
-                // const { uri: appUri } = await storageClient.uploadAsJson(metadata, { acl: immutable(chains.testnet.id) });
+                // const { uri: appUri } = await storageClient.uploadAsJson(metadata, { acl: immutable(LENS_CHAIN_ID) });
                 // const _app = await createApp(sessionClient, {
                 //     metadataUri: uri(appUri),
                 //     defaultFeed: {
@@ -424,9 +424,9 @@ export class BonsaiClient {
 
                 // const metadata = feed({
                 //     name: "Bonsai Feed",
-                //     description: "Bonsai custom feed for agentic content",
+                //     description: "Custom feed for agentic content on Bonsai",
                 // });
-                // const { uri: feedUri } = await storageClient.uploadAsJson(metadata, { acl: immutable(chains.testnet.id) });
+                // const { uri: feedUri } = await storageClient.uploadAsJson(metadata, { acl: immutable(LENS_CHAIN_ID) });
                 // const result = await createFeed(sessionClient, {
                 //     metadataUri: uri(feedUri),
                 // }).andThen(handleOperationWith(walletClient));
@@ -436,25 +436,25 @@ export class BonsaiClient {
                 //     app: evmAddress(LENS_BONSAI_APP),
                 // }).andThen(handleOperationWith(walletClient));
 
-                const authenticated = await client.login({
-                    onboardingUser: {
-                        app: LENS_BONSAI_APP,
-                        wallet: signer.address,
-                    },
-                    signMessage: (message) => signer.signMessage({ message }),
-                });
-                const sessionClient = authenticated.value;
-                const metadata = account({
-                    name: "Carlos",
-                    bio: "testing tester",
-                });
-                const { uri: accountUri } = await storageClient.uploadAsJson(metadata, { acl: immutable(chains.testnet.id) });
-                const result = await createAccountWithUsername(sessionClient, {
-                    username: { localName: "carlosbeltran" },
-                    metadataUri: uri(accountUri),
-                }).andThen(handleOperationWith(walletClient));
+                // const authenticated = await client.login({
+                //     onboardingUser: {
+                //         app: LENS_BONSAI_APP,
+                //         wallet: signer.address,
+                //     },
+                //     signMessage: (message) => signer.signMessage({ message }),
+                // });
+                // const sessionClient = authenticated.value;
+                // const metadata = account({
+                //     name: "Carlos",
+                //     bio: "testing tester",
+                // });
+                // const { uri: accountUri } = await storageClient.uploadAsJson(metadata, { acl: immutable(LENS_CHAIN_ID) });
+                // const result = await createAccountWithUsername(sessionClient, {
+                //     username: { localName: "carlosbeltran" },
+                //     metadataUri: uri(accountUri),
+                // }).andThen(handleOperationWith(walletClient));
 
-                console.log(result);
+                // console.log(result);
 
                 res.status(200).send();
             }

@@ -1,7 +1,8 @@
 import { mainnet, PublicClient, testnet } from "@lens-protocol/client";
 import { StorageClient } from "@lens-chain/storage-client";
+import { chains } from "@lens-chain/sdk/viem";
 
-const IS_PRODUCTION = process.env.LENS_ENV === "production";
+export const IS_PRODUCTION = process.env.LENS_ENV === "production";
 
 export const SAGE_HANDLE = IS_PRODUCTION ? "bons_ai" : "bons_ai_testnet";
 
@@ -12,4 +13,5 @@ export const client = PublicClient.create({
 
 export const storageClient = StorageClient.create();
 
-export const LENS_CHAIN_ID = 37111; // TODO: mainnet
+export const LENS_CHAIN_ID = IS_PRODUCTION ? chains.mainnet.id : chains.testnet.id;
+export const LENS_CHAIN = IS_PRODUCTION ? chains.mainnet : chains.testnet;

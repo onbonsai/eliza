@@ -33,7 +33,7 @@ import { isMediaStale, getLatestComments, getVoteWeightFromBalance } from "../ut
 import { parseAndUploadBase64Image, parseBase64Image, uploadJson } from "../utils/ipfs";
 import { fetchAllCollectorsFor, fetchAllCommentsFor, fetchAllUpvotersFor } from "../services/lens/posts";
 import { balanceOfBatched } from "../utils/viem";
-import { storageClient, LENS_CHAIN_ID } from "../services/lens/client";
+import { storageClient, LENS_CHAIN_ID, LENS_CHAIN } from "../services/lens/client";
 import { BONSAI_PROTOCOL_FEE_RECIPIENT } from "../utils/constants";
 
 export const nextPageTemplate = `
@@ -209,7 +209,7 @@ const adventureTime = {
 
                     // Token-weighted voting
                     const balances = await balanceOfBatched(
-                        media.token.chain === LaunchpadChain.BASE ? base : chains.testnet,
+                        media.token.chain === LaunchpadChain.BASE ? base : LENS_CHAIN,
                         voters,
                         media.token.address as `0x${string}`
                     );
