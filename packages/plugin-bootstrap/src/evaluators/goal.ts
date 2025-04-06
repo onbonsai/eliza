@@ -66,7 +66,7 @@ async function handler(
         runtime,
         context,
         modelClass: ModelClass.LARGE,
-    });
+    }) as string;
 
     // Parse the JSON response to extract goal updates
     const updates = parseJsonArrayFromText(response);

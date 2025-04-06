@@ -1221,6 +1221,15 @@ export const models: Models = {
             },
         },
     },
+    [ModelProviderName.TITLES]: {
+        endpoint: "https://wallflower-service-prod.herokuapp.com/api/v1",
+        // no text generation
+        model: {
+            [ModelClass.IMAGE]: {
+                name: settings.TITLES_IMAGE_MODEL_ID || "EHhr62whbgnIHtADxrro", // TODO: maybe another default
+            }
+        }
+    }
 };
 
 export function getModelSettings(
