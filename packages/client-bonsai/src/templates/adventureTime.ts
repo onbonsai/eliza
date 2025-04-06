@@ -177,7 +177,7 @@ const adventureTime = {
                             DEFAULT_MIN_ENGAGEMENT_UPDATE_THREHOLD;
                         if (comments.length < threshold) {
                             elizaLogger.info(`adventureTime:: media ${media?.agentId} is stale but has not met comment threshold; skipping`);
-                            return { metadata: undefined, updatedUri: undefined, totalUsage };
+                            return { metadata: undefined, totalUsage };
                         }
                     } catch (error) {
                         console.log(error);
@@ -186,7 +186,7 @@ const adventureTime = {
                 } else {
                     // do not update if the media isn't stale; we're paying for generations
                     elizaLogger.info("media not stale...");
-                    return { metadata: undefined, updatedUri: undefined, totalUsage };
+                    return { metadata: undefined, totalUsage };
                 }
 
                 elizaLogger.info("sufficient comments, checking balances");

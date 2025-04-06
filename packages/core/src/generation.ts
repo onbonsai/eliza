@@ -1891,7 +1891,7 @@ export const generateImage = async (
                   }
               })();
     try {
-        if (runtime.imageModelProvider === ModelProviderName.HEURIST) {
+        if (imageModelProvider === ModelProviderName.HEURIST) {
             const response = await fetch(
                 "http://sequencer.heurist.xyz/submit_job",
                 {
@@ -1929,9 +1929,9 @@ export const generateImage = async (
             const imageURL = await response.json();
             return { success: true, data: [imageURL] };
         } else if (
-            runtime.imageModelProvider === ModelProviderName.TOGETHER ||
+            imageModelProvider === ModelProviderName.TOGETHER ||
             // for backwards compat
-            runtime.imageModelProvider === ModelProviderName.LLAMACLOUD
+            imageModelProvider === ModelProviderName.LLAMACLOUD
         ) {
             const together = new Together({ apiKey: apiKey as string });
             const response = await together.images.create({
@@ -1986,7 +1986,7 @@ export const generateImage = async (
 
             elizaLogger.debug(`Generated ${base64s.length} images`);
             return { success: true, data: base64s };
-        } else if (runtime.imageModelProvider === ModelProviderName.FAL) {
+        } else if (imageModelProvider === ModelProviderName.FAL) {
             fal.config({
                 credentials: apiKey as string,
             });
@@ -2039,7 +2039,7 @@ export const generateImage = async (
 
             const base64s = await Promise.all(base64Promises);
             return { success: true, data: base64s };
-        } else if (runtime.imageModelProvider === ModelProviderName.VENICE) {
+        } else if (imageModelProvider === ModelProviderName.VENICE) {
             const response = await fetch(
                 "https://api.venice.ai/api/v1/image/generate",
                 {
@@ -2082,7 +2082,7 @@ export const generateImage = async (
 
             return { success: true, data: base64s };
         } else if (
-            runtime.imageModelProvider === ModelProviderName.NINETEEN_AI
+            imageModelProvider === ModelProviderName.NINETEEN_AI
         ) {
             const response = await fetch(
                 "https://api.nineteen.ai/v1/text-to-image",
@@ -2120,7 +2120,7 @@ export const generateImage = async (
             });
 
             return { success: true, data: base64s };
-        } else if (runtime.imageModelProvider === ModelProviderName.LIVEPEER) {
+        } else if (imageModelProvider === ModelProviderName.LIVEPEER) {
             if (!apiKey) {
                 throw new Error("Livepeer Gateway is not defined");
             }

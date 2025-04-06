@@ -101,12 +101,12 @@ const artistPresent = {
           DEFAULT_MIN_ENGAGEMENT_UPDATE_THREHOLD;
         if (comments.length < threshold) {
           elizaLogger.info(`artistPresent:: media ${media?.agentId} is stale but has not met comment threshold; skipping`);
-          return { metadata: undefined, updatedUri: undefined, totalUsage };
+          return { metadata: undefined, totalUsage };
         }
       } else {
         // do not update if the media was recently updated
         elizaLogger.info("not stale");
-        return { metadata: undefined, updatedUri: undefined, totalUsage };
+        return { metadata: undefined, totalUsage };
       }
 
       // fetch the token balances for each comment / upvote to use weighted votes
@@ -208,7 +208,7 @@ const artistPresent = {
           },
           runtime
         );
-        // @ts-expect-error
+
         totalUsage.imagesCreated += 1;
 
         if (imageResponse.success) break;

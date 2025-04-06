@@ -35,7 +35,7 @@
                 "useTemplate": "warn",
                 "useImportType": "warn",
                 "useNodejsImportProtocol": "warn",
-                "noUselessElse": "warn",
+                "noUselessElse": "off",
                 "useSelfClosingElements": "warn",
                 "useNumberNamespace": "warn",
                 "noUnusedTemplateLiteral": "warn",
