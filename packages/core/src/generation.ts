@@ -1767,7 +1767,11 @@ export async function generateMessageResponse({
     context = await trimTokens(context, max_context_length, runtime);
     elizaLogger.debug("Context:", context);
     let retryLength = 1000; // exponential backoff
-    while (true) {
+    let parsedContent;
+    let attempts = 0;
+    const maxAttempts = 3;
+
+    while (attempts < maxAttempts) {
         try {
             elizaLogger.log("Generating message response..");
 
@@ -1778,21 +1782,26 @@ export async function generateMessageResponse({
             });
 
             // try parsing the response as JSON, if null then try again
-            const parsedContent = parseJSONObjectFromText(response as string) as Content;
-            if (!parsedContent) {
-                elizaLogger.debug("parsedContent is null, retrying");
-                continue;
+            parsedContent = parseJSONObjectFromText(response as string) as Content;
+            if (parsedContent) {
+                return parsedContent;
             }
 
-            return parsedContent;
+            elizaLogger.debug("parsedContent is null, retrying");
+            attempts++;
+
         } catch (error) {
             elizaLogger.error("ERROR:", error);
-            // wait for 2 seconds
-            retryLength *= 2;
-            await new Promise((resolve) => setTimeout(resolve, retryLength));
-            elizaLogger.debug("Retrying...");
+            attempts++;
+            if (attempts < maxAttempts) {
+                retryLength *= 2;
+                await new Promise((resolve) => setTimeout(resolve, retryLength));
+                elizaLogger.debug("Retrying...");
+            }
         }
     }
+
+    throw new Error("Failed to generate message response after 3 attempts");
 }
 
 export const generateImage = async (

@@ -1,0 +1,18 @@
+{
+    "extends": "../core/tsconfig.json",
+    "compilerOptions": {
+        "jsx": "react",
+        "outDir": "dist",
+        "rootDir": "./src",
+        "strict": true
+    },
+    "include": [
+        "src/**/*.ts",
+        "scripts/**/*ts"
+    ],
+    "ts-node": {
+        "experimentalSpecifierResolution": "node",
+        "transpileOnly": true,
+        "esm": true
+    },
+}

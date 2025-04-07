@@ -11,7 +11,7 @@ import {
     elizaLogger,
     ServiceType,
 } from "@elizaos/core";
-import type { WrappedNodeRedisClient } from "handy-redis";
+import type Redis from "ioredis";
 import type { Collection, MongoClient } from "mongodb";
 import type { URI } from "@lens-protocol/metadata";
 import { immutable, walletOnly } from "@lens-chain/storage-client";
@@ -56,7 +56,7 @@ export class BonsaiClient {
     private app: express.Application;
     private server: HttpServer;
 
-    private redis: WrappedNodeRedisClient;
+    private redis: Redis;
     private mongo: { client?: MongoClient, media?: Collection };
 
     private tasks: TaskQueue = new TaskQueue();
@@ -701,3 +701,15 @@ const bonsai: Plugin = {
 };
 
 export default bonsai;
+
+export type {
+    CreateTemplateRequestParams,
+    LaunchpadToken,
+    SmartMedia,
+    SmartMediaBase,
+    Template,
+    TemplateUsage,
+    TemplateHandler,
+    TemplateHandlerResponse,
+    TemplateClientMetadata,
+} from "./utils/types";
