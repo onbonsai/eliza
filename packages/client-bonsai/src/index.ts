@@ -487,18 +487,19 @@ export class BonsaiClient {
             return;
         }
 
-        // check if user has enough credits
-        if (!await canUpdate(data.creator, data.template)) {
-            elizaLogger.error(`not enough credits for post: ${postId}`);
-            return;
-        }
-
         // check if the post has been deleted
         const post = await fetchPostById(postId);
         if (post?.isDeleted) {
             elizaLogger.log(`post is deleted, freezing post: ${postId}`);
             await this.mongo.media?.updateOne({ postId }, { $set: { status: SmartMediaStatus.DISABLED } });
             await this.removePostFromCache(data);
+            return;
+        }
+
+        // check if user has enough credits
+        if (!await canUpdate(data.creator, data.template)) {
+            elizaLogger.error(`not enough credits for post: ${postId}`);
+            return;
         }
 
         // generate the next version of the post metadata
