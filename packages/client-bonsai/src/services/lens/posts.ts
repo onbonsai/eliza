@@ -2,6 +2,23 @@ import { type Cursor, type Post, postId, PostReactionType, PostReferenceType, tx
 import { fetchPost, fetchPostReactions, fetchPostReferences, fetchWhoExecutedActionOnPost } from "@lens-protocol/client/actions";
 import { client } from "./client";
 
+export const fetchPostById = async (_postId: string) => {
+  try {
+    const result = await fetchPost(client, {
+      post: postId(_postId),
+    });
+
+    if (result.isErr()) {
+      return console.error(result.error);
+    }
+
+    return result.value;
+  } catch (error) {
+    console.log(error);
+    return null;
+  }
+};
+
 export const fetchPostBy = async (_txHash: `0x${string}`): Promise<Post | undefined> => {
   const result = await fetchPost(client, {
     txHash: txHash(_txHash),

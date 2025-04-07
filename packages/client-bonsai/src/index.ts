@@ -29,7 +29,7 @@ import verifyLensId from "./middleware/verifyLensId";
 import verifyApiKeyOrLensId from "./middleware/verifyApiKeyOrLensId";
 import { getClient, initCollections } from "./services/mongo";
 import adventureTimeTemplate from "./templates/adventureTime";
-import artistPresentTemplate from "./templates/artistPresent";
+import evolvingArtTemplate from "./templates/evolvingArt";
 import infoAgentTemplate from "./templates/infoAgent";
 import TaskQueue from "./utils/taskQueue";
 import { editPost } from "./services/lens/createPost";
@@ -47,6 +47,7 @@ import { handleOperationWith } from "@lens-protocol/client/viem";
 import { chains } from "@lens-chain/sdk/viem";
 import { MetadataAttributeType, account, app, feed } from "@lens-protocol/metadata";
 import { storageClient } from "./services/lens/client";
+import { fetchPostById } from "./services/lens/posts";
 
 /**
  * BonsaiClient provides an Express server for managing smart media posts on Lens Protocol.
@@ -492,6 +493,14 @@ export class BonsaiClient {
             return;
         }
 
+        // check if the post has been deleted
+        const post = await fetchPostById(postId);
+        if (post?.isDeleted) {
+            elizaLogger.log(`post is deleted, freezing post: ${postId}`);
+            await this.mongo.media?.updateOne({ postId }, { $set: { status: SmartMediaStatus.DISABLED } });
+            await this.removePostFromCache(data);
+        }
+
         // generate the next version of the post metadata
         elizaLogger.info(`invoking ${data.template} handler for post: ${postId}`, data);
         console.log("template", template)
@@ -572,7 +581,7 @@ export class BonsaiClient {
         this.mongo = await getClient();
 
         // init templates
-        for (const template of [adventureTimeTemplate, artistPresentTemplate, infoAgentTemplate]) {
+        for (const template of [adventureTimeTemplate, evolvingArtTemplate, infoAgentTemplate]) {
             this.templates.set(template.clientMetadata.name, template);
         };
     }

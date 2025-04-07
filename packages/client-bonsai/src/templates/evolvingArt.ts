@@ -65,7 +65,7 @@ const DEFAULT_MIN_ENGAGEMENT_UPDATE_THREHOLD = 1; // at least 3 upvotes/comments
  * @param {TemplateData} [_templateData] - Initial data for generating a new adventure preview, used when not refreshing.
  * @returns {Promise<TemplateHandlerResponse | null>} A promise that resolves to the response object containing the new image preview, uri (optional), and updated template data, or null if the operation cannot be completed.
  */
-const artistPresent = {
+const evolvingArt = {
   handler: async (
     runtime: IAgentRuntime,
     media?: SmartMedia,
@@ -100,7 +100,7 @@ const artistPresent = {
         const threshold = (media?.templateData as TemplateData).minCommentUpdateThreshold ||
           DEFAULT_MIN_ENGAGEMENT_UPDATE_THREHOLD;
         if (comments.length < threshold) {
-          elizaLogger.info(`artistPresent:: media ${media?.agentId} is stale but has not met comment threshold; skipping`);
+          elizaLogger.info(`evolvingArt:: media ${media?.agentId} is stale but has not met comment threshold; skipping`);
           return { metadata: undefined, totalUsage };
         }
       } else {
@@ -148,7 +148,8 @@ const artistPresent = {
       let attempts = 0;
       const MAX_ATTEMPTS = 2;
       while (attempts < MAX_ATTEMPTS) {
-        const firstAttempt = attempts === 0;
+        // const firstAttempt = attempts === 0;
+        const firstAttempt = false;
 
         let imagePrompt: string;
         if (firstAttempt) {
@@ -259,9 +260,9 @@ const artistPresent = {
   clientMetadata: {
     protocolFeeRecipient: BONSAI_PROTOCOL_FEE_RECIPIENT,
     category: TemplateCategory.EVOLVING_ART,
-    name: TemplateName.ARTIST_PRESENT,
-    displayName: "Artist is Present",
-    description: "The artist is present in the evolving art. Creator sets the original image and style. The comment with the most votes dictates how the image evolves.",
+    name: TemplateName.EVOLVING_ART,
+    displayName: "Evolving Art",
+    description: "The art evolves. A creator sets the original image and style. The comment with the most votes dictates how the image evolves.",
     image: "https://link.storjshare.io/raw/jwq56rwpuhhle4k7tjbxyfd4l37q/bonsai/artistPresent.png",
     options: {
       allowPreview: false,
@@ -279,4 +280,4 @@ const artistPresent = {
   }
 } as Template;
 
-export default artistPresent;
+export default evolvingArt;

@@ -44,7 +44,7 @@ export type SmartMedia = SmartMediaBase & {
  */
 export enum TemplateName {
   ADVENTURE_TIME = "adventure_time",
-  ARTIST_PRESENT = "artist_present",
+  EVOLVING_ART = "evolving_art",
   INFO_AGENT = "info_agent",
 }
 

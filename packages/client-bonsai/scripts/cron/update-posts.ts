@@ -1,10 +1,12 @@
-import { config } from 'dotenv';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-config({ path: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../.env') });
+// ONLY NEEDED WHEN RUNNING THE SCRIPT LOCALLY
+// import { config } from 'dotenv';
+// import path from 'node:path';
+// import { fileURLToPath } from 'node:url';
+// config({ path: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../.env') });
 
 import pLimit from 'p-limit';
 import { getClient } from "../../src/services/mongo";
+import { SmartMediaStatus } from '../../src/utils/types';
 
 const BATCH_SIZE = 100;
 const CONCURRENT_REQUESTS = 10;
@@ -103,13 +105,13 @@ async function fetchAndProcessInBatches(mongo) {
   let totalProcessed = 0;
 
   // First, get total count for logging
-  const totalCount = await mongo.media.countDocuments({ frozen: { $exists: false } });
+  const totalCount = await mongo.media.countDocuments({ status: SmartMediaStatus.ACTIVE });
   console.log(`Found ${totalCount} total posts to process`);
 
   try {
     // Use cursor for memory-efficient processing of large result sets
     const cursor = mongo.media.find(
-      { frozen: { $exists: false } },
+      { status: SmartMediaStatus.ACTIVE },
       { projection: { _id: 0, postId: 1 } }
     ).batchSize(BATCH_SIZE);
 
