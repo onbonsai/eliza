@@ -18,6 +18,7 @@ import {
     composeContext,
     generateMessageResponse,
     ModelClass,
+    getModelSettings,
 } from "@elizaos/core";
 import type { Collection, MongoClient } from "mongodb";
 import type Redis from "ioredis";
@@ -36,6 +37,7 @@ import { Post, postId } from "@lens-protocol/client";
 import { fetchAllCommentsFor, fetchPostsBy } from "./services/lens/posts";
 import { formatPost } from "./utils/utils";
 import { getWallets } from "./services/coinbase";
+import { decrementCredits, getCreditsForMessage, getCredits } from "./utils/apiCredits";
 
 /**
  * BonsaiTerminalClient provides an Express server for interacting wtih smart media.
@@ -49,6 +51,8 @@ export class BonsaiTerminalClient {
     private mongo: { client?: MongoClient, media?: Collection };
 
     private agents: Map<string, IAgentRuntime> = new Map();
+
+    private DEFAULT_MODEL_ID = "gpt-4o-mini";
 
     /**
      * Initializes a new BonsaiClient instance with Express server, Redis, and MongoDB connections.
@@ -75,8 +79,9 @@ export class BonsaiTerminalClient {
             verifyLensId,
             async (req: express.Request, res: express.Response) => {
                 const _postId = req.params.postId;
+                const user = req.user?.sub as `0x${string}`;
                 const accountAddress = getAddress(req.user?.act?.sub as `0x${string}`);
-                const roomId = req.body.roomId || stringToUuid(`smart-media-${_postId}`);
+                const roomId = req.body.roomId || stringToUuid(`${_postId}-${accountAddress}`);
                 const userId = stringToUuid(accountAddress);
                 const payload: Payload = req.body.payload; // action, image, action presets
 
@@ -94,6 +99,13 @@ export class BonsaiTerminalClient {
                     req.body.name,
                     "bonsai-terminal"
                 );
+
+                let creditsRemaining = await getCredits(user);
+                const canMessage = creditsRemaining >= getCreditsForMessage(this.DEFAULT_MODEL_ID);
+                if (!canMessage) {
+                    res.status(403).send("Not enough credits");
+                    return;
+                }
 
                 const text = req.body.text;
                 const messageId = stringToUuid(Date.now().toString());
@@ -136,25 +148,33 @@ export class BonsaiTerminalClient {
                 // TODO: sort by user score or engagement and take top 10
                 state.postComments = (await fetchAllCommentsFor(_postId)).slice(0,10).map((c) => formatPost(c)).join("\n");
                 state.authorPosts = (await fetchPostsBy(post.value?.author.address)).value?.items.map((p) => formatPost(p)).join("\n");
+                state.payload = payload;
 
                 const context = composeContext({
                     state,
                     template: messageHandlerTemplate,
                 });
 
-                console.log("generateMessageResponse()", context);
-                const response = await generateMessageResponse({
+                const modelClass = ModelClass.SMALL;
+                const { response, usage } = await generateMessageResponse({
                     runtime: runtime,
                     context,
-                    modelClass: ModelClass.SMALL,
-                });
-                console.log("storing in memory");
+                    modelClass,
+                    returnUsage: true,
+                }) as { response: Content, usage: any };
+                const modelSettings = getModelSettings(runtime.modelProvider, modelClass);
+                creditsRemaining = await decrementCredits(
+                    user,
+                    modelSettings?.name || this.DEFAULT_MODEL_ID,
+                    { input: usage?.promptTokens || 0, output: usage?.completionTokens || 0 },
+                    usage?.imagesCreated || 0
+                ) as number;
 
                 // save response to memory
                 const responseMessage = {
                     ...userMessage,
                     userId: runtime.agentId,
-                    content: response,
+                    content: response as Content,
                 };
 
                 await runtime.messageManager.createMemory(responseMessage);
@@ -168,7 +188,9 @@ export class BonsaiTerminalClient {
 
                 await runtime.evaluate(memory, state);
 
-                res.json([response]);
+                const canMessageAgain = creditsRemaining >= getCreditsForMessage(modelSettings?.name as string);
+
+                res.json({ messages: [response], canMessageAgain });
 
                 await runtime.processActions(
                     memory,
@@ -194,6 +216,36 @@ export class BonsaiTerminalClient {
                         return [memory];
                     }
                 );
+            }
+        );
+
+        // allows an authenticated lens account to fetch their messages for a given post
+        this.app.get(
+            "/post/:postId/messages",
+            verifyLensId,
+            async (req: express.Request, res: express.Response) => {
+                const _postId = req.params.postId;
+                const user = req.user?.sub as `0x${string}`;
+                const accountAddress = getAddress(req.user?.act?.sub as `0x${string}`);
+                const roomId = req.query.roomId || stringToUuid(`${_postId}-${accountAddress}`);
+
+                const runtime = this.agents.get(process.env.GLOBAL_AGENT_ID as UUID);
+                if (!runtime) {
+                    res.status(404).send("Agent not found");
+                    return;
+                }
+                const userId = stringToUuid(accountAddress);
+                await runtime.ensureConnection(
+                    userId,
+                    roomId as UUID,
+                    req.body.userName,
+                    req.body.name,
+                    "bonsai-terminal"
+                );
+                const messages = await runtime.messageManager.getMemories({ roomId: roomId as UUID });
+                const creditsRemaining = await getCredits(user);
+                const canMessage = creditsRemaining >= getCreditsForMessage(this.DEFAULT_MODEL_ID);
+                res.status(200).json({ messages, canMessage });
             }
         );
 

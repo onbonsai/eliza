@@ -1756,11 +1756,13 @@ export async function generateMessageResponse({
     runtime,
     context,
     modelClass,
+    returnUsage,
 }: {
     runtime: IAgentRuntime;
     context: string;
     modelClass: ModelClass;
-}): Promise<Content> {
+    returnUsage?: boolean;
+}): Promise<Content | { response: Content, usage: LanguageModelUsage }> {
     const modelSettings = getModelSettings(runtime.modelProvider, modelClass);
     const max_context_length = modelSettings.maxInputTokens;
 
@@ -1768,6 +1770,7 @@ export async function generateMessageResponse({
     elizaLogger.debug("Context:", context);
     let retryLength = 1000; // exponential backoff
     let parsedContent;
+    let usage;
     let attempts = 0;
     const maxAttempts = 3;
 
@@ -1775,16 +1778,25 @@ export async function generateMessageResponse({
         try {
             elizaLogger.log("Generating message response..");
 
-            const response = await generateText({
+            let response = await generateText({
                 runtime,
                 context,
                 modelClass,
+                returnUsage,
             });
+
+            if (returnUsage) {
+                // @ts-ignore
+                usage = response.usage as LanguageModelUsage;
+                // @ts-ignore
+                response = response.response as string;
+
+            }
 
             // try parsing the response as JSON, if null then try again
             parsedContent = parseJSONObjectFromText(response as string) as Content;
             if (parsedContent) {
-                return parsedContent;
+                return !returnUsage ? parsedContent : { response: parsedContent, usage };
             }
 
             elizaLogger.debug("parsedContent is null, retrying");
