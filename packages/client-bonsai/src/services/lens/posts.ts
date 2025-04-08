@@ -1,5 +1,5 @@
-import { type Cursor, type Post, postId, PostReactionType, PostReferenceType, txHash } from "@lens-protocol/client";
-import { fetchPost, fetchPostReactions, fetchPostReferences, fetchWhoExecutedActionOnPost } from "@lens-protocol/client/actions";
+import { type Cursor, evmAddress, PageSize, type Post, postId, PostReactionType, PostReferenceType, PostType, txHash } from "@lens-protocol/client";
+import { fetchPost, fetchPostReactions, fetchPostReferences, fetchPosts, fetchWhoExecutedActionOnPost } from "@lens-protocol/client/actions";
 import { client } from "./client";
 
 export const fetchPostById = async (_postId: string) => {
@@ -27,6 +27,18 @@ export const fetchPostBy = async (_txHash: `0x${string}`): Promise<Post | undefi
   if (result.isErr()) return;
 
   return result?.value as Post;
+};
+
+export const fetchPostsBy = async (authorId: string, cursor?: Cursor | null) => {
+  return await fetchPosts(client, {
+    filter: {
+      authors: [evmAddress(authorId)],
+      postTypes: [PostType.Root, PostType.Comment],
+      // feeds: [{ feed: evmAddress(LENS_BONSAI_DEFAULT_FEED) }]
+    },
+    pageSize: PageSize.Ten,
+    cursor
+  });
 };
 
 export const fetchAllCommentsFor = async (_postId: string): Promise<Post[]> => {

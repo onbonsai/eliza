@@ -18,6 +18,10 @@ const modelCosts = {
         input: 2_50,
         output: 10_00,
     },
+    "gpt-4o-mini": {
+        input: 15,
+        output: 60,
+    },
 };
 
 const minCreditsForUpdate: Record<string, number> = {
@@ -30,6 +34,10 @@ const minCreditsForUpdate: Record<string, number> = {
         calculateTokenCost(350, modelCosts["gpt-4o"].input) +
         calculateTokenCost(15, modelCosts["gpt-4o"].output),
 };
+
+export const getCreditsForMessage = (model: string): number => {
+    return calculateTokenCost(3_500, modelCosts[model].input) + calculateTokenCost(150, modelCosts[model].output);
+}
 
 function calculateTokenCost(
     tokensUsed: number,
@@ -52,7 +60,7 @@ export const decrementCredits = async (
     model: string,
     tokens: { input: number; output: number },
     images: number
-) => {
+): Promise<number | undefined> => {
     const cost =
         calculateTokenCost(tokens.input, modelCosts[model].input) +
         calculateTokenCost(tokens.output, modelCosts[model].output);
@@ -62,9 +70,21 @@ export const decrementCredits = async (
     if (totalCost === 0) return;
 
     const { credits } = await getCreditsClient();
-    await credits.updateOne(
+    const updatedCredits = await credits.findOneAndUpdate(
         { address },
-        { $inc: { credits: -totalCost } },
-        { upsert: true }
+        {
+            $inc: { creditsRemaining: -totalCost }
+        },
+        {
+            upsert: true,
+            returnDocument: 'after'
+        }
     );
+    return updatedCredits?.creditsRemaining;
+};
+
+export const getCredits = async (address: string): Promise<number> => {
+    const { credits } = await getCreditsClient();
+    const credit = await credits.findOne({ address });
+    return credit?.creditsRemaining || 0;
 };

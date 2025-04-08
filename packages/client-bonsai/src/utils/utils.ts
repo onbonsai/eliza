@@ -67,3 +67,9 @@ export const formatSmartMedia = (
         updatedAt: ts,
     };
 }
+
+export const formatPost = (post: Post) => {
+    return `Post Slug: ${post.slug}
+From: ${post.author.metadata?.name} (@${post.author.username?.localName})${post.commentOn ? `\nIn reply to: @${post.commentOn.author.username?.localName}` : ""}
+Text: ${post.metadata.content}`;
+};

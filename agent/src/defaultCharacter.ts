@@ -1,12 +1,11 @@
 import { type Character, ModelProviderName } from "@elizaos/core";
 import bonsai from "@elizaos/client-bonsai";
-import terminal from "@elizaos/client-bonsai-terminal";
 
 // Sage as the default character
 export const defaultCharacter: Character = {
     name: "Sage",
     username: "bons_ai",
-    plugins: [bonsai, terminal],
+    plugins: [bonsai],
     // clients: ["twitter"],
     modelProvider: ModelProviderName.OPENAI,
     // imageModelProvider: ModelProviderName.TITLES,

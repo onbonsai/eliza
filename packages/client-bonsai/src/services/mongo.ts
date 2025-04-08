@@ -54,3 +54,11 @@ export const getCreditsClient = async () => {
 
     return { client, credits };
 };
+
+export const getWalletsClient = async () => {
+    const client = await _client();
+    const database = client.db(process.env.MONGO_DB_BONSAI || "client-bonsai");
+    const collection = database.collection("agents");
+
+    return { client, collection };
+};

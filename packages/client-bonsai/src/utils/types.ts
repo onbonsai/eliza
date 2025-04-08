@@ -143,3 +143,9 @@ export type TemplateClientMetadata = {
   /** Developer fee recipient: https://docs.bonsai.meme/elizaos/client-bonsai/developer-fees */
   protocolFeeRecipient: `0x${string}`;
 };
+
+export interface Payload {
+  action: string;
+  data: { [key: string]: string };
+  imageUrl?: string;
+}

@@ -19,7 +19,6 @@
     },
     "dependencies": {
         "@elizaos/client-bonsai": "workspace:*",
-        "@elizaos/client-bonsai-terminal": "workspace:*",
         "@elizaos/client-direct": "workspace:*",
         "@elizaos/core": "workspace:*",
         "@elizaos/plugin-bootstrap": "workspace:*",
