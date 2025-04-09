@@ -73,7 +73,10 @@ export const decrementCredits = async (
     const updatedCredits = await credits.findOneAndUpdate(
         { address },
         {
-            $inc: { creditsRemaining: -totalCost }
+            $inc: { 
+                creditsRemaining: -totalCost,
+                creditsUsed: totalCost
+            }
         },
         {
             upsert: true,
