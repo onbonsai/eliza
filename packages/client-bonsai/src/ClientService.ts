@@ -539,16 +539,6 @@ class BonsaiClient {
     const totalUsage = response?.totalUsage;
     await decrementCredits(data.creator, template?.clientMetadata.defaultModel || DEFAULT_MODEL_ID, { input: totalUsage?.promptTokens || 0, output: totalUsage?.completionTokens || 0 }, totalUsage?.imagesCreated || 0);
 
-    // update the cache with the latest template data needed for next generation (if any)
-    await this.cachePost({
-      ...data,
-      templateData: response.updatedTemplateData || data.templateData,
-      updatedAt: Math.floor(Date.now() / 1000),
-      // HACK: make sure we dont save these in redis
-      versions: undefined,
-      status: undefined,
-    });
-
     // no metadata means nothing to update on the post
     if (!response?.metadata) {
       elizaLogger.log(`no metadata, skipping update for post: ${postId}`);
@@ -559,6 +549,7 @@ class BonsaiClient {
     const success = await editPost(data.uri as string, response.metadata);
     if (!success) {
       elizaLogger.error("Failed to edit post metadata");
+      await this.mongo.media?.updateOne({ postId }, { $set: { status: SmartMediaStatus.FAILED } });
       return;
     }
 
@@ -567,8 +558,20 @@ class BonsaiClient {
     const status = await refreshMetadataStatusFor(jobId as string);
     if (status === "FAILED") {
       elizaLogger.error("Failed to refresh post metadata");
+      await this.mongo.media?.updateOne({ postId }, { $set: { status: SmartMediaStatus.FAILED } });
       return;
     }
+
+    // update the cache with the latest template data needed for next generation (if any)
+    await this.cachePost({
+      ...data,
+      templateData: response.updatedTemplateData || data.templateData,
+      updatedAt: Math.floor(Date.now() / 1000),
+      // HACK: make sure we dont save these in redis
+      versions: undefined,
+      status: undefined,
+    });
+
     elizaLogger.info(`submitted lens refresh metadata request: ${jobId} => ${status}`);
     elizaLogger.info(`done updating post: ${postId}`);
   }

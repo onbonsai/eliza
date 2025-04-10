@@ -158,9 +158,16 @@ export const createPost = async (
 };
 
 export const editPost = async (uri: string, metadata: any): Promise<boolean> => {
-    const signer = privateKeyToAccount(process.env.LENS_STORAGE_NODE_PRIVATE_KEY as `0x${string}`);
-    const acl = walletOnly(signer.address, LENS_CHAIN_ID);
-    await storageClient.updateJson(uri, metadata, signer, { acl });
-
-    return true;
+    try {
+        const signer = privateKeyToAccount(process.env.LENS_STORAGE_NODE_PRIVATE_KEY as `0x${string}`);
+        const acl = walletOnly(signer.address, LENS_CHAIN_ID);
+        await storageClient.updateJson(uri, metadata, signer, { acl });
+        return true;
+    } catch (error) {
+        console.log(
+            "lens:: ediPost:: failed to edit post with error:",
+            error
+        );
+        return false;
+    }
 }

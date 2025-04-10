@@ -165,7 +165,6 @@ const evolvingArt = {
         } else {
           const { response, usage } = await generateText({
             runtime,
-            context: "You are an expert at image prompting", // not actually used
             modelClass: ModelClass.MEDIUM,
             modelProvider: ModelProviderName.VENICE,
             returnUsage: true,

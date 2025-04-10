@@ -345,6 +345,37 @@ function getCloudflareGatewayBaseURL(
     return baseURL;
 }
 
+const getToken = (runtime, modelProvider: ModelProviderName) => {
+    // First try to match the specific provider
+    switch (modelProvider) {
+        case ModelProviderName.HEURIST:
+            return runtime.getSetting("HEURIST_API_KEY");
+        case ModelProviderName.TOGETHER:
+            return runtime.getSetting("TOGETHER_API_KEY");
+        case ModelProviderName.FAL:
+            return runtime.getSetting("FAL_API_KEY");
+        case ModelProviderName.OPENAI:
+            return runtime.getSetting("OPENAI_API_KEY");
+        case ModelProviderName.VENICE:
+            return runtime.getSetting("VENICE_API_KEY");
+        case ModelProviderName.LIVEPEER:
+            return runtime.getSetting("LIVEPEER_GATEWAY_URL");
+        case ModelProviderName.TITLES:
+            return runtime.getSetting("TITLES_API_KEY");
+        default:
+            // If no specific match, try the fallback chain
+            return (
+                runtime.getSetting("HEURIST_API_KEY") ??
+                runtime.getSetting("NINETEEN_AI_API_KEY") ??
+                runtime.getSetting("TOGETHER_API_KEY") ??
+                runtime.getSetting("FAL_API_KEY") ??
+                runtime.getSetting("OPENAI_API_KEY") ??
+                runtime.getSetting("VENICE_API_KEY") ??
+                runtime.getSetting("LIVEPEER_GATEWAY_URL")
+            );
+    }
+};
+
 /**
  * Send a message to the model for a text generateText - receive a string back and parse how you'd like
  * @param opts - The options for the generateText request.
@@ -374,7 +405,7 @@ export async function generateText({
 // verifiableInferenceOptions,
 {
     runtime: IAgentRuntime;
-    context: string;
+    context?: string;
     modelClass: ModelClass;
     modelProvider?: ModelProviderName;
     tools?: Record<string, Tool>;
@@ -388,7 +419,7 @@ export async function generateText({
     returnUsage?: boolean;
     messages?: any[]
 }): Promise<string | { response: string; usage: LanguageModelUsage; }> {
-    if (!context) {
+    if (!context && messages.length === 0) {
         console.error("generateText context is empty");
         return "";
     }
@@ -400,7 +431,6 @@ export async function generateText({
         model: modelClass,
         // verifiableInference,
     });
-    elizaLogger.log("Using provider:", runtime.modelProvider);
     // If verifiable inference is requested and adapter is provided, use it
     // if (verifiableInference && runtime.verifiableInferenceAdapter) {
     //     elizaLogger.log(
@@ -446,7 +476,7 @@ export async function generateText({
 
     const endpoint =
         runtime.character.modelEndpointOverride || getEndpoint(provider);
-    const modelSettings = getModelSettings(runtime.modelProvider, modelClass);
+    const modelSettings = getModelSettings(provider, modelClass);
     let model = modelSettings.name;
 
     // allow character.json settings => secrets to override models
@@ -533,7 +563,9 @@ export async function generateText({
         modelConfiguration?.experimental_telemetry ||
         modelSettings.experimental_telemetry;
 
-    const apiKey = runtime.token;
+    const apiKey = modelProvider
+        ? getToken(runtime, modelProvider)
+        : runtime.token;
 
     try {
         elizaLogger.debug(
@@ -1193,9 +1225,10 @@ export async function generateText({
                     baseURL: endpoint,
                 });
 
+                elizaLogger.log(`model: ${model}`);
                 const { text: veniceResponse, usage: veniceUsage } = await aiGenerateText({
                     model: venice.languageModel(model),
-                    prompt: context,
+                    prompt: messages?.length ? undefined : context,
                     system:
                         runtime.character.system ??
                         settings.SYSTEM_PROMPT ??
