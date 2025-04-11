@@ -148,7 +148,6 @@ export function parseJSONObjectFromText(
     const codeBlockMatch = text.match(/```(?:json)?\n([\s\S]*?)\n```/);
     if (codeBlockMatch) {
         text = codeBlockMatch[1].trim();
-        console.log("Extracted from code block:", text);
     }
 
     // First try to parse the raw text as JSON

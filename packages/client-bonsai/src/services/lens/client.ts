@@ -8,7 +8,7 @@ export const SAGE_HANDLE = IS_PRODUCTION ? "bons_ai" : "bons_ai_testnet";
 
 export const client = PublicClient.create({
     environment: IS_PRODUCTION ? mainnet : testnet,
-    origin: "https://eliza.bonsai.meme",
+    origin: "https://eliza.onbons.ai",
 });
 
 export const storageClient = StorageClient.create();

@@ -545,21 +545,16 @@ class BonsaiClient {
       return;
     }
 
-    // edit the post metadata using acl
-    const success = await editPost(data.uri as string, response.metadata);
-    if (!success) {
-      elizaLogger.error("Failed to edit post metadata");
-      await this.mongo.media?.updateOne({ postId }, { $set: { status: SmartMediaStatus.FAILED } });
-      return;
-    }
-
     // refresh the post metadata
-    const jobId = await refreshMetadataFor(postId);
-    const status = await refreshMetadataStatusFor(jobId as string);
-    if (status === "FAILED") {
-      elizaLogger.error("Failed to refresh post metadata");
-      await this.mongo.media?.updateOne({ postId }, { $set: { status: SmartMediaStatus.FAILED } });
-      return;
+    if (response.metadata) {
+      const jobId = await refreshMetadataFor(postId);
+      const status = await refreshMetadataStatusFor(jobId as string);
+      elizaLogger.info(`submitted lens refresh metadata request: ${jobId} => ${status}`);
+      if (status === "FAILED") {
+        elizaLogger.error("Failed to refresh post metadata");
+        await this.mongo.media?.updateOne({ postId }, { $set: { status: SmartMediaStatus.FAILED } });
+        return;
+      }
     }
 
     // update the cache with the latest template data needed for next generation (if any)
@@ -572,7 +567,6 @@ class BonsaiClient {
       status: undefined,
     });
 
-    elizaLogger.info(`submitted lens refresh metadata request: ${jobId} => ${status}`);
     elizaLogger.info(`done updating post: ${postId}`);
   }
 

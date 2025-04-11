@@ -173,7 +173,7 @@ const evolvingArt = {
               content: [
                 {
                   type: "text",
-                  text: "Provide a description of an image that evolves the current one, using the user input as direction for the evolution: ${prompt}. Only reply with the new image description"
+                  text: `Produce a prompt for an image that evolves the current one, using the user input as direction for the evolution: ${prompt}. Only reply with the new image prompt, and be concise so to successfully prompt a new image.`
                 },
                 {
                   type: "image",
