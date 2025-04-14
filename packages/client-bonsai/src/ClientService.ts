@@ -529,6 +529,15 @@ class BonsaiClient {
         await this.removePostFromCache(data);
       }
       return;
+    } else if (!response.metadata && response.totalUsage.promptTokens === 0 && response.totalUsage.imagesCreated === 0) {
+      elizaLogger.error(`no updates for post: ${postId}`);
+      // freeze the post to skip future checks; remove from cache
+      if ((Math.floor(Date.now() / 1000)) - data.updatedAt > DEFAULT_FREEZE_TIME) {
+        elizaLogger.log(`freezing post: ${postId}`);
+        await this.mongo.media?.updateOne({ postId }, { $set: { status: SmartMediaStatus.FAILED } });
+        await this.removePostFromCache(data);
+      }
+      return;
     }
     elizaLogger.info(`handler completed for post: ${postId}`, data);
 
@@ -544,7 +553,7 @@ class BonsaiClient {
       if (needsStatusUpdate) {
         update.$set = { status: SmartMediaStatus.ACTIVE };
       }
-      console.log("update", update);
+      elizaLogger.log(`updating db record for post: ${postId}`);
       await this.mongo.media?.updateOne({ postId }, update);
     }
 
