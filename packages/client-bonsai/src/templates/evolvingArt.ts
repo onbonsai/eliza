@@ -93,19 +93,19 @@ const evolvingArt = {
 
       // if the post not stale, check if we've passed the min comment threshold
       if (isMediaStale(media as SmartMedia) || options?.forceUpdate) {
-        elizaLogger.info("media is stale...");
+        elizaLogger.info(`evolvingArt:: post ${media?.postId} is stale`);
         const allComments = await fetchAllCommentsFor(media?.postId as string);
         comments = getLatestComments(media as SmartMedia, allComments);
         comments = uniqBy(comments, 'comment.author.address');
         const threshold = (media?.templateData as TemplateData).minCommentUpdateThreshold ||
           DEFAULT_MIN_ENGAGEMENT_UPDATE_THREHOLD;
         if (comments.length < threshold) {
-          elizaLogger.info(`evolvingArt:: media ${media?.agentId} is stale but has not met comment threshold; skipping`);
+          elizaLogger.info(`evolvingArt:: post ${media?.postId} is stale but has not met comment threshold; skipping`);
           return { metadata: undefined, totalUsage };
         }
       } else {
         // do not update if the media was recently updated
-        elizaLogger.info("not stale");
+        elizaLogger.info(`evolvingArt:: post ${media?.postId} is not stale; skipping`);
         return { metadata: undefined, totalUsage };
       }
 

@@ -176,7 +176,7 @@ const adventureTime = {
                         const threshold = (media?.templateData as TemplateData).minCommentUpdateThreshold ||
                             DEFAULT_MIN_ENGAGEMENT_UPDATE_THREHOLD;
                         if (comments.length < threshold) {
-                            elizaLogger.info(`adventureTime:: media ${media?.agentId} is stale but has not met comment threshold; skipping`);
+                            elizaLogger.info(`adventureTime:: post ${media?.postId} is stale but has not met comment threshold; skipping`);
                             return { metadata: undefined, totalUsage };
                         }
                     } catch (error) {

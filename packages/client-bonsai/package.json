@@ -25,6 +25,7 @@
         "@lens-protocol/client": "0.0.0-canary-20250408064617",
         "@lens-protocol/metadata": "2.0.0-next.7",
         "@runwayml/sdk": "^1.4.4",
+        "@sentry/node": "^9.12.0",
         "axios": "^1.8.4",
         "body-parser": "1.20.3",
         "cors": "2.8.5",

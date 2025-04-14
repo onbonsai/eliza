@@ -12,6 +12,7 @@ import {
 } from "@elizaos/core";
 import type Redis from "ioredis";
 import type { Collection, MongoClient } from "mongodb";
+import * as Sentry from "@sentry/node";
 import type { URI } from "@lens-protocol/metadata";
 import { immutable, walletOnly } from "@lens-chain/storage-client";
 import redisClient from "./services/redis";
@@ -72,9 +73,13 @@ class BonsaiClient {
     this.app = express();
     this.server = createServer(this.app);
     this.redis = redisClient;
-    this.app.use(cors());
     this.mongo = {};
 
+    if (process.env.SENTRY_DSN && process.env.SENTRY_DSN !== "") {
+      Sentry.init({ dsn: process.env.SENTRY_DSN });
+    }
+
+    this.app.use(cors());
     this.app.use(bodyParser.json());
     this.app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -472,6 +477,11 @@ class BonsaiClient {
         res.status(200).send();
       }
     );
+
+    // The error handler must be registered before any other error middleware and after all controllers
+    if (process.env.SENTRY_DSN && process.env.SENTRY_DSN !== "") {
+      Sentry.setupExpressErrorHandler(this.app);
+    }
   }
 
   /**
