@@ -55,7 +55,7 @@
   },
   "scripts": {
     "postinstall": "node patch-lens-protocol-client.js",
-    "build": "tsup --format esm --no-dts && npm run sentry:sourcemaps",
+    "build": "tsup --format esm --no-dts && if [ \"$SENTRY_AUTH_TOKEN\" ]; then npm run sentry:sourcemaps; fi",
     "dev": "tsup --format esm --dts --watch",
     "clean": "rm -rf dist",
     "lint": "biome lint .",
