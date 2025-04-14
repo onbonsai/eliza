@@ -36,7 +36,7 @@ import { refreshMetadataFor, refreshMetadataStatusFor } from "./services/lens/re
 import { formatSmartMedia } from "./utils/utils";
 import { BONSAI_CLIENT_VERSION, DEFAULT_FREEZE_TIME, LENS_BONSAI_APP, LENS_BONSAI_DEFAULT_FEED } from "./utils/constants";
 import { client, LENS_CHAIN, LENS_CHAIN_ID } from "./services/lens/client";
-import { canUpdate, decrementCredits, DEFAULT_MODEL_ID } from "./utils/apicredits";
+import { canUpdate, decrementCredits, DEFAULT_MODEL_ID } from "./utils/apiCredits";
 import { privateKeyToAccount } from "viem/accounts";
 import { authenticateAsBuilder } from "./services/lens/authenticate";
 import { createWalletClient, http } from "viem";

@@ -50,7 +50,7 @@ export const getClient = async () => {
 export const getCreditsClient = async () => {
     const client = await _client();
     const database = client.db(process.env.MONGO_DB_BONSAI || "client-bonsai");
-    const credits = database.collection("api-credits");
+    const credits = database.collection(process.env.MONGO_COLLECTION_API_CREDITS || "api-credits");
 
     return { client, credits };
 };
