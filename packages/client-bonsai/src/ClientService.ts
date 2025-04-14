@@ -215,6 +215,13 @@ class BonsaiClient {
             return;
           }
 
+          // check if user has enough credits
+          if (!await canUpdate(creator, params.templateName)) {
+            res.status(403).json({ error: `not enough credits to generate preview for: ${params.templateName}` });
+            return;
+          }
+
+          // generate the first page
           const response = await template.handler(runtime as IAgentRuntime, undefined, params.templateData);
           media = formatSmartMedia(
             creator,
@@ -315,6 +322,12 @@ class BonsaiClient {
           return;
         }
 
+        // check if user has enough credits
+        if (!await canUpdate(data.creator, data.template)) {
+          res.status(403).json({ error: `not enough credits to generate preview for: ${data.template}` });
+          return;
+        }
+
         console.log(`adding post to queue: ${postId}`);
         this.tasks.add(postId, () => this.handlePostUpdate(postId, forceUpdate));
 
@@ -386,7 +399,7 @@ class BonsaiClient {
     this.app.post(
       "/test/lens/create",
       async (req: express.Request, res: express.Response) => {
-        const signer = privateKeyToAccount(process.env.PERSONAL_PRIVATE_KEY as `0x${string}`);
+        const signer = privateKeyToAccount(process.env.LENS_STORAGE_NODE_PRIVATE_KEY as `0x${string}`);
         const sessionClient = await authenticateAsBuilder(signer);
 
         const walletClient = createWalletClient({
@@ -423,7 +436,7 @@ class BonsaiClient {
         // console.log(_app);
 
         // const metadata = feed({
-        //     name: "Bonsai Feed",
+        //     name: "[TESTNET] Bonsai Feed",
         //     description: "Custom feed for agentic content on Bonsai",
         // });
         // const { uri: feedUri } = await storageClient.uploadAsJson(metadata, { acl: immutable(LENS_CHAIN_ID) });
@@ -503,7 +516,6 @@ class BonsaiClient {
 
     // generate the next version of the post metadata
     elizaLogger.info(`invoking ${data.template} handler for post: ${postId}`, data);
-    console.log("template", template)
     const response = await template?.handler(runtime as IAgentRuntime, data, undefined, { forceUpdate });
 
     // no response means template failed
@@ -518,6 +530,7 @@ class BonsaiClient {
       }
       return;
     }
+    elizaLogger.info(`handler completed for post: ${postId}`, data);
 
     const needsStatusUpdate = data.status === SmartMediaStatus.DISABLED || data.status === SmartMediaStatus.FAILED;
     const hasNewVersion = !!response.persistVersionUri;
@@ -549,7 +562,7 @@ class BonsaiClient {
     if (response.metadata) {
       const jobId = await refreshMetadataFor(postId);
       const status = await refreshMetadataStatusFor(jobId as string);
-      elizaLogger.info(`submitted lens refresh metadata request: ${jobId} => ${status}`);
+      elizaLogger.info(`submitted lens refresh metadata request for post: ${postId} (${jobId} => ${status})`);
       if (status === "FAILED") {
         elizaLogger.error("Failed to refresh post metadata");
         await this.mongo.media?.updateOne({ postId }, { $set: { status: SmartMediaStatus.FAILED } });
