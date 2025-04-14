@@ -259,16 +259,16 @@ class BonsaiTerminalClient {
           return;
         }
 
-        const wallets = await getWallets(agentId);
-        if (!wallets) {
-          res.status(404).send();
-          return;
+        let wallets: string[] = [];
+        const _wallets = await getWallets(agentId);
+        if (_wallets) {
+          const [polygon] = await _wallets.polygon.listAddresses();
+          const [base] = await _wallets.base.listAddresses();
+          wallets = [polygon.getId(), base.getId()];
         }
-        const [polygon] = await wallets.polygon.listAddresses();
-        const [base] = await wallets?.base.listAddresses();
 
         res.status(200).json({
-          wallets: [polygon.getId(), base.getId()],
+          wallets,
           account: {
             address: "0xb39d0E00474E5A8ab72Ab3Ea0cfE5e49A1F75aB7",
             username: "bons_ai"
