@@ -130,16 +130,19 @@ class BonsaiClient {
         const creator = req.user?.sub as `0x${string}`;
         const { category, templateName, templateData }: CreateTemplateRequestParams = req.body;
 
+        // Check preview rate limit
+        const previewKey = `create_preview_count:${creator}`;
+        const previewCount = await this.redis.get(previewKey);
+
+        if (previewCount && parseInt(previewCount) >= 3) {
+          res.status(403).json({ error: "you can only generate three previews per hour" });
+          return;
+        }
+
         const runtime = this.agents.get(process.env.GLOBAL_AGENT_ID as UUID);
         const template = this.templates.get(templateName);
         if (!template) {
           res.status(400).json({ error: `templateName: ${templateName} not registered` });
-          return;
-        }
-
-        // check if user has enough credits
-        if (!await canUpdate(creator, templateName)) {
-          res.status(403).json({ error: `not enough credits to generate preview for: ${templateName}` });
           return;
         }
 
@@ -154,8 +157,12 @@ class BonsaiClient {
         await this.cachePreview(media);
 
         // decrement user credits
-        const totalUsage = response?.totalUsage;
-        await decrementCredits(creator, template?.clientMetadata.defaultModel || DEFAULT_MODEL_ID, { input: totalUsage?.promptTokens || 0, output: totalUsage?.completionTokens || 0 }, totalUsage?.imagesCreated || 0);
+        // const totalUsage = response?.totalUsage;
+        // await decrementCredits(creator, template?.clientMetadata.defaultModel || DEFAULT_MODEL_ID, { input: totalUsage?.promptTokens || 0, output: totalUsage?.completionTokens || 0 }, totalUsage?.imagesCreated || 0);
+        const multi = this.redis.multi();
+        multi.incr(previewKey);
+        multi.expire(previewKey, 3600); // 1 hour in seconds
+        await multi.exec();
 
         res.status(200).json({ agentId: media.agentId, preview: response?.preview });
       }
