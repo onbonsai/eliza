@@ -289,11 +289,13 @@ class BonsaiClient {
             status = doc?.status;
           }
 
+          const template = this.templates.get(data.template);
           res.status(200).json({
             ...data,
             isProcessing: this.tasks.isProcessing(postId as string),
             versions,
-            protocolFeeRecipient: this.templates.get(data.template)?.clientMetadata.protocolFeeRecipient,
+            protocolFeeRecipient: template?.clientMetadata.protocolFeeRecipient,
+            description: template?.clientMetadata.description,
             status,
           });
         } else {
