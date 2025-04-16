@@ -261,7 +261,7 @@ const evolvingArt = {
     category: TemplateCategory.EVOLVING_ART,
     name: TemplateName.EVOLVING_ART,
     displayName: "Evolving Art",
-    description: "The art evolves. A creator sets the original image and style. The comment with the most votes dictates how the image evolves.",
+    description: "Collect the post, buy tokens, and interact with the post (replies, upvotes) to evolve the image",
     image: "https://link.storjshare.io/raw/jwq56rwpuhhle4k7tjbxyfd4l37q/bonsai/artistPresent.png",
     options: {
       allowPreview: false,

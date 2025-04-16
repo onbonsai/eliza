@@ -348,7 +348,7 @@ Option B) ${page.decisions[1]}
         category: TemplateCategory.EVOLVING_POST,
         name: TemplateName.ADVENTURE_TIME,
         displayName: "Adventure Time",
-        description: "Choose your own adventure. Creator sets the context and inits the post with the first page. Weighted comments / upvotes decide the direction of the story.",
+        description: "The creator sets the stage for an evolving choose-your-own-adventure. Collectors & token holders decide the direction of the story.",
         image: "https://link.storjshare.io/raw/jxejf7rwn2hq3lhwh3v72g7bdpxa/bonsai/adventureTime.png",
         options: {
             allowPreview: true,
