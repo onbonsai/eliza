@@ -46,6 +46,7 @@ export enum TemplateName {
   ADVENTURE_TIME = "adventure_time",
   EVOLVING_ART = "evolving_art",
   INFO_AGENT = "info_agent",
+  VIDEO_FUN = "video_fun",
 }
 
 /**
@@ -70,6 +71,8 @@ export interface Template {
 
 export type TemplateUsage = LanguageModelUsage & {
   imagesCreated?: number;
+  videosCreated?: number;
+  audioCreated?: number;
 }
 
 /**
@@ -87,11 +90,16 @@ export type TemplateHandler = (
  */
 export interface TemplateHandlerResponse {
   preview?: { // not necessary for all templates
-    text: string;
+    text?: string;
     image?: string; // base64
-    video?: string,
+    video?: {
+      buffer: number[],
+      mimeType: string,
+      size: number
+    }
   };
-  metadata?: TextOnlyMetadata | ImageMetadata | VideoMetadata; // only undefined on failure or generating preview
+  metadata?: TextOnlyMetadata | ImageMetadata | VideoMetadata; // undefined on failure, generating preview, or no new metadata json
+  refreshMetadata?: boolean; // force the metadata refresh on file edits
   persistVersionUri?: string; // in case the handler wants versioning on the media
   updatedTemplateData?: unknown; // updated payload for the next generation
   totalUsage?: TemplateUsage;

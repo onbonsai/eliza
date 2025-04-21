@@ -47,24 +47,18 @@ export const uploadJson = async (json: any) => {
   return storjGatewayURL(data.Hash);
 };
 
-const pinFile = async (file: {
+export const pinFile = async (file: {
   buffer: Buffer;
   originalname: string;
   mimetype: string;
 }) => {
-  // Create a FormData instance for the Axios request
   const formData = new FormData();
-
-  // Append the buffer as a file to the FormData
-  formData.append("file", file.buffer, {
-    filename: file.originalname,
-    contentType: file.mimetype,
-  });
+  formData.append("file", file);
 
   // Perform the Axios request
   const response = await _client().post("add?cid-version=1", formData, {
     headers: {
-      "Content-Type": `multipart/form-data; boundary=${formData.getBoundary()}`,
+      "Content-Type": "multipart/form-data",
     },
     maxContentLength: Number.POSITIVE_INFINITY,
     maxBodyLength: Number.POSITIVE_INFINITY,
@@ -141,3 +135,45 @@ export const parseBase64Image = (imageResponse): File | undefined => {
   console.error("Invalid image response:", imageResponse);
   return;
 };
+
+export const fileToBase64Image = async (file: File): Promise<string> => {
+  try {
+    // Read the file as an ArrayBuffer
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // Convert to base64
+    const base64 = buffer.toString('base64');
+
+    // Add data URL prefix based on file type
+    const mimeType = file.type || 'image/png';
+    const dataUrl = `data:${mimeType};base64,${base64}`;
+
+    return dataUrl;
+  } catch (error) {
+    console.error("Error converting file to base64:", error);
+    throw error;
+  }
+};
+
+/**
+ * Converts a video buffer to a File object
+ * @param buffer Video buffer to convert
+ * @returns File object
+ */
+export function bufferToVideoFile(buffer: Buffer): File {
+  // Convert buffer to base64
+  const base64 = buffer.toString('base64');
+
+  // Create a Blob from the base64 string
+  const byteCharacters = atob(base64);
+  const byteNumbers = new Array(byteCharacters.length);
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteNumbers[i] = byteCharacters.charCodeAt(i);
+  }
+  const byteArray = new Uint8Array(byteNumbers);
+  const blob = new Blob([byteArray], { type: 'video/mp4' });
+
+  // Create a File from the Blob
+  return new File([blob], `video-${Date.now()}.mp4`, { type: 'video/mp4' });
+}

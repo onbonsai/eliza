@@ -63,7 +63,7 @@ export const fetchAllCommentsFor = async (_postId: string): Promise<Post[]> => {
   return allComments;
 }
 
-export const fetchAllCollectorsFor = async (_postId): Promise<`0x${string}`[]> => {
+export const fetchAllCollectorsFor = async (_postId, sorted = false): Promise<`0x${string}`[]> => {
   let allCollectors: any[] = [];
   let nextPage: Cursor;
 
@@ -76,11 +76,13 @@ export const fetchAllCollectorsFor = async (_postId): Promise<`0x${string}`[]> =
       return allCollectors;
     }
 
-    allCollectors = [...allCollectors, ...result.value.items.map((a) => a.account.address)];
+    allCollectors = [...allCollectors, ...result.value.items.map((a) => ({ account: a.account.address, ts: a.firstAt }))];
     nextPage = result.value.pageInfo.next;
   } while (nextPage);
 
-  return allCollectors;
+  if (!sorted) return allCollectors.map((a) => a.account);
+
+  return allCollectors.sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime()).map(a => a.account);
 };
 
 export const fetchAllUpvotersFor = async (_postId): Promise<`0x${string}`[]> => {
