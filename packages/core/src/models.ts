@@ -31,7 +31,7 @@ export const models: Models = {
                 temperature: 0.6,
             },
             [ModelClass.LARGE]: {
-                name: settings.LARGE_OPENAI_MODEL || "gpt-4o",
+                name: settings.LARGE_OPENAI_MODEL || "gpt-4.1",
                 stop: [],
                 maxInputTokens: 128000,
                 maxOutputTokens: 8192,

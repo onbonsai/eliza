@@ -5,6 +5,7 @@ import {
   generateImage,
   ModelClass,
   generateText,
+  getModelSettings,
 } from "@elizaos/core";
 import type { VideoMetadata, URI } from "@lens-protocol/metadata";
 import type { Post } from "@lens-protocol/client";
@@ -13,6 +14,7 @@ import { walletOnly } from "@lens-chain/storage-client";
 import z from "zod";
 import pkg from "lodash";
 const { uniqBy } = pkg;
+import type { LanguageModelUsage } from "ai";
 import {
   ImageRequirement,
   TemplateCategory,
@@ -92,6 +94,7 @@ const videoFun = {
       totalTokens: 0,
       imagesCreated: 0,
       videosCreated: 0,
+      customTokens: {},
     };
 
     let versionCount = templateData.versionCount || 0;
@@ -211,10 +214,8 @@ const videoFun = {
             }
           ]
         }]
-      }) as { response: string, usage: TemplateUsage };
-      totalUsage.promptTokens += usage.promptTokens;
-      totalUsage.completionTokens += usage.completionTokens;
-      totalUsage.totalTokens += usage.totalTokens;
+      }) as { response: string, usage: LanguageModelUsage };
+      totalUsage.customTokens[getModelSettings(ModelProviderName.VENICE, ModelClass.MEDIUM)?.name] = usage;
       const videoPrompt = response;
 
       elizaLogger.info(`generating video with prompt: ${videoPrompt}`);
@@ -224,7 +225,7 @@ const videoFun = {
         count: 1,
         duration: VIDEO_DURATION,
       }, runtime);
-      totalUsage.videosCreated = 1;
+      totalUsage.videoDuration = VIDEO_DURATION;
 
       let videoBuffer: Buffer;
       if (videoResponse.success && videoResponse.data?.length) {
@@ -239,19 +240,17 @@ const videoFun = {
         modelClass: ModelClass.SMALL,
         modelProvider: ModelProviderName.OPENAI,
         returnUsage: true,
-      }) as { response: string, usage: TemplateUsage };
+      }) as { response: string, usage: LanguageModelUsage };
 
       const narration = narrationResponse.replace(/['"]/g, '');
-      totalUsage.promptTokens += narrationUsage.promptTokens;
-      totalUsage.completionTokens += narrationUsage.completionTokens;
-      totalUsage.totalTokens += narrationUsage.totalTokens;
+      totalUsage.customTokens[getModelSettings(ModelProviderName.OPENAI, ModelClass.SMALL)?.name] = narrationUsage;
       elizaLogger.info(`generating speech with narration: ${narration}`);
       const audioBuffer = await generateSpeech(
         narration,
         templateData.elevenLabsVoiceId || DEFAULT_VOICE_ID
       );
       if (!audioBuffer) throw new Error("No audio response");
-      totalUsage.audioCreated = 1;
+      totalUsage.audioCharacters = narration.length;
 
       // Merge video and audio using fluent-ffmpeg, adding subtitles
       const video = await mergeVideoAndAudio(videoBuffer, audioBuffer, narration);

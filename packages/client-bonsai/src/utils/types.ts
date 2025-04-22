@@ -71,8 +71,9 @@ export interface Template {
 
 export type TemplateUsage = LanguageModelUsage & {
   imagesCreated?: number;
-  videosCreated?: number;
-  audioCreated?: number;
+  videoDuration?: number; // 5 | 10
+  audioCharacters?: number;
+  customTokens?: Record<string, LanguageModelUsage>; // model => usage
 }
 
 /**

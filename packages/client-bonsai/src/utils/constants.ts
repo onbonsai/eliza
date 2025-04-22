@@ -1,4 +1,5 @@
 import { base, zksync, polygon, baseSepolia } from "viem/chains";
+import { TemplateName } from "./types";
 
 export const AGENT_HANDLE = "bons_ai";
 export const LENS_HUB_PROXY: `0x${string}` =
@@ -31,6 +32,13 @@ export const DEFAULT_FREEZE_TIME = 86400; // 24h of no updates before a post is 
 export const APP_ID = "BONSAI"; // lens post app id
 export const BONSAI_CLIENT_VERSION = "1.0.0"; // bonsai client version
 export const BONSAI_PROTOCOL_FEE_RECIPIENT = "0x21aF1185734D213D45C6236146fb81E2b0E8b821";
+
+export const FREE_GENERATIONS_PER_HOUR = 1;
+
+// only for stakers, no free generations (generally because they are expensive)
+export const PREMIUM_TEMPLATES = [
+    TemplateName.VIDEO_FUN,
+];
 
 // production
 export const LENS_BONSAI_APP = "0x640c9184b31467C84096EB2829309756DDbB3f44";
