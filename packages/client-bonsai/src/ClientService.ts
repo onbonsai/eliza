@@ -23,7 +23,8 @@ import {
   type SmartMediaBase,
   SmartMediaStatus,
   type Template,
-  type TemplateName
+  type TemplateName,
+  TemplateUsage
 } from "./utils/types";
 import verifyLensId from "./middleware/verifyLensId";
 import verifyApiKeyOrLensId from "./middleware/verifyApiKeyOrLensId";
@@ -35,7 +36,7 @@ import TaskQueue from "./utils/taskQueue";
 import { editPost } from "./services/lens/createPost";
 import { refreshMetadataFor, refreshMetadataStatusFor } from "./services/lens/refreshMetadata";
 import { formatSmartMedia } from "./utils/utils";
-import { BONSAI_CLIENT_VERSION, DEFAULT_FREEZE_TIME, LENS_BONSAI_APP, LENS_BONSAI_DEFAULT_FEED } from "./utils/constants";
+import { BONSAI_CLIENT_VERSION, DEFAULT_FREEZE_TIME, FREE_GENERATIONS_PER_HOUR, LENS_BONSAI_APP, LENS_BONSAI_DEFAULT_FEED, PREMIUM_TEMPLATES } from "./utils/constants";
 import { client, LENS_CHAIN, LENS_CHAIN_ID } from "./services/lens/client";
 import { canUpdate, decrementCredits, DEFAULT_MODEL_ID } from "./utils/apiCredits";
 import { privateKeyToAccount } from "viem/accounts";
@@ -152,6 +153,14 @@ class BonsaiClient {
           return;
         }
 
+        // check if user has enough credits (for premium templates)
+        if (PREMIUM_TEMPLATES.includes(templateName)) {
+          if (!await canUpdate(creator, templateName)) {
+            res.status(403).json({ error: `not enough credits to generate preview for: ${templateName}` });
+            return;
+          }
+        }
+
         // If there's an uploaded file, add it to templateData
         if (req.file) {
           const imageData = req.file.buffer.toString('base64');
@@ -160,15 +169,6 @@ class BonsaiClient {
             imageData: `data:${req.file.mimetype};base64,${imageData}`
           };
         }
-
-        // Check preview rate limit
-        const previewKey = `create_preview_count:${creator}`;
-        const previewCount = await this.redis.get(previewKey);
-
-        // if (previewCount && parseInt(previewCount) >= 3) {
-        //   res.status(403).json({ error: "you can only generate three previews per hour" });
-        //   return;
-        // }
 
         const runtime = this.agents.get(process.env.GLOBAL_AGENT_ID as UUID);
         const template = this.templates.get(templateName);
@@ -187,13 +187,8 @@ class BonsaiClient {
         );
         await this.cachePreview(media);
 
-        // decrement user credits
-        // const totalUsage = response?.totalUsage;
-        // await decrementCredits(creator, template?.clientMetadata.defaultModel || DEFAULT_MODEL_ID, { input: totalUsage?.promptTokens || 0, output: totalUsage?.completionTokens || 0 }, totalUsage?.imagesCreated || 0);
-        const multi = this.redis.multi();
-        multi.incr(previewKey);
-        multi.expire(previewKey, 3600); // 1 hour in seconds
-        await multi.exec();
+        // decrement credits or update the free counter
+        this.handlePreviewCredits(template.clientMetadata.name, creator, response?.totalUsage, template.clientMetadata.defaultModel);
 
         res.status(200).json({ agentId: media.agentId, preview: response?.preview });
       }
@@ -609,7 +604,15 @@ class BonsaiClient {
 
     // decrement user credits
     const totalUsage = response?.totalUsage;
-    await decrementCredits(data.creator, template?.clientMetadata.defaultModel || DEFAULT_MODEL_ID, { input: totalUsage?.promptTokens || 0, output: totalUsage?.completionTokens || 0 }, totalUsage?.imagesCreated || 0);
+    await decrementCredits(
+      data.creator,
+      template?.clientMetadata.defaultModel || DEFAULT_MODEL_ID,
+      { input: totalUsage?.promptTokens || 0, output: totalUsage?.completionTokens || 0 },
+      totalUsage?.imagesCreated || 0,
+      totalUsage?.videoDuration,
+      totalUsage?.audioCharacters,
+      totalUsage?.customTokens
+    );
 
     // no metadata means nothing to update on the post
     if (!(response?.metadata || response?.refreshMetadata)) {
@@ -640,6 +643,49 @@ class BonsaiClient {
     });
 
     elizaLogger.info(`done updating post: ${postId}`);
+  }
+
+  /**
+   * Handles credit management for preview generation.
+   *
+   * For non-premium templates, it implements a rate limiting system that allows
+   * a certain number of free previews per hour. For premium templates or when
+   * the free preview limit is exceeded, it decrements the user's credits.
+   *
+   * @param {TemplateName} templateName - The name of the template being used
+   * @param {string} creator - The creator's address (0x...)
+   * @param {TemplateUsage} totalUsage - Usage metrics including tokens and media created
+   * @param {string} [defaultModel] - Optional default model ID to use for credit calculation
+   *
+   * @returns {Promise<void>}
+   */
+  private async handlePreviewCredits(templateName: TemplateName, creator: string, totalUsage: TemplateUsage, defaultModel?: string) {
+    // Check preview rate limit (for non-premium templates)
+    if (!PREMIUM_TEMPLATES.includes(templateName)) {
+      const previewKey = `create_preview_count:${creator}`;
+      const previewCount = await this.redis.get(previewKey);
+
+      // Update free credit counter for the hour
+      if (previewCount && Number.parseInt(previewCount) < FREE_GENERATIONS_PER_HOUR) {
+        const multi = this.redis.multi();
+        multi.incr(previewKey);
+        multi.expire(previewKey, 3600); // 1 hour in seconds
+        await multi.exec();
+
+        return;
+      }
+    }
+
+    // decrement user credits
+    await decrementCredits(
+      creator,
+      defaultModel || DEFAULT_MODEL_ID,
+      { input: totalUsage?.promptTokens || 0, output: totalUsage?.completionTokens || 0 },
+      totalUsage?.imagesCreated || 0,
+      totalUsage?.videoDuration,
+      totalUsage?.audioCharacters,
+      totalUsage?.customTokens,
+    );
   }
 
   /**

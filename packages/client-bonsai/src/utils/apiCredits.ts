@@ -1,3 +1,4 @@
+import type { LanguageModelUsage } from "ai";
 import { getCreditsClient } from "../services/mongo";
 
 export const DEFAULT_MODEL_ID = "gpt-4o";
@@ -6,6 +7,8 @@ export const DEFAULT_MODEL_ID = "gpt-4o";
 const disableCredits = process.env.DISABLE_CREDITS === "true";
 
 const imageCost = 1; // venice costs 1 cent per image
+const videoCost = (duration: number) => duration === 5 ? 25 : 50; // https://docs.dev.runwayml.com/usage/billing
+const audioCost = (characters: number) => (characters * 30) / 1000; // 30 cents/1000 chars (elevenlabs, creator)
 
 // cost per 1M tokens (1 credit = 1 cent)
 const modelCosts = {
@@ -25,6 +28,14 @@ const modelCosts = {
         input: 15,
         output: 60,
     },
+    "qwen-2.5-vl": {
+        input: 70,
+        output: 2_80,
+    },
+    "gpt-4.1": {
+        input: 2_00,
+        output: 8_00,
+    },
 };
 
 const minCreditsForUpdate: Record<string, number> = {
@@ -36,6 +47,13 @@ const minCreditsForUpdate: Record<string, number> = {
     info_agent:
         calculateTokenCost(350, modelCosts["gpt-4o"].input) +
         calculateTokenCost(15, modelCosts["gpt-4o"].output),
+    video_fun:
+        calculateTokenCost(800, modelCosts["qwen-2.5-vl"].input) +
+        calculateTokenCost(125, modelCosts["qwen-2.5-vl"].output) +
+        calculateTokenCost(225, modelCosts["gpt-4o-mini"].input) +
+        calculateTokenCost(50, modelCosts["gpt-4o-mini"].output) +
+        50 +
+        4
 };
 
 export const getCreditsForMessage = (model: string): number => {
@@ -69,15 +87,27 @@ export const decrementCredits = async (
     address: string,
     model: string,
     tokens: { input: number; output: number },
-    images: number
+    images?: number,
+    videoDuration?: number,
+    audioCharacters?: number,
+    customTokens?: Record<string, LanguageModelUsage>,
 ): Promise<number | undefined> => {
     if (disableCredits) return;
 
-    const cost =
-        calculateTokenCost(tokens.input, modelCosts[model].input) +
-        calculateTokenCost(tokens.output, modelCosts[model].output);
-    const costImages = imageCost * images;
-    const totalCost = cost + costImages;
+    const cost = customTokens
+        ? Object.entries(customTokens).reduce(
+            (acc, [_model, { promptTokens, completionTokens }]) =>
+                acc +
+                calculateTokenCost(promptTokens, modelCosts[_model].input) +
+                calculateTokenCost(completionTokens, modelCosts[_model].output),
+            0
+        )
+        : calculateTokenCost(tokens.input, modelCosts[model].input) +
+          calculateTokenCost(tokens.output, modelCosts[model].output);
+    const costImages = imageCost * (images || 0);
+    const costVideos = videoDuration ? videoCost(videoDuration) : 0;
+    const costAudio = audioCharacters ? audioCost(audioCharacters) : 0;
+    const totalCost = cost + costImages + costVideos + costAudio;
 
     if (totalCost === 0) return;
 
