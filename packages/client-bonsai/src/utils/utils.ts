@@ -1,6 +1,6 @@
-import { Post } from "@lens-protocol/client";
+import type { Post } from "@lens-protocol/client";
 import type { LaunchpadToken, SmartMedia, SmartMediaBase, TemplateCategory, TemplateName } from "./types";
-import { URI } from "@lens-protocol/metadata";
+import type { URI } from "@lens-protocol/metadata";
 import { stringToUuid } from "@elizaos/core";
 import { DEFAULT_MAX_STALE_TIME } from "./constants";
 
@@ -73,3 +73,22 @@ export const formatPost = (post: Post) => {
 From: ${post.author.metadata?.name} (@${post.author.username?.localName})${post.commentOn ? `\nIn reply to: @${post.commentOn.author.username?.localName}` : ""}
 Text: ${post.metadata.content}`;
 };
+
+export const downloadVideoBuffer = async (url: string): Promise<Buffer> => {
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error(`Failed to download video: ${response.statusText}`);
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    return Buffer.from(arrayBuffer);
+}
+
+export const downloadImageAsBase64 = async (url: string): Promise<string> => {
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error(`Failed to download image: ${response.statusText}`);
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    const mimeType = response.headers.get('content-type') || 'image/jpeg';
+    return `data:${mimeType};base64,${Buffer.from(arrayBuffer).toString('base64')}`;
+}

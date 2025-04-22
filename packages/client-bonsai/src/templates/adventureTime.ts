@@ -30,7 +30,7 @@ import {
 } from "../utils/types";
 import { formatMetadata } from "../services/lens/createPost";
 import { isMediaStale, getLatestComments, getVoteWeightFromBalance } from "../utils/utils";
-import { parseAndUploadBase64Image, parseBase64Image, uploadJson } from "../utils/ipfs";
+import { parseBase64Image, uploadJson, pinFile, storjGatewayURL } from "../utils/ipfs";
 import { fetchAllCollectorsFor, fetchAllCommentsFor, fetchAllUpvotersFor } from "../services/lens/posts";
 import { balanceOfBatched } from "../utils/viem";
 import { storageClient, LENS_CHAIN_ID, LENS_CHAIN } from "../services/lens/client";
@@ -121,7 +121,7 @@ type TemplateData = {
     minCommentUpdateThreshold?: number;
 }
 
-const DEFAULT_MODEL_ID = "stable-diffusion-3.5"; // most creative
+const DEFAULT_MODEL_ID = "venice-sd35"; // most creative
 const DEFAULT_STYLE_PRESET = "Film Noir";
 const DEFAULT_MIN_ENGAGEMENT_UPDATE_THREHOLD = 1; // at least 3 upvotes/comments before updating
 
@@ -143,7 +143,7 @@ const adventureTime = {
         options?: { forceUpdate: boolean },
     ): Promise<TemplateHandlerResponse | undefined> => {
         const refresh = !!media?.templateData;
-        elizaLogger.log(`Running template (refresh: ${refresh}):`, TemplateName.ADVENTURE_TIME);
+        elizaLogger.info(`Running template (refresh: ${refresh}):`, TemplateName.ADVENTURE_TIME);
 
         // either we are refreshing the persisted `media` object or we're generating a preview using `_templateData`
         const templateData = refresh ? media?.templateData as TemplateData : _templateData;
@@ -308,12 +308,13 @@ Option B) ${page.decisions[1]}
                 const acl = walletOnly(signer.address, LENS_CHAIN_ID);
 
                 // edit the image and the metadata json
-                await storageClient.editFile(imageUri, parseBase64Image(imageResponse) as unknown as File, signer, { acl });
-                // edit the metadata
+                const file = parseBase64Image(imageResponse) as unknown as File;
+                await storageClient.editFile(imageUri, file, signer, { acl });
+                // edit the metadata for versioning
                 metadata = formatMetadata({
-                    text,
+                    text: json.lens.content as string,
                     image: {
-                        url: imageUri,
+                        url: storjGatewayURL(await pinFile(file)),
                         type: MediaImageMimeType.PNG // see generation.ts the provider
                     },
                     attributes: json.lens.attributes,
@@ -322,10 +323,9 @@ Option B) ${page.decisions[1]}
                         name: TemplateName.ADVENTURE_TIME,
                     },
                 }) as ImageMetadata;
-                await storageClient.updateJson(media?.uri, metadata, signer, { acl });
 
                 // upload version to storj for versioning
-                persistVersionUri = await uploadJson(json);
+                persistVersionUri = await uploadJson(metadata);
             }
 
             return {
@@ -334,6 +334,7 @@ Option B) ${page.decisions[1]}
                     image: imageResponse.success ? imageResponse.data?.[0] : undefined,
                 },
                 metadata,
+                refreshMetadata: refresh,
                 updatedTemplateData: { ...templateData, decisions: page.decisions, chapterName: page.chapterName },
                 persistVersionUri,
                 totalUsage,

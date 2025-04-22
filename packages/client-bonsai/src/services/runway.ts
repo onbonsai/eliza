@@ -6,29 +6,29 @@ export const generateVideoRunway = async (
         prompt: string;
         promptImage: string;
         count?: number;
+        duration?: 5 | 10;
     },
     runtime: IAgentRuntime
 ): Promise<{
     success: boolean;
-    data?: string[];
+    data?: string[]; // urls
     error?: any;
 }> => {
     const { prompt, promptImage } = data;
-    let { count } = data;
-    if (!count) {
-        count = 1;
-    }
+    let { count, duration } = data;
+    if (!count) count = 1;
+    if (!duration) duration = 5;
     try {
         const client = new RunwayML({
-            apiKey: runtime.getSetting("RUNWAY_API_KEY"),
+            apiKey: runtime.getSetting("RUNWAY_API_KEY") as string,
         });
 
         const data = await client.imageToVideo.create({
-            model: "gen3a_turbo",
+            model: "gen4_turbo",
             promptImage,
             promptText: prompt,
-            duration: 5,
-            ratio: "768:1280",
+            duration,
+            ratio: "720:1280", // TODO: this should be detected from the image if its uploaded
         });
 
         console.log("create video submitted, waiting on job:", data.id);

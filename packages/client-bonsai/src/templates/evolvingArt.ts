@@ -29,11 +29,12 @@ import {
 } from "../utils/types";
 import { formatMetadata } from "../services/lens/createPost";
 import { isMediaStale, getLatestComments, getVoteWeightFromBalance } from "../utils/utils";
-import { parseAndUploadBase64Image, parseBase64Image, uploadJson } from "../utils/ipfs";
+import { parseAndUploadBase64Image, parseBase64Image, pinFile, storjGatewayURL, uploadJson } from "../utils/ipfs";
 import { fetchAllCollectorsFor, fetchAllCommentsFor, fetchAllUpvotersFor } from "../services/lens/posts";
 import { balanceOfBatched } from "../utils/viem";
 import { LENS_CHAIN, LENS_CHAIN_ID, storageClient } from "../services/lens/client";
 import { BONSAI_PROTOCOL_FEE_RECIPIENT } from "../utils/constants";
+import { refresh } from "@lens-protocol/client/actions";
 
 export const nextImageTemplate = `
 # Instructions
@@ -51,7 +52,7 @@ type TemplateData = {
   minCommentUpdateThreshold?: number;
 }
 
-const DEFAULT_IMAGE_MODEL_ID = "stable-diffusion-3.5"; // most creative
+const DEFAULT_IMAGE_MODEL_ID = "venice-sd35"; // most creative
 const DEFAULT_IMAGE_STYLE_PRESET = "Neon Punk";
 const DEFAULT_MIN_ENGAGEMENT_UPDATE_THREHOLD = 1; // at least 3 upvotes/comments before updating
 
@@ -72,7 +73,8 @@ const evolvingArt = {
     _templateData?: TemplateData,
     options?: { forceUpdate: boolean },
   ): Promise<TemplateHandlerResponse | undefined> => {
-    elizaLogger.log("Running template:", TemplateName.ARTIST_PRESENT);
+    const refresh = !!media?.templateData;
+    elizaLogger.info(`Running template (refresh: ${refresh}):`, TemplateName.EVOLVING_ART);
 
     if (!media?.templateData) {
       elizaLogger.error("Missing template data");
@@ -221,10 +223,11 @@ const evolvingArt = {
 
       let signer: Account;
       let acl;
+      let file;
       try {
         signer = privateKeyToAccount(process.env.LENS_STORAGE_NODE_PRIVATE_KEY as `0x${string}`);
         acl = walletOnly(signer.address, LENS_CHAIN_ID);
-        const file = parseBase64Image(imageResponse);
+        file = parseBase64Image(imageResponse);
 
         if (!file) throw new Error("Failed to parse base64 image");
 
@@ -236,7 +239,7 @@ const evolvingArt = {
       const metadata = formatMetadata({
         text: prompt,
         image: {
-          url: imageUri,
+          url: storjGatewayURL(await pinFile(file)),
           type: MediaImageMimeType.PNG // see generation.ts the provider
         },
         attributes: json.lens.attributes,
@@ -245,12 +248,11 @@ const evolvingArt = {
           name: TemplateName.ADVENTURE_TIME,
         },
       }) as ImageMetadata;
-      await storageClient.updateJson(media?.uri, metadata, signer, { acl });
 
       // upload version to storj for versioning
-      const persistVersionUri = await uploadJson(json);
+      const persistVersionUri = await uploadJson(metadata);
 
-      return { metadata, persistVersionUri, totalUsage }
+      return { persistVersionUri, totalUsage, refreshMetadata: refresh }
     } catch (error) {
       console.log(error);
       elizaLogger.error("handler failed", error);

@@ -48,6 +48,8 @@ import { chains } from "@lens-chain/sdk/viem";
 import { MetadataAttributeType, account, app, feed } from "@lens-protocol/metadata";
 import { storageClient } from "./services/lens/client";
 import { fetchPostById } from "./services/lens/posts";
+import videoFunTemplate from "./templates/videoFun";
+import multer from "multer";
 
 /**
  * BonsaiClient provides an Express server for managing smart media posts on Lens Protocol.
@@ -78,6 +80,14 @@ class BonsaiClient {
     if (process.env.SENTRY_DSN && process.env.SENTRY_DSN !== "") {
       Sentry.init({ dsn: process.env.SENTRY_DSN });
     }
+
+    // Configure multer for memory storage
+    const upload = multer({
+      storage: multer.memoryStorage(),
+      limits: {
+        fileSize: 10 * 1024 * 1024, // 10MB limit
+      }
+    });
 
     this.app.use(cors());
     this.app.use(bodyParser.json());
@@ -117,27 +127,48 @@ class BonsaiClient {
      * Generates a preview for a new smart media post before creation.
      *
      * @requires verifyLensId middleware
-     * @param {Object} req.body.category - Template category
-     * @param {Object} req.body.templateName - Name of template to use
-     * @param {Object} req.body.templateData - Data to populate the template
+     * @param {Object} req.body.data - JSON data containing category, templateName, and templateData
+     * @param {Object} req.body.image - Uploaded image file
      * @returns {Object} Preview data with agentId, preview content
-     * @throws {400} If template is not registered
+     * @throws {400} If invalid JSON data in form field
      */
     this.app.post(
       "/post/create-preview",
       verifyLensId,
+      upload.single('image'),
       async (req: express.Request, res: express.Response) => {
         const creator = req.user?.sub as `0x${string}`;
-        const { category, templateName, templateData }: CreateTemplateRequestParams = req.body;
+
+        // Parse the templateData from the form field
+        let templateData, category, templateName;
+        try {
+          const formData = typeof req.body.data === 'string' ? JSON.parse(req.body.data) : req.body.data;
+          templateData = formData.templateData;
+          category = formData.category;
+          templateName = formData.templateName;
+        } catch (error) {
+          console.log(error);
+          res.status(400).json({ error: "Invalid JSON data in form field" });
+          return;
+        }
+
+        // If there's an uploaded file, add it to templateData
+        if (req.file) {
+          const imageData = req.file.buffer.toString('base64');
+          templateData = {
+            ...templateData,
+            imageData: `data:${req.file.mimetype};base64,${imageData}`
+          };
+        }
 
         // Check preview rate limit
         const previewKey = `create_preview_count:${creator}`;
         const previewCount = await this.redis.get(previewKey);
 
-        if (previewCount && parseInt(previewCount) >= 3) {
-          res.status(403).json({ error: "you can only generate three previews per hour" });
-          return;
-        }
+        // if (previewCount && parseInt(previewCount) >= 3) {
+        //   res.status(403).json({ error: "you can only generate three previews per hour" });
+        //   return;
+        // }
 
         const runtime = this.agents.get(process.env.GLOBAL_AGENT_ID as UUID);
         const template = this.templates.get(templateName);
@@ -534,7 +565,7 @@ class BonsaiClient {
     }
 
     // generate the next version of the post metadata
-    elizaLogger.info(`invoking ${data.template} handler for post: ${postId}`, data);
+    elizaLogger.info(`invoking ${data.template} handler for post: ${postId}`);
     const response = await template?.handler(runtime as IAgentRuntime, data, undefined, { forceUpdate });
 
     // no response means template failed
@@ -548,7 +579,7 @@ class BonsaiClient {
         await this.removePostFromCache(data);
       }
       return;
-    } else if (!response.metadata && response.totalUsage.promptTokens === 0 && response.totalUsage.imagesCreated === 0) {
+    } else if (!response.refreshMetadata && response.totalUsage.promptTokens === 0 && response.totalUsage.imagesCreated === 0 && response.totalUsage.videosCreated === 0) {
       elizaLogger.error(`no updates for post: ${postId}`);
       // freeze the post to skip future checks; remove from cache
       if ((Math.floor(Date.now() / 1000)) - data.updatedAt > DEFAULT_FREEZE_TIME) {
@@ -558,7 +589,7 @@ class BonsaiClient {
       }
       return;
     }
-    elizaLogger.info(`handler completed for post: ${postId}`, data);
+    elizaLogger.info(`handler completed for post: ${postId}`);
 
     const needsStatusUpdate = data.status === SmartMediaStatus.DISABLED || data.status === SmartMediaStatus.FAILED;
     const hasNewVersion = !!response.persistVersionUri;
@@ -581,13 +612,13 @@ class BonsaiClient {
     await decrementCredits(data.creator, template?.clientMetadata.defaultModel || DEFAULT_MODEL_ID, { input: totalUsage?.promptTokens || 0, output: totalUsage?.completionTokens || 0 }, totalUsage?.imagesCreated || 0);
 
     // no metadata means nothing to update on the post
-    if (!response?.metadata) {
+    if (!(response?.metadata || response?.refreshMetadata)) {
       elizaLogger.log(`no metadata, skipping update for post: ${postId}`);
       return;
     }
 
     // refresh the post metadata
-    if (response.metadata) {
+    if (response.metadata || response?.refreshMetadata) {
       const jobId = await refreshMetadataFor(postId);
       const status = await refreshMetadataStatusFor(jobId as string);
       elizaLogger.info(`submitted lens refresh metadata request for post: ${postId} (${jobId} => ${status})`);
@@ -619,7 +650,7 @@ class BonsaiClient {
     this.mongo = await getClient();
 
     // init templates
-    for (const template of [adventureTimeTemplate, evolvingArtTemplate]) { //, infoAgentTemplate]) {
+    for (const template of [adventureTimeTemplate, evolvingArtTemplate, videoFunTemplate]) { //, infoAgentTemplate]) {
       this.templates.set(template.clientMetadata.name, template);
     };
   }
