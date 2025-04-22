@@ -236,16 +236,23 @@ User comment: ${comment}`
         throw new Error("No video response");
       }
 
-      const { response: narrationResponse, usage: narrationUsage } = await generateText({
-        runtime,
-        context: `You're jumping into a collaboratively-made video moment. Given ${templateData.narration ? `the original line "${templateData.narration}" and ` : ""} what's happening in this clip ("${videoPrompt}"), write a short and spontaneous comment or reaction someone might naturally say out loud. The more unhinged the line, the better. Keep it under ${NARRATION_CHAR_LIMIT} characters, and do not use emojis.`,
-        modelClass: ModelClass.SMALL,
-        modelProvider: ModelProviderName.OPENAI,
-        returnUsage: true,
-      }) as { response: string, usage: LanguageModelUsage };
+      let narration: string | undefined;
+      if (!refresh) {
+        narration = templateData.narration;
+      }
 
-      const narration = narrationResponse.replace(/['"]/g, '');
-      totalUsage.customTokens[getModelSettings(ModelProviderName.OPENAI, ModelClass.SMALL)?.name] = narrationUsage;
+      if (!narration) {
+        const { response: narrationResponse, usage: narrationUsage } = await generateText({
+          runtime,
+          context: `You're jumping into a collaboratively-made video moment. Given ${templateData.narration ? `the original line "${templateData.narration}" and ` : ""} what's happening in this clip ("${videoPrompt}"), write a short and spontaneous comment or reaction someone might naturally say out loud. The more unhinged the line, the better. Keep it under ${NARRATION_CHAR_LIMIT} characters, and do not use emojis.`,
+          modelClass: ModelClass.SMALL,
+          modelProvider: ModelProviderName.OPENAI,
+          returnUsage: true,
+        }) as { response: string, usage: LanguageModelUsage };
+        totalUsage.customTokens[getModelSettings(ModelProviderName.OPENAI, ModelClass.SMALL)?.name] = narrationUsage;
+        narration = narrationResponse.replace(/['"]/g, '');
+      }
+
       elizaLogger.info(`generating speech with narration: ${narration}`);
       const audioBuffer = await generateSpeech(
         narration,
@@ -310,6 +317,7 @@ User comment: ${comment}`
       form: z.object({
         sceneDescription: z.string().describe("Describe the scene for your video"),
         elevenLabsVoiceId: z.string().nullish().describe("Choose the voice that will narrate your video"),
+        narration: z.string().max(NARRATION_CHAR_LIMIT).nullish().describe("Optional: What gets narrated during your video?"),
         modelId: z.string().nullish().describe("Optional: Specify an AI model to use for image generation"),
         stylePreset: z.string().nullish().describe("Optional: Choose a style preset to use for image generation"),
       })
