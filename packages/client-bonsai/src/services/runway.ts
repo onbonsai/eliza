@@ -28,6 +28,7 @@ export const generateVideoRunway = async (
             promptImage,
             promptText: prompt,
             duration,
+            seed: 8008, // TODO: maybe inferred from a generation
             ratio: "720:1280", // TODO: this should be detected from the image if its uploaded
         });
 
