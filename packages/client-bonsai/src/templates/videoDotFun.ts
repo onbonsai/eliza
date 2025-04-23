@@ -282,12 +282,12 @@ const videoFun = {
 
       return {
         preview: {
-          video: refresh ? {
+          video: !refresh ? {
             buffer: Buffer.from(video).toJSON().data,
             mimeType: 'video/mp4',
             size: video.length
           } : undefined,
-          image: refresh ? await extractFrameFromVideo(video) : undefined, // the first frame for the cover
+          image: !refresh ? await extractFrameFromVideo(video) : undefined, // the first frame for the cover
         },
         refreshMetadata: refresh,
         updatedTemplateData: { ...templateData, versionCount },

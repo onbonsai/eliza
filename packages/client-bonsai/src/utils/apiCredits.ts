@@ -1,5 +1,6 @@
 import type { LanguageModelUsage } from "ai";
 import { getCreditsClient } from "../services/mongo";
+import { TemplateName } from "./types";
 
 export const DEFAULT_MODEL_ID = "gpt-4o";
 
@@ -38,16 +39,16 @@ const modelCosts = {
     },
 };
 
-const minCreditsForUpdate: Record<string, number> = {
-    adventure_time:
-        calculateTokenCost(350, modelCosts["gpt-4.5-preview"].input) +
-        calculateTokenCost(15, modelCosts["gpt-4.5-preview"].output) +
+export const minCreditsForUpdate: Record<string, number> = {
+    [TemplateName.ADVENTURE_TIME]:
+        calculateTokenCost(350, modelCosts["gpt-4.1"].input) +
+        calculateTokenCost(15, modelCosts["gpt-4.1"].output) +
         1,
-    artist_present: 1,
-    info_agent:
+    [TemplateName.EVOLVING_ART]: 1,
+    [TemplateName.INFO_AGENT]:
         calculateTokenCost(350, modelCosts["gpt-4o"].input) +
         calculateTokenCost(15, modelCosts["gpt-4o"].output),
-    video_fun:
+    [TemplateName.VIDEO_DOT_FUN]:
         calculateTokenCost(800, modelCosts["qwen-2.5-vl"].input) +
         calculateTokenCost(125, modelCosts["qwen-2.5-vl"].output) +
         calculateTokenCost(225, modelCosts["gpt-4o-mini"].input) +

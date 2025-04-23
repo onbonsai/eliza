@@ -263,7 +263,7 @@ const evolvingArt = {
     category: TemplateCategory.EVOLVING_ART,
     name: TemplateName.EVOLVING_ART,
     displayName: "Evolving Art",
-    description: "Collect the post, buy tokens, and interact with the post (replies, upvotes) to evolve the image",
+    description: "Collect the post, buy tokens, and interact with the post (replies, upvotes) to evolve the image.",
     image: "https://link.storjshare.io/raw/jwq56rwpuhhle4k7tjbxyfd4l37q/bonsai/artistPresent.png",
     options: {
       allowPreview: false,
