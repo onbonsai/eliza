@@ -86,14 +86,13 @@ const videoFun = {
       return;
     }
 
-    console.log(templateData);
-
     const totalUsage: TemplateUsage = {
       promptTokens: 0,
       completionTokens: 0,
       totalTokens: 0,
       imagesCreated: 0,
-      videosCreated: 0,
+      videoDuration: 0,
+      audioCharacters: 0,
       customTokens: {},
     };
 
@@ -206,9 +205,7 @@ const videoFun = {
           content: [
             {
               type: "text",
-              text: `Given the current image and the following user comment, describe a clear and specific action or movement occurring in the scene. Focus on new motion elements without repeating details from the image. Use simple, direct language to convey the desired motion. Keep the description strictly under ${RUNWAY_CHAR_LIMIT} characters.​
-
-User comment: ${comment}`
+              text: `Given the current image and the following user comment, briefly describe a dynamic and visually clear scene for video animation. Focus on specific movements or actions that naturally evolve from the image, directly incorporating the user's suggestion without introducing overly complex concepts. Keep it strictly under ${RUNWAY_CHAR_LIMIT} characters. User comment: ${comment}`
             },
             {
               type: "image",
@@ -280,6 +277,8 @@ User comment: ${comment}`
       } else {
         templateData.narration = narration;
       }
+
+      // elizaLogger.info("totalUsage", totalUsage)
 
       return {
         preview: {

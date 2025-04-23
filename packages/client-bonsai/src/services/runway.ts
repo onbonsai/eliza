@@ -1,4 +1,4 @@
-import type { IAgentRuntime } from "@elizaos/core";
+import { elizaLogger, type IAgentRuntime } from "@elizaos/core";
 import RunwayML from "@runwayml/sdk";
 
 export const generateVideoRunway = async (
@@ -28,7 +28,7 @@ export const generateVideoRunway = async (
             promptImage,
             promptText: prompt,
             duration,
-            seed: 8008, // TODO: maybe inferred from a generation
+            seed: 10001, // TODO: maybe inferred from a generation
             ratio: "720:1280", // TODO: this should be detected from the image if its uploaded
         });
 
@@ -44,7 +44,7 @@ export const generateVideoRunway = async (
             task = await client.tasks.retrieve(data.id);
         } while (!["SUCCEEDED", "FAILED"].includes(task.status));
 
-        console.log("Task complete:", task);
+        // elizaLogger.info("Task complete:", task);
 
         return { success: true, data: task.output };
     } catch (error) {
