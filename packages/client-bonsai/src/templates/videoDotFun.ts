@@ -77,7 +77,7 @@ const videoFun = {
     options?: { forceUpdate: boolean },
   ): Promise<TemplateHandlerResponse | undefined> => {
     const refresh = !!media?.templateData;
-    elizaLogger.info(`Running template (refresh: ${refresh}):`, TemplateName.VIDEO_FUN);
+    elizaLogger.info(`Running template (refresh: ${refresh}):`, TemplateName.VIDEO_DOT_FUN);
 
     // either we are refreshing the persisted `media` object or we're generating a preview using `_templateData`
     const templateData = refresh ? media?.templateData as TemplateData : _templateData;
@@ -302,10 +302,10 @@ const videoFun = {
   clientMetadata: {
     protocolFeeRecipient: BONSAI_PROTOCOL_FEE_RECIPIENT,
     category: TemplateCategory.EVOLVING_ART,
-    name: TemplateName.VIDEO_FUN,
-    displayName: "videodotfun",
+    name: TemplateName.VIDEO_DOT_FUN,
+    displayName: "Video Dot Fun",
     description: `Collab on fun & spontanous video generation. The first ${MAX_VERSION_COUNT} collectors can comment to extend the video.`,
-    image: "", // TODO:
+    image: "https://link.storjshare.io/raw/jxsesguowbvuyllaak6k6cegfywa/bonsai/videoDotFun.png",
     options: {
       allowPreview: true,
       allowPreviousToken: true,

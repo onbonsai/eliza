@@ -37,7 +37,7 @@ export const FREE_GENERATIONS_PER_HOUR = 1;
 
 // only for stakers, no free generations (generally because they are expensive)
 export const PREMIUM_TEMPLATES = [
-    TemplateName.VIDEO_FUN,
+    TemplateName.VIDEO_DOT_FUN,
 ];
 
 // production
