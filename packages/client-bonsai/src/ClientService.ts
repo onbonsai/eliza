@@ -49,7 +49,7 @@ import { chains } from "@lens-chain/sdk/viem";
 import { MetadataAttributeType, account, app, feed } from "@lens-protocol/metadata";
 import { storageClient } from "./services/lens/client";
 import { fetchPostById } from "./services/lens/posts";
-import videoFunTemplate from "./templates/videoFun";
+import videoFunTemplate from "./templates/videoDotFun";
 import multer from "multer";
 
 /**
