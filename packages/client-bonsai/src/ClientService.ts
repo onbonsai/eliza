@@ -317,12 +317,14 @@ class BonsaiClient {
           }
 
           const template = this.templates.get(data.template);
+          if (!template) throw new Error("template not found");
           res.status(200).json({
             ...data,
             isProcessing: this.tasks.isProcessing(postId as string),
             versions,
             protocolFeeRecipient: template?.clientMetadata.protocolFeeRecipient,
             description: template?.clientMetadata.description,
+            estimatedCost: minCreditsForUpdate[template.clientMetadata.name],
             status,
           });
         } else {
