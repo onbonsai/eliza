@@ -310,11 +310,11 @@ Option B) ${page.decisions[1]}
                 // edit the image and the metadata json
                 const file = parseBase64Image(imageResponse) as unknown as File;
                 await storageClient.editFile(imageUri, file, signer, { acl });
-                // edit the metadata for versioning
+                // edit the metadata
                 metadata = formatMetadata({
-                    text: json.lens.content as string,
+                    text,
                     image: {
-                        url: storjGatewayURL(await pinFile(file)),
+                        url: imageUri,
                         type: MediaImageMimeType.PNG // see generation.ts the provider
                     },
                     attributes: json.lens.attributes,
@@ -323,9 +323,10 @@ Option B) ${page.decisions[1]}
                         name: TemplateName.ADVENTURE_TIME,
                     },
                 }) as ImageMetadata;
+                await storageClient.updateJson(media?.uri, metadata, signer, { acl });
 
-                // upload version to storj for versioning
-                persistVersionUri = await uploadJson(metadata);
+                // // upload version to storj for versioning
+                // persistVersionUri = await uploadJson(metadata);
             }
 
             return {

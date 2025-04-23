@@ -1,3 +1,4 @@
+import { elizaLogger } from "@elizaos/core";
 import axios from "axios";
 import FormData from "form-data";
 import { File } from 'node:buffer';
@@ -47,13 +48,29 @@ export const uploadJson = async (json: any) => {
   return storjGatewayURL(data.Hash);
 };
 
-export const pinFile = async (file: {
+export const pinFile = async (file: File | {
   buffer: Buffer;
   originalname: string;
   mimetype: string;
 }) => {
   const formData = new FormData();
-  formData.append("file", file);
+
+  if (file instanceof File) {
+    // Handle File object
+    const buffer = Buffer.from(await file.arrayBuffer());
+    formData.append("file", buffer, {
+      filename: file.name,
+      contentType: file.type,
+      knownLength: buffer.length
+    });
+  } else {
+    // Handle custom file object
+    formData.append("file", file.buffer, {
+      filename: file.originalname,
+      contentType: file.mimetype,
+      knownLength: file.buffer.length
+    });
+  }
 
   // Perform the Axios request
   const response = await _client().post("add?cid-version=1", formData, {
@@ -96,13 +113,6 @@ export const parseAndUploadBase64Image = async (imageResponse) => {
 
 export const parseBase64Image = (imageResponse): File | undefined => {
   if (imageResponse.success && imageResponse.data?.[0]) {
-    // Add debugging
-    console.log("Image response received:", {
-      hasData: !!imageResponse.data[0],
-      dataLength: imageResponse.data[0].length,
-      startsWithDataUrl: imageResponse.data[0].startsWith('data:image'),
-    });
-
     if (!imageResponse.data[0].includes("base64")) {
       console.error("Image response does not contain base64 data");
       return;
@@ -132,7 +142,7 @@ export const parseBase64Image = (imageResponse): File | undefined => {
       return new Blob([imageBuffer], { type: "image/png" }) as unknown as File;
     }
   }
-  console.error("Invalid image response:", imageResponse);
+  elizaLogger.error("Invalid image response:", imageResponse);
   return;
 };
 

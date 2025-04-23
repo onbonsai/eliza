@@ -29,7 +29,7 @@ import {
 } from "../utils/types";
 import { formatMetadata } from "../services/lens/createPost";
 import { isMediaStale, getLatestComments, getVoteWeightFromBalance } from "../utils/utils";
-import { parseAndUploadBase64Image, parseBase64Image, pinFile, storjGatewayURL, uploadJson } from "../utils/ipfs";
+import { parseBase64Image, pinFile, uploadJson } from "../utils/ipfs";
 import { fetchAllCollectorsFor, fetchAllCommentsFor, fetchAllUpvotersFor } from "../services/lens/posts";
 import { balanceOfBatched } from "../utils/viem";
 import { LENS_CHAIN, LENS_CHAIN_ID, storageClient } from "../services/lens/client";
@@ -53,7 +53,6 @@ type TemplateData = {
 }
 
 const DEFAULT_IMAGE_MODEL_ID = "venice-sd35"; // most creative
-const DEFAULT_IMAGE_STYLE_PRESET = "Neon Punk";
 const DEFAULT_MIN_ENGAGEMENT_UPDATE_THREHOLD = 1; // at least 3 upvotes/comments before updating
 
 /**
@@ -200,7 +199,7 @@ const evolvingArt = {
             height: 1024,
             imageModelProvider: ModelProviderName.VENICE,
             modelId: templateData.modelId || DEFAULT_IMAGE_MODEL_ID,
-            stylePreset: templateData.stylePreset || DEFAULT_IMAGE_STYLE_PRESET,
+            stylePreset: templateData.stylePreset,
             inpaint: firstAttempt ? {
               strength: 50,
               source_image_base64: await fetch(imageUrl)
@@ -236,21 +235,28 @@ const evolvingArt = {
         console.log(error);
         throw new Error("failed");
       }
-      const metadata = formatMetadata({
-        text: prompt,
-        image: {
-          url: storjGatewayURL(await pinFile(file)),
-          type: MediaImageMimeType.PNG // see generation.ts the provider
-        },
-        attributes: json.lens.attributes,
-        media: {
-          category: TemplateCategory.EVOLVING_POST,
-          name: TemplateName.ADVENTURE_TIME,
-        },
-      }) as ImageMetadata;
+      let persistVersionUri: string | undefined;
+      // TODO: not working
+      // try {
+      //   const prevImageBase64 = await fetch(imageUrl)
+      //     .then(res => res.arrayBuffer())
+      //     .then(buffer => Buffer.from(buffer).toString('base64'));
+      //   const metadata = formatMetadata({
+      //     text: prompt,
+      //     image: {
+      //       url: await pinFile(parseBase64Image({ success: true, data: [prevImageBase64] })),
+      //       type: MediaImageMimeType.PNG // see generation.ts the provider
+      //     },
+      //     attributes: json.lens.attributes,
+      //     media: {
+      //       category: TemplateCategory.EVOLVING_POST,
+      //       name: TemplateName.ADVENTURE_TIME,
+      //     },
+      //   }) as ImageMetadata;
 
-      // upload version to storj for versioning
-      const persistVersionUri = await uploadJson(metadata);
+      //   // upload version to storj for versioning
+      //   persistVersionUri = await uploadJson(metadata);
+      // } catch {}
 
       return { persistVersionUri, totalUsage, refreshMetadata: refresh }
     } catch (error) {
