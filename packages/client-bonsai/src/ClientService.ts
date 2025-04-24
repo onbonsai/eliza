@@ -307,14 +307,16 @@ class BonsaiClient {
         if (data) {
           let versions: string[] | undefined = data.versions;
           let status: SmartMediaStatus | undefined = data.status;
+          let featured: boolean | undefined;
 
           if (withVersions && !(versions || status)) {
             const doc = await this.mongo.media?.findOne(
               { postId },
-              { projection: { _id: 0, versions: { $slice: -10 }, status: 1 } }
+              { projection: { _id: 0, versions: { $slice: -10 }, status: 1, featured: 1 } }
             );
             versions = doc?.versions;
             status = doc?.status;
+            featured = doc?.featured;
           }
 
           const template = this.templates.get(data.template);
@@ -327,6 +329,7 @@ class BonsaiClient {
             description: template?.clientMetadata.description,
             estimatedCost: minCreditsForUpdate[template.clientMetadata.name],
             status,
+            featured,
           });
         } else {
           res.status(404).send();
