@@ -154,6 +154,10 @@ const videoFun = {
       // Generate a video using the template data inputs (optional image, narration)
       let image: string; // base64
       if (refresh) {
+        const url = await storageClient.resolve(media?.uri as URI);
+        json = await fetch(url).then(res => res.json());
+        videoUri = json?.lens?.video?.item
+
         // use the comment image if provided, else the final frame in the last clip
         if (nextComment?.metadata?.image?.item) {
           const url = nextComment?.metadata?.image?.item.startsWith("lens://")
@@ -161,9 +165,6 @@ const videoFun = {
             : nextComment?.metadata?.image?.item;
           image = await downloadImageAsBase64(url);
         } else {
-          const url = await storageClient.resolve(media?.uri as URI);
-          json = await fetch(url).then(res => res.json());
-          videoUri = json?.lens?.video?.item
           ogVideo = await downloadVideoBuffer(storageClient.resolve(videoUri as string));
           image = await extractFrameFromVideo(ogVideo!, true); // the last frame
         }

@@ -50,6 +50,7 @@ import { MetadataAttributeType, account, app, feed } from "@lens-protocol/metada
 import { storageClient } from "./services/lens/client";
 import { fetchPostById } from "./services/lens/posts";
 import videoFunTemplate from "./templates/videoDotFun";
+import adventureTimeVideo from "./templates/adventureTimeVideo";
 import multer from "multer";
 
 /**
@@ -699,7 +700,7 @@ class BonsaiClient {
     this.mongo = await getClient();
 
     // init templates
-    for (const template of [adventureTimeTemplate, evolvingArtTemplate, infoAgentTemplate, videoFunTemplate]) {
+    for (const template of [adventureTimeTemplate, adventureTimeVideo, evolvingArtTemplate, infoAgentTemplate, videoFunTemplate]) {
       this.templates.set(template.clientMetadata.name, template);
     };
   }

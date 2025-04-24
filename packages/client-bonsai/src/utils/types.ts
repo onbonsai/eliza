@@ -47,6 +47,7 @@ export enum TemplateName {
   EVOLVING_ART = "evolving_art",
   INFO_AGENT = "info_agent",
   VIDEO_DOT_FUN = "video_dot_fun",
+  ADVENTURE_TIME_VIDEO = "adventure_time_video",
 }
 
 /**

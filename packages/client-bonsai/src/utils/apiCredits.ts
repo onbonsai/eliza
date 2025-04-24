@@ -54,7 +54,15 @@ export const minCreditsForUpdate: Record<string, number> = {
         calculateTokenCost(225, modelCosts["gpt-4o-mini"].input) +
         calculateTokenCost(50, modelCosts["gpt-4o-mini"].output) +
         50 +
-        4
+        4,
+    [TemplateName.ADVENTURE_TIME_VIDEO]:
+        calculateTokenCost(350, modelCosts["gpt-4.1"].input) +
+        calculateTokenCost(250, modelCosts["gpt-4.1"].output) +
+        calculateTokenCost(1850, modelCosts["qwen-2.5-vl"].input) +
+        calculateTokenCost(50, modelCosts["qwen-2.5-vl"].output) +
+        1 +
+        50,
+
 };
 
 export const getCreditsForMessage = (model: string): number => {
