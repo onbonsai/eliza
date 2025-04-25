@@ -29,7 +29,7 @@ import { bufferToVideoFile } from "../utils/ipfs";
 import { fetchAllCollectorsFor, fetchAllCommentsFor } from "../services/lens/posts";
 import { LENS_CHAIN_ID, storageClient } from "../services/lens/client";
 import { BONSAI_PROTOCOL_FEE_RECIPIENT } from "../utils/constants";
-import { generateVideoRunway } from "../services/runway";
+import { type AspectRatio, generateVideoRunway } from "../services/runway";
 import { generateSpeech } from "../services/elevenlabs";
 import { concatenateVideos, extractFrameFromVideo, mergeVideoAndAudio } from '../services/videoProcessor';
 
@@ -47,6 +47,7 @@ type TemplateData = {
   narration: string;
   elevenLabsVoiceId: string;
   imageData?: string; // base64
+  aspectRatio?: AspectRatio;
   modelId?: string;
   stylePreset?: string;
   versionCount: number; // how many videos we've created
@@ -224,6 +225,7 @@ const videoFun = {
         promptImage: image,
         count: 1,
         duration: VIDEO_DURATION,
+        aspectRatio: templateData?.aspectRatio,
       }, runtime);
       totalUsage.videoDuration = VIDEO_DURATION;
 
@@ -317,7 +319,7 @@ const videoFun = {
       form: z.object({
         sceneDescription: z.string().describe("Describe the scene for your video"),
         elevenLabsVoiceId: z.string().nullish().describe("Choose the voice that will narrate your video"),
-        narration: z.string().max(NARRATION_CHAR_LIMIT).nullish().describe("Optional: What gets narrated during your video?"),
+        narration: z.string().max(NARRATION_CHAR_LIMIT).nullish().describe(`Optional: What gets narrated during your video? (max ${NARRATION_CHAR_LIMIT} characters)`),
         modelId: z.string().nullish().describe("Optional: Specify an AI model to use for image generation"),
         stylePreset: z.string().nullish().describe("Optional: Choose a style preset to use for image generation"),
       })

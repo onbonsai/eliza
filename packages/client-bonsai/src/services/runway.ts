@@ -1,12 +1,24 @@
 import { elizaLogger, type IAgentRuntime } from "@elizaos/core";
 import RunwayML from "@runwayml/sdk";
 
+export type AspectRatio = "16:9" | "9:16" | "1:1" | "4:3" | "3:4" | "21:9";
+
+const ASPECT_RATIO_MAP: Record<AspectRatio, string> = {
+    "9:16": "720:1280",
+    "16:9": "1280:720",
+    "4:3": "1104:832",
+    "3:4": "832:1104",
+    "1:1": "960:960",
+    "21:9": "1584:672"
+};
+
 export const generateVideoRunway = async (
     data: {
         prompt: string;
         promptImage: string;
         count?: number;
         duration?: 5 | 10;
+        aspectRatio?: AspectRatio;
     },
     runtime: IAgentRuntime
 ): Promise<{
@@ -15,9 +27,10 @@ export const generateVideoRunway = async (
     error?: any;
 }> => {
     const { prompt, promptImage } = data;
-    let { count, duration } = data;
+    let { count, duration, aspectRatio } = data;
     if (!count) count = 1;
     if (!duration) duration = 5;
+    if (!aspectRatio) aspectRatio = "1:1";
     try {
         const client = new RunwayML({
             apiKey: runtime.getSetting("RUNWAY_API_KEY") as string,
@@ -29,7 +42,8 @@ export const generateVideoRunway = async (
             promptText: prompt,
             duration,
             seed: 10001, // TODO: maybe inferred from a generation
-            ratio: "720:1280", // TODO: this should be detected from the image if its uploaded
+            // @ts-ignore
+            ratio: ASPECT_RATIO_MAP[aspectRatio as AspectRatio],
         });
 
         console.log("create video submitted, waiting on job:", data.id);
