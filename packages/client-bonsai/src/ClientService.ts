@@ -621,8 +621,8 @@ class BonsaiClient {
       totalUsage?.customTokens
     );
 
-    // no metadata means nothing to update on the post
-    if (!(response?.metadata || response?.refreshMetadata)) {
+    // no metadata and no refreshCache flag means nothing to update on the post
+    if (!(response?.metadata || response?.refreshMetadata) && !response?.refreshCache) {
       elizaLogger.log(`no metadata, skipping update for post: ${postId}`);
       return;
     }

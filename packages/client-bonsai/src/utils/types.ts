@@ -102,6 +102,7 @@ export interface TemplateHandlerResponse {
   };
   metadata?: TextOnlyMetadata | ImageMetadata | VideoMetadata; // undefined on failure, generating preview, or no new metadata json
   refreshMetadata?: boolean; // force the metadata refresh on file edits
+  refreshCache?: boolean; // force the cache refresh on file edits
   persistVersionUri?: string; // in case the handler wants versioning on the media
   updatedTemplateData?: unknown; // updated payload for the next generation
   totalUsage?: TemplateUsage;

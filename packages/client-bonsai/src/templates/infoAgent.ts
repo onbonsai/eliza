@@ -178,8 +178,8 @@ const infoAgent = {
 
             // TODO: pick some comments to tip - max 3 per post
 
-            // metdata does not change
-            return { metadata: undefined, totalUsage };
+            // metdata does not change and we want to refresh the cache to register the new comments
+            return { metadata: undefined, totalUsage, refreshCache: true };
         } catch (error) {
             console.log(error);
             elizaLogger.error("handler failed", error);
