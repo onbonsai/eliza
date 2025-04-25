@@ -1,5 +1,6 @@
 import { base, zksync, polygon, baseSepolia } from "viem/chains";
 import { TemplateName } from "./types";
+import { IS_PRODUCTION } from "../services/lens/client";
 
 export const AGENT_HANDLE = "bons_ai";
 export const LENS_HUB_PROXY: `0x${string}` =
@@ -27,7 +28,7 @@ export const CHAIN_TO_BONSAI = {
 };
 
 export const DEFAULT_MAX_STALE_TIME = 1800; // 30min for clients to wait before fetching updated content
-export const DEFAULT_FREEZE_TIME = 86400; // 24h of no updates before a post is frozen
+export const DEFAULT_FREEZE_TIME = 259200; // 72h of no updates before a post is frozen
 
 export const APP_ID = "BONSAI"; // lens post app id
 export const BONSAI_CLIENT_VERSION = "1.0.0"; // bonsai client version
@@ -41,6 +42,10 @@ export const PREMIUM_TEMPLATES = [
     TemplateName.ADVENTURE_TIME_VIDEO,
 ];
 
-// production
-export const LENS_BONSAI_APP = "0x640c9184b31467C84096EB2829309756DDbB3f44";
-export const LENS_BONSAI_DEFAULT_FEED = "0x075083417a0e58cE665c7E0E9970187f4053928F";
+// production / testnet
+export const LENS_BONSAI_APP = IS_PRODUCTION
+    ? "0x640c9184b31467C84096EB2829309756DDbB3f44"
+    : "0x4Abd67c2c42ff2b8003C642D0d0e562A3F900805";
+export const LENS_BONSAI_DEFAULT_FEED = IS_PRODUCTION
+    ? "0x075083417a0e58cE665c7E0E9970187f4053928F"
+    : "0xeCb72dCabFC9288CB96aA65042b9f9cF93d10DB1";
