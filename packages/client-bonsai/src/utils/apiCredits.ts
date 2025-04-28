@@ -1,6 +1,7 @@
 import type { LanguageModelUsage } from "ai";
 import { getCreditsClient } from "../services/mongo";
 import { TemplateName } from "./types";
+import { DEFAULT_DURATION_S, DEFAULT_MODEL_ID as DEFAULT_LUMA_MODEL } from "../services/luma";
 
 export const DEFAULT_MODEL_ID = "gpt-4o";
 
@@ -67,7 +68,13 @@ export const minCreditsForUpdate: Record<string, number> = {
         calculateTokenCost(50, modelCosts["qwen-2.5-vl"].output) +
         1 +
         50,
-
+    [TemplateName.NFT_DOT_FUN]:
+        calculateTokenCost(125, modelCosts["gpt-4o-mini"].input) +
+        calculateTokenCost(25, modelCosts["gpt-4o-mini"].output) +
+        calculateTokenCost(2250, modelCosts["qwen-2.5-vl"].input) +
+        calculateTokenCost(50, modelCosts["qwen-2.5-vl"].output) +
+        videoCost({ model: DEFAULT_LUMA_MODEL, duration: DEFAULT_DURATION_S }) +
+        audioCost(130),
 };
 
 export const getCreditsForMessage = (model: string): number => {

@@ -15,7 +15,7 @@ import { base } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
 import z from "zod";
 import pkg from "lodash";
-const { uniq, uniqBy } = pkg;
+const { uniq, uniqBy, omit } = pkg;
 import { walletOnly } from "@lens-chain/storage-client";
 import {
   ImageRequirement,
@@ -35,7 +35,7 @@ import { balanceOfBatched } from "../utils/viem";
 import { storageClient, LENS_CHAIN_ID, LENS_CHAIN } from "../services/lens/client";
 import { BONSAI_PROTOCOL_FEE_RECIPIENT } from "../utils/constants";
 import type { AspectRatio } from "../services/runway";
-import { DEFAULT_MODEL_ID, generateVideoLuma } from "../services/luma";
+import { DEFAULT_DURATION_S, DEFAULT_MODEL_ID, generateVideoLuma } from "../services/luma";
 import { generateSpeech } from "../services/elevenlabs";
 import { mergeVideoAndAudio } from "../services/videoProcessor";
 
@@ -122,9 +122,9 @@ const nftDotFun = {
 
     let videoPrompt: string;
     let narration = templateData.narration;
-    const image = templateData.nft.image?.cachedUrl || templateData.nft.metadata?.image;
+    let subtitles: string;
+    const image = templateData.nft.image;
     const attributes = templateData.nft.attributes?.map(((a) => `${a.trait_type}:${a.value}`));
-    elizaLogger.info("attributes: ", attributes);
 
     if (!image) {
       elizaLogger.error("Missing image url, not found in nft metadata");
@@ -223,6 +223,7 @@ const nftDotFun = {
 
         videoPrompt = response.videoPrompt;
         narration = response.narration;
+        subtitles = response.narration;
       } else {
         // pure video prompt
         const { response, usage } = await generateText({
@@ -247,6 +248,17 @@ const nftDotFun = {
         totalUsage.customTokens[getModelSettings(ModelProviderName.VENICE, ModelClass.MEDIUM)?.name] = usage;
 
         videoPrompt = response;
+
+        // take care of profanity
+        const { response: sanitizedNarration, usage: profanityUsage } = await generateText({
+          context: `Given the User Narration, remove any profanity by replacing the word with the word as first letter + asterisk for every other letter. Simply return the sanitized version. User Narration: ${narration}`,
+          runtime,
+          modelClass: ModelClass.SMALL,
+          modelProvider: ModelProviderName.OPENAI,
+          returnUsage: true
+        }) as { response: string, usage: LanguageModelUsage };
+        subtitles = sanitizedNarration;
+        totalUsage.customTokens[getModelSettings(ModelProviderName.OPENAI, ModelClass.SMALL)?.name] = profanityUsage;
       }
 
       elizaLogger.info(`generating video with prompt: ${videoPrompt} and image: ${image}`);
@@ -255,7 +267,7 @@ const nftDotFun = {
         promptImage: image,
         aspectRatio: templateData?.aspectRatio,
       }, runtime);
-      totalUsage.videoCostParams = { model: DEFAULT_MODEL_ID, duration: 5 };
+      totalUsage.videoCostParams = { model: DEFAULT_MODEL_ID, duration: DEFAULT_DURATION_S };
 
       let videoBuffer: Buffer;
       if (videoResponse.success && videoResponse.data?.length) {
@@ -274,7 +286,7 @@ const nftDotFun = {
       totalUsage.audioCharacters = narration.length;
 
       // Merge video and audio using fluent-ffmpeg, adding subtitles
-      const video = await mergeVideoAndAudio(videoBuffer, audioBuffer, narration);
+      const video = await mergeVideoAndAudio(videoBuffer, audioBuffer, subtitles);
 
       let metadata: ImageMetadata | undefined;
       if (refresh) {
@@ -291,6 +303,7 @@ const nftDotFun = {
 
       return {
         preview: {
+          image: !refresh ? image : undefined,
           video: !refresh ? {
             buffer: Buffer.from(video).toJSON().data,
             mimeType: 'video/mp4',
@@ -299,7 +312,7 @@ const nftDotFun = {
         },
         metadata,
         refreshMetadata: refresh,
-        updatedTemplateData: { ...templateData },
+        updatedTemplateData: { ...templateData, nft: omit(templateData.nft, "image") }, // dont store the image as its base64
         totalUsage,
       }
     } catch (error) {
@@ -321,7 +334,6 @@ const nftDotFun = {
       imageRequirement: ImageRequirement.NONE,
       nftRequirement: ImageRequirement.REQUIRED,
     },
-    defaultModel: getModelSettings(ModelProviderName.OPENAI, ModelClass.LARGE)?.name,
     templateData: {
       form: z.object({
         videoPrompt: z.string().describe("Describe the scene for your video"),

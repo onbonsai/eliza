@@ -165,18 +165,13 @@ export interface Payload {
 
 export interface NFTMetadata {
   tokenId: number;
-  network: string;
   contract: {
     address: string;
+    network: string;
   };
   collection?: {
     name?: string;
   };
-  image?: {
-    cachedUrl?: string;
-  };
-  metadata?: {
-    image?: string;
-  };
+  image?: string; // base64 or url
   attributes?: any[];
 }

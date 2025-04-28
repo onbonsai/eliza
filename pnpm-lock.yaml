@@ -527,6 +527,9 @@ importers:
       socket.io:
         specifier: ^4.8.1
         version: 4.8.1(bufferutil@4.0.9)(utf-8-validate@5.0.10)
+      uuid:
+        specifier: ^11.1.0
+        version: 11.1.0
       whatwg-url:
         specifier: 7.1.0
         version: 7.1.0

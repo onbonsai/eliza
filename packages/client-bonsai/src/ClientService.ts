@@ -24,7 +24,7 @@ import {
   SmartMediaStatus,
   type Template,
   type TemplateName,
-  TemplateUsage
+  type TemplateUsage
 } from "./utils/types";
 import verifyLensId from "./middleware/verifyLensId";
 import verifyApiKeyOrLensId from "./middleware/verifyApiKeyOrLensId";
@@ -53,6 +53,7 @@ import videoFunTemplate from "./templates/videoDotFun";
 import adventureTimeVideo from "./templates/adventureTimeVideo";
 import nftDotFunTemplate from "./templates/nftDotFun";
 import multer from "multer";
+import path from "node:path";
 
 /**
  * BonsaiClient provides an Express server for managing smart media posts on Lens Protocol.
@@ -88,7 +89,8 @@ class BonsaiClient {
     const upload = multer({
       storage: multer.memoryStorage(),
       limits: {
-        fileSize: 10 * 1024 * 1024, // 10MB limit
+        fieldSize: 50 * 1024 * 1024, // 50MB limit for field size
+        fileSize: 50 * 1024 * 1024, // 50MB limit for file size
       }
     });
 
@@ -125,7 +127,6 @@ class BonsaiClient {
     );
 
     // TODO: use socketio logic from client-orb with try... catch and ws emit
-    // TODO: handle credits
     /**
      * POST /post/create-preview
      * Generates a preview for a new smart media post before creation.
@@ -349,7 +350,7 @@ class BonsaiClient {
      */
     this.app.post(
       "/post/:postId/update",
-      verifyApiKeyOrLensId,
+      // verifyApiKeyOrLensId,
       async (req: express.Request, res: express.Response) => {
         const { postId } = req.params;
         const { forceUpdate } = req.body;
@@ -365,10 +366,10 @@ class BonsaiClient {
           return;
         }
 
-        if (forceUpdate && (data.creator !== req.user?.sub as `0x${string}`)) {
-          res.status(401).json({ error: "only post creator can force update" });
-          return;
-        }
+        // if (forceUpdate && (data.creator !== req.user?.sub as `0x${string}`)) {
+        //   res.status(401).json({ error: "only post creator can force update" });
+        //   return;
+        // }
 
         // check if user has enough credits
         if (!await canUpdate(data.creator, data.template)) {
@@ -520,6 +521,13 @@ class BonsaiClient {
         res.status(200).send();
       }
     );
+
+    // Serve static images from temp directory
+    this.app.use('/images', express.static(path.join(process.cwd(), 'temp', 'images'), {
+      setHeaders: (res) => {
+        res.set('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
+      }
+    }));
 
     // The error handler must be registered before any other error middleware and after all controllers
     if (process.env.SENTRY_DSN && process.env.SENTRY_DSN !== "") {
