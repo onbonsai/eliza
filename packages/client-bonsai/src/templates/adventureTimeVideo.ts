@@ -113,8 +113,6 @@ type TemplateData = {
   minCommentUpdateThreshold?: number;
 }
 
-const DEFAULT_MODEL_ID = "venice-sd35"; // most creative
-const DEFAULT_STYLE_PRESET = "Film Noir";
 const DEFAULT_MIN_ENGAGEMENT_UPDATE_THREHOLD = 1; // at least 3 upvotes/comments before updating
 const RUNWAY_CHAR_LIMIT = 250; // really 1k, but dont want to push it
 const VIDEO_DURATION = 10;
@@ -151,7 +149,7 @@ const adventureTimeVideo = {
       completionTokens: 0,
       totalTokens: 0,
       imagesCreated: 0,
-      videoDuration: 0,
+      videoCostParams: {},
       audioCharacters: 0,
       customTokens: {},
     };
@@ -319,7 +317,7 @@ Option B) ${page.decisions[1]}
         count: 1,
         duration: VIDEO_DURATION,
       }, runtime);
-      totalUsage.videoDuration = VIDEO_DURATION;
+      totalUsage.videoCostParams = { model: "gen4_turbo", duration: 5 };
 
       let video: Buffer;
       if (videoResponse.success && videoResponse.data?.length) {

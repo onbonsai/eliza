@@ -48,6 +48,7 @@ export enum TemplateName {
   INFO_AGENT = "info_agent",
   VIDEO_DOT_FUN = "video_dot_fun",
   ADVENTURE_TIME_VIDEO = "adventure_time_video",
+  NFT_DOT_FUN = "nft_dot_fun",
 }
 
 /**
@@ -72,7 +73,7 @@ export interface Template {
 
 export type TemplateUsage = LanguageModelUsage & {
   imagesCreated?: number;
-  videoDuration?: number; // 5 | 10
+  videoCostParams?: { model: string; duration: number }
   audioCharacters?: number;
   customTokens?: Record<string, LanguageModelUsage>; // model => usage
 }
@@ -146,6 +147,7 @@ export type TemplateClientMetadata = {
     imageRequirement?: ImageRequirement;
     requireContent?: boolean;
     isCanvas?: boolean;
+    nftRequirement?: ImageRequirement;
   };
   templateData: {
     form: z.ZodObject<any>;
@@ -159,4 +161,22 @@ export interface Payload {
   action: string;
   data: { [key: string]: string };
   imageUrl?: string;
+}
+
+export interface NFTMetadata {
+  tokenId: number;
+  network: string;
+  contract: {
+    address: string;
+  };
+  collection?: {
+    name?: string;
+  };
+  image?: {
+    cachedUrl?: string;
+  };
+  metadata?: {
+    image?: string;
+  };
+  attributes?: any[];
 }

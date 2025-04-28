@@ -6,7 +6,7 @@ import * as path from 'node:path';
 
 /**
  * Creates a simple SRT subtitle file from narration text with precise timing
- * Each segment shows for a specific duration and the last one ends exactly with the video
+ * Each segment shows for a specific duration with natural reading pace
  */
 function createSubtitleFile(narrationText: string, audioLengthMs: number): string {
   const tempDir = path.join(os.tmpdir(), 'video-fun');
@@ -16,13 +16,13 @@ function createSubtitleFile(narrationText: string, audioLengthMs: number): strin
 
   const srtPath = path.join(tempDir, `subs-${Date.now()}.srt`);
 
-  // Split text into ~40 char segments (on word boundaries)
+  // Split text into ~30 char segments (on word boundaries) for better readability
   const words = narrationText.split(' ');
   const segments: string[] = [];
   let currentSegment = '';
 
   for (const word of words) {
-    if (currentSegment.length + word.length + 1 > 40) {
+    if (currentSegment.length + word.length + 1 > 30) {
       segments.push(currentSegment.trim());
       currentSegment = word;
     } else {
@@ -34,20 +34,40 @@ function createSubtitleFile(narrationText: string, audioLengthMs: number): strin
   }
 
   // Calculate timing for each segment
-  // Reserve last 500ms for fade out
-  const effectiveDuration = audioLengthMs - 500;
-  const segmentDuration = Math.floor(effectiveDuration / segments.length);
+  // Average reading speed is about 200-250ms per word
+  // We'll use 250ms per word as a base, with minimum 2s per segment for readability
+  const getSegmentDuration = (text: string): number => {
+    const wordCount = text.split(' ').length;
+    return Math.max(2000, wordCount * 250); // minimum 2s, or 250ms per word
+  };
 
-  // Generate SRT content with precise timing
-  const srtContent = segments.map((text, index) => {
-    const startTime = index * segmentDuration;
-    const endTime = index === segments.length - 1
-      ? audioLengthMs - 1000 // Last segment ends 1 second before video ends
-      : startTime + segmentDuration;
+  // Calculate segment timings while ensuring we don't exceed audio length
+  let currentTime = 0;
+  const timings: Array<{ start: number; end: number; text: string }> = [];
 
+  segments.forEach((text, index) => {
+    const duration = getSegmentDuration(text);
+    const isLast = index === segments.length - 1;
+
+    // For the last segment, ensure it doesn't exceed audio length
+    const end = isLast
+      ? Math.min(currentTime + duration, audioLengthMs - 500) // Leave 500ms at the end
+      : currentTime + duration;
+
+    timings.push({
+      start: currentTime,
+      end,
+      text
+    });
+
+    currentTime = end + 100; // 100ms gap between segments
+  });
+
+  // Generate SRT content
+  const srtContent = timings.map((timing, index) => {
     return `${index + 1}
-${formatSrtTimestamp(startTime)} --> ${formatSrtTimestamp(endTime)}
-${text}
+${formatSrtTimestamp(timing.start)} --> ${formatSrtTimestamp(timing.end)}
+${timing.text}
 `;
   }).join('\n');
 
@@ -116,12 +136,10 @@ export async function mergeVideoAndAudio(
       })
     ]);
 
-    const duration = Math.min(audioDuration, videoDuration);
-
     // Create subtitle file if narration is provided
     let subtitlePath: string | undefined;
     if (narrationText) {
-      subtitlePath = createSubtitleFile(narrationText, duration);
+      subtitlePath = createSubtitleFile(narrationText, audioDuration);
       elizaLogger.debug('Created subtitle file');
     }
 
@@ -140,8 +158,7 @@ export async function mergeVideoAndAudio(
             '-c:v libx264',
             '-c:a aac',
             '-map 0:v:0',
-            '-map 1:a:0',
-            '-shortest'
+            '-map 1:a:0'
           ]);
       } else {
         command = command
@@ -149,8 +166,7 @@ export async function mergeVideoAndAudio(
             '-c:v libx264',
             '-c:a aac',
             '-map 0:v:0',
-            '-map 1:a:0',
-            '-shortest'
+            '-map 1:a:0'
           ]);
       }
 

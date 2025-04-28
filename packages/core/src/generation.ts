@@ -1681,6 +1681,7 @@ export async function generateObjectDeprecated({
     modelProvider,
     returnUsage = false,
     tools = {},
+    messages,
 }: {
     runtime: IAgentRuntime;
     context: string;
@@ -1688,9 +1689,10 @@ export async function generateObjectDeprecated({
     modelProvider?: ModelProviderName;
     returnUsage?: boolean;
     tools?: Record<string, Tool>;
+    messages?: any
 }): Promise<any> {
-    if (!context) {
-        elizaLogger.error("generateObjectDeprecated context is empty");
+    if (!context && messages.length === 0) {
+        elizaLogger.error("generateObjectDeprecated context and messages is empty");
         return null;
     }
     let retryDelay = 1000;
@@ -1705,6 +1707,7 @@ export async function generateObjectDeprecated({
                 modelProvider,
                 returnUsage,
                 tools,
+                messages,
             });
 
             let response: string;

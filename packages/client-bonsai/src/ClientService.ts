@@ -51,6 +51,7 @@ import { storageClient } from "./services/lens/client";
 import { fetchPostById } from "./services/lens/posts";
 import videoFunTemplate from "./templates/videoDotFun";
 import adventureTimeVideo from "./templates/adventureTimeVideo";
+import nftDotFunTemplate from "./templates/nftDotFun";
 import multer from "multer";
 
 /**
@@ -616,7 +617,7 @@ class BonsaiClient {
       template?.clientMetadata.defaultModel || DEFAULT_MODEL_ID,
       { input: totalUsage?.promptTokens || 0, output: totalUsage?.completionTokens || 0 },
       totalUsage?.imagesCreated || 0,
-      totalUsage?.videoDuration,
+      totalUsage?.videoCostParams,
       totalUsage?.audioCharacters,
       totalUsage?.customTokens
     );
@@ -689,7 +690,7 @@ class BonsaiClient {
       defaultModel || DEFAULT_MODEL_ID,
       { input: totalUsage?.promptTokens || 0, output: totalUsage?.completionTokens || 0 },
       totalUsage?.imagesCreated || 0,
-      totalUsage?.videoDuration,
+      totalUsage?.videoCostParams,
       totalUsage?.audioCharacters,
       totalUsage?.customTokens,
     );
@@ -703,7 +704,7 @@ class BonsaiClient {
     this.mongo = await getClient();
 
     // init templates
-    for (const template of [adventureTimeTemplate, adventureTimeVideo, evolvingArtTemplate, infoAgentTemplate]) { //, videoFunTemplate]) {
+    for (const template of [adventureTimeTemplate, adventureTimeVideo, evolvingArtTemplate, infoAgentTemplate, nftDotFunTemplate]) { //, videoFunTemplate]) {
       this.templates.set(template.clientMetadata.name, template);
     };
   }

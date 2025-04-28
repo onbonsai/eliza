@@ -58,7 +58,7 @@ export const generateVideoRunway = async (
             task = await client.tasks.retrieve(data.id);
         } while (!["SUCCEEDED", "FAILED"].includes(task.status));
 
-        // elizaLogger.info("Task complete:", task);
+        elizaLogger.info("Task complete:", task);
 
         return { success: true, data: task.output };
     } catch (error) {

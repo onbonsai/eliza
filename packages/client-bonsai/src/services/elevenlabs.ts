@@ -40,6 +40,7 @@ export const generateSpeech = async (text: string, voiceId: string): Promise<Buf
 
   if (!speechResponse.ok) {
     console.log(`ElevenLabs API error: ${speechResponse.statusText}`);
+    console.log(speechResponse);
     return;
   }
 

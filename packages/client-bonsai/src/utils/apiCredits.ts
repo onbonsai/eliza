@@ -8,7 +8,12 @@ export const DEFAULT_MODEL_ID = "gpt-4o";
 const disableCredits = process.env.DISABLE_CREDITS === "true";
 
 const imageCost = 1; // venice costs 1 cent per image
-const videoCost = (duration: number) => duration === 5 ? 25 : 50; // https://docs.dev.runwayml.com/usage/billing
+const videoCost = ({ model, duration }: { model: string; duration: number }) => {
+  if (model === "gen4_turbo") return duration === 5 ? 25 : 50; // https://docs.dev.runwayml.com/usage/billing
+  if (model === "ray-flash-2") return duration === 5 ? 24 : 44 // https://lumalabs.ai/api/pricing (720p)
+  if (model === "ray-2") return duration === 5 ? 70 : 127 // https://lumalabs.ai/api/pricing (720p)
+  return 0;
+};
 const audioCost = (characters: number) => (characters * 30) / 1000; // 30 cents/1000 chars (elevenlabs, creator)
 
 // cost per 1M tokens (1 credit = 1 cent)
@@ -97,7 +102,7 @@ export const decrementCredits = async (
     model: string,
     tokens: { input: number; output: number },
     images?: number,
-    videoDuration?: number,
+    videoCostParams?: { model: string; duration: number },
     audioCharacters?: number,
     customTokens?: Record<string, LanguageModelUsage>,
 ): Promise<number | undefined> => {
@@ -114,7 +119,7 @@ export const decrementCredits = async (
         : calculateTokenCost(tokens.input, modelCosts[model].input) +
           calculateTokenCost(tokens.output, modelCosts[model].output);
     const costImages = imageCost * (images || 0);
-    const costVideos = videoDuration ? videoCost(videoDuration) : 0;
+    const costVideos = videoCostParams ? videoCost(videoCostParams) : 0;
     const costAudio = audioCharacters ? audioCost(audioCharacters) : 0;
     const totalCost = cost + costImages + costVideos + costAudio;
 
