@@ -60,7 +60,7 @@ const DEFAULT_VOICE_ID = "pNInz6obpgDQGcFmaJgB"; // Italian Brainrot
 
 export const videoGenerationTemplate = `
 # Instructions
-Given a set of user Comments, select one 'comment' that feels the most comical, weird, or memeable when combined with the image's Attributes. Prioritize higher votes.
+Given a set of user Comments, select one 'comment' that feels the most comical, weird, or memeable, especially when combined with the image's Attributes. Prioritize higher votes.
 
 Then, try to parse out a 'narration' from that 'comment' that would go well to narrate a video about the image. NO emojis. Keep it strictly under ${NARRATION_CHAR_LIMIT} characters.
 
@@ -225,7 +225,6 @@ const nftDotFun = {
         narration = response.narration;
       } else {
         // pure video prompt
-        elizaLogger.info("generating decision response:: generateObjectDeprecated");
         const { response, usage } = await generateText({
           runtime,
           modelClass: ModelClass.MEDIUM,

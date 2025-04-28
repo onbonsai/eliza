@@ -2,7 +2,7 @@ import { elizaLogger, type IAgentRuntime } from "@elizaos/core";
 import { LumaAI } from "lumaai";
 
 export const DEFAULT_MODEL_ID = "ray-flash-2"; // | ray-2
-export const DEFAULT_DURATION = "10s";
+export const DEFAULT_DURATION = "9s";
 
 export const generateVideoLuma = async (
   data: {
