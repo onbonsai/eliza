@@ -59,17 +59,12 @@ const DEFAULT_VOICE_ID = "pNInz6obpgDQGcFmaJgB"; // Italian Brainrot
 
 export const videoGenerationTemplate = `
 # Instructions
-You are producing a short animated video prompt and a wildly expressive narration based on the provided NFT image.
+Given a set of user Comments, select one 'comment' that feels the most comical, weird, or memeable when combined with the image's Attributes. Prioritize higher votes.
 
-Your mission is to create a scene and a reaction that people would WANT to share — because it's surprising, hilarious, ridiculous, emotional, or outrageous.
+Then, try to parse out a 'narration' from that 'comment' that would go well to narrate a video about the image. NO emojis. Keep it strictly under ${NARRATION_CHAR_LIMIT} characters.
 
-- **Comment Selection**: Choose the Comment that feels the most explosive, weird, or memeable when combined with the image's Attributes. Prioritize higher votes, but if a lower-vote Comment unlocks a crazier idea that fits the Attributes, choose it instead.
-- **Video Prompt**: Write a bold, visually dynamic scene. Exaggerate movements, reactions, or transformations based on the NFT Attributes. Make the animation feel ALIVE — leaning into humor, drama, chaos, or surprise. Keep it grounded in the original image, but feel free to slightly "push reality" (e.g., exaggerate reactions, expressions). Keep it strictly under ${RUNWAY_CHAR_LIMIT} characters.
-- **Narration**: Write a short, raw, punchy line that sounds like someone laughing, yelling, losing their mind, or reacting out loud in the moment. It can be unhinged, ironic, or emotionally intense — but must feel natural, not polished. NO emojis. Keep it strictly under ${NARRATION_CHAR_LIMIT} characters.
+Finally, based on the provided image and selected 'comment', describe the visual scene for video animation. Focus solely on specific movements or actions that naturally evolve from the image, ensuring descriptions are purely visual. Feel free to focus on one of the Image attributes for the animation. Limit the prompt to ${RUNWAY_CHAR_LIMIT} characters.
 
-**Important**: Do not introduce random elements unrelated to the NFT's Attributes or chosen Comment — exaggerate, but stay anchored.
-
-# Provided Data
 ## Attributes
 {{attributes}}
 
@@ -84,24 +79,8 @@ Return ONLY the result as a JSON block in this format:
 }
 \`\`\`
 
-NO intro, NO explanations — just the JSON block wrapped in triple backticks with the 'json' language identifier.
+Do not acknowledge this request, simply respond with the JSON object.
 `;
-
-export const videoGenerationSimpleTemplate = `
-# Instructions
-You are producing a short animated video prompt and a wildly expressive narration based on the provided NFT image.
-
-Your mission is to create a scene and a reaction that people would WANT to share — because it's surprising, hilarious, ridiculous, emotional, or outrageous.
-
-Write a bold, visually dynamic scene. Exaggerate movements, reactions, or transformations based on the NFT Attributes. Make the animation feel ALIVE — leaning into humor, drama, chaos, or surprise. Keep it grounded in the original image, but feel free to slightly "push reality" (e.g., exaggerate reactions, expressions). NO emojis. Keep it strictly under ${RUNWAY_CHAR_LIMIT} characters.
-
-**Important**: Do not introduce random elements unrelated to the NFT's Attributes or User Prompt
-
-## Attributes
-{{attributes}}
-
-## User Prompt
-{{videoPrompt}}`;
 
 /**
  * Handles the generation and updating of a video composed of nft art and narration
@@ -239,7 +218,7 @@ const nftDotFun = {
             ]
           }]
         }) as unknown as { response: VideoGenerationResponse, usage: LanguageModelUsage };
-        totalUsage.customTokens[getModelSettings(ModelProviderName.OPENAI, ModelClass.SMALL)?.name] = usage;
+        totalUsage.customTokens[getModelSettings(ModelProviderName.VENICE, ModelClass.MEDIUM)?.name] = usage;
 
         videoPrompt = response.videoPrompt;
         narration = response.narration;
