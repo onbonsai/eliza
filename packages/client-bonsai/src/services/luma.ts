@@ -8,6 +8,7 @@ export const generateVideoLuma = async (
   data: {
     prompt: string;
     promptImage: string;
+    aspectRatio?: "1:1" | "16:9" | "9:16" | "4:3" | "3:4" | "21:9" | "9:21" | undefined
   },
   runtime: IAgentRuntime
 ): Promise<{
@@ -15,7 +16,7 @@ export const generateVideoLuma = async (
   data?: string[]; // urls
   error?: any;
 }> => {
-  const { prompt, promptImage } = data;
+  const { prompt, promptImage, aspectRatio } = data;
 
   try {
     const client = new LumaAI({
@@ -32,6 +33,7 @@ export const generateVideoLuma = async (
         }
       },
       duration: DEFAULT_DURATION,
+      aspect_ratio: aspectRatio || "1:1",
     });
 
     if (!generation.id) throw new Error("No generation id");

@@ -34,7 +34,7 @@ import { fetchAllCollectorsFor, fetchAllCommentsFor, fetchAllUpvotersFor } from 
 import { balanceOfBatched } from "../utils/viem";
 import { storageClient, LENS_CHAIN_ID, LENS_CHAIN } from "../services/lens/client";
 import { BONSAI_PROTOCOL_FEE_RECIPIENT } from "../utils/constants";
-import { generateVideoRunway } from "../services/runway";
+import type { AspectRatio } from "../services/runway";
 import { DEFAULT_MODEL_ID, generateVideoLuma } from "../services/luma";
 import { generateSpeech } from "../services/elevenlabs";
 import { mergeVideoAndAudio } from "../services/videoProcessor";
@@ -49,6 +49,7 @@ type TemplateData = {
   videoPrompt: string;
   elevenLabsVoiceId: string;
   narration: string;
+  aspectRatio?: AspectRatio;
   minCommentUpdateThreshold?: number;
 }
 
@@ -253,6 +254,7 @@ const nftDotFun = {
       const videoResponse = await generateVideoLuma({
         prompt: videoPrompt,
         promptImage: image,
+        aspectRatio: templateData?.aspectRatio,
       }, runtime);
       totalUsage.videoCostParams = { model: DEFAULT_MODEL_ID, duration: 5 };
 
