@@ -126,16 +126,51 @@ export const decrementCredits = async (
     if (totalCost === 0) return;
 
     const { credits } = await getCreditsClient();
+    
+    // Get current credit document
+    const creditDoc = await credits.findOne({ address });
+    if (!creditDoc) return;
+
+    // Calculate how many credits to take from each type
+    let remainingCost = totalCost;
+    let freeCreditsUsed = 0;
+    let stakingCreditsUsed = 0;
+    let purchasedCreditsUsed = 0;
+
+    // Use free credits first
+    if (creditDoc.freeCredits > 0) {
+        freeCreditsUsed = Math.min(remainingCost, creditDoc.freeCredits);
+        remainingCost -= freeCreditsUsed;
+    }
+
+    // Then use staking credits
+    if (remainingCost > 0 && creditDoc.stakingCredits > 0) {
+        stakingCreditsUsed = Math.min(remainingCost, creditDoc.stakingCredits);
+        remainingCost -= stakingCreditsUsed;
+    }
+
+    // Finally use purchased credits
+    if (remainingCost > 0 && creditDoc.creditsPurchased > 0) {
+        purchasedCreditsUsed = Math.min(remainingCost, creditDoc.creditsPurchased);
+        remainingCost -= purchasedCreditsUsed;
+    }
+
+    // If we couldn't cover the full cost, return undefined
+    if (remainingCost > 0) return;
+
+    // Update the credit document
     const updatedCredits = await credits.findOneAndUpdate(
         { address },
         {
             $inc: {
-                creditsRemaining: -totalCost,
+                freeCredits: -freeCreditsUsed,
+                stakingCredits: -stakingCreditsUsed,
+                creditsPurchased: -purchasedCreditsUsed,
                 creditsUsed: totalCost,
+                creditsRemaining: -totalCost,
             },
         },
         {
-            upsert: true,
             returnDocument: "after",
         }
     );
