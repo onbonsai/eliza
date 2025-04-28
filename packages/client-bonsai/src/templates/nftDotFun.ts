@@ -310,9 +310,9 @@ const nftDotFun = {
     protocolFeeRecipient: BONSAI_PROTOCOL_FEE_RECIPIENT,
     category: TemplateCategory.EVOLVING_ART,
     name: TemplateName.NFT_DOT_FUN,
-    displayName: "nft.fun",
-    description: "",
-    image: "",
+    displayName: "nftdotfun",
+    description: "Animate your favorite NFT with voice-over. Collectors can influence future animations. Remix for finer animation control.",
+    image: "https://link.storjshare.io/raw/jucj52nt52h6dmwixr7cg6i7hnpa/bonsai/nftdotfun.png",
     options: {
       allowPreview: true,
       allowPreviousToken: true,
