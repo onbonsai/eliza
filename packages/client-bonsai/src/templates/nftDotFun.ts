@@ -54,7 +54,7 @@ type TemplateData = {
 }
 
 const DEFAULT_MIN_ENGAGEMENT_UPDATE_THREHOLD = 1; // at least 3 upvotes/comments before updating
-const RUNWAY_CHAR_LIMIT = 250; // really 1k, but dont want to push it
+const RUNWAY_CHAR_LIMIT = 150; // really 1k, but dont want to push it
 const NARRATION_CHAR_LIMIT = 130; // roughly 10s
 const DEFAULT_VOICE_ID = "pNInz6obpgDQGcFmaJgB"; // Italian Brainrot
 
@@ -64,7 +64,7 @@ Given a set of user Comments, select one 'comment' that feels the most comical, 
 
 Then, try to parse out a 'narration' from that 'comment' that would go well to narrate a video about the image. NO emojis. Keep it strictly under ${NARRATION_CHAR_LIMIT} characters.
 
-Finally, based on the provided image and selected 'comment', describe the visual scene for video animation. Focus solely on specific movements or actions that naturally evolve from the image, ensuring descriptions are purely visual. Feel free to focus on one of the Image attributes for the animation. Limit the prompt to ${RUNWAY_CHAR_LIMIT} characters.
+Finally, based on the provided image and selected 'comment', describe the visual scene for video animation. Focus solely on one specific movement or action that naturally evolve from the image, ensuring the description is purely visual. Feel free to focus on one of the Image attributes for the animation. Limit the prompt to strictly under ${RUNWAY_CHAR_LIMIT} characters.
 
 ## Attributes
 {{attributes}}
@@ -236,7 +236,7 @@ const nftDotFun = {
             content: [
               {
                 type: "text",
-                text: `Based on the provided image and accompanying user prompt, describe the visual scene for video animation. Focus solely on specific movements or actions that naturally evolve from the image, ensuring descriptions are purely visual. Feel free to focus on one of the Image attributes for the animation. Limit the prompt to ${RUNWAY_CHAR_LIMIT} characters. User prompt: "${templateData.videoPrompt}. Image attributes: ${attributes}`
+                text: `Based on the provided image and accompanying user prompt, describe the visual scene for video animation. Focus solely on ONE specific movement or action that naturally evolve from the image, ensuring the description is purely visual. Feel free to focus on one of the Image attributes for the animation. Limit the prompt to strictly under ${RUNWAY_CHAR_LIMIT} characters. User prompt: "${templateData.videoPrompt}. Image attributes: ${attributes}`
               },
               {
                 type: "image",
