@@ -134,6 +134,7 @@ export enum ModelClass {
     LARGE = "large",
     EMBEDDING = "embedding",
     IMAGE = "image",
+    UNCENSORED = "uncensored",
 }
 
 /**
@@ -194,6 +195,7 @@ export type Model = {
         [ModelClass.LARGE]?: ModelSettings;
         [ModelClass.EMBEDDING]?: EmbeddingModelSettings;
         [ModelClass.IMAGE]?: ImageModelSettings;
+        [ModelClass.UNCENSORED]?: ModelSettings;
     };
 };
 

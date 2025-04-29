@@ -265,8 +265,8 @@ const adventureTime = {
             const { response: page, usage } = (await generateObjectDeprecated({
                 runtime,
                 context,
-                modelClass: ModelClass.LARGE,
-                modelProvider: ModelProviderName.OPENAI,
+                modelClass: ModelClass.UNCENSORED,
+                modelProvider: ModelProviderName.VENICE,
                 returnUsage: true,
             })) as unknown as { response: NextPageResponse, usage: LanguageModelUsage };
             elizaLogger.info("generated", page);
@@ -357,11 +357,11 @@ Option B) ${page.decisions[1]}
             allowPreviousToken: true,
             imageRequirement: ImageRequirement.NONE,
         },
-        defaultModel: getModelSettings(ModelProviderName.OPENAI, ModelClass.LARGE)?.name,
+        defaultModel: getModelSettings(ModelProviderName.VENICE, ModelClass.UNCENSORED)?.name,
         templateData: {
             form: z.object({
-                context: z.string().describe("Set the initial context and background for your story. This will help guide the narrative direction."),
-                writingStyle: z.string().describe("Define the writing style and tone - e.g. humorous, dramatic, poetic, etc."),
+                context: z.string().describe("Set the initial context and background for your story. This will help guide the narrative direction. [placeholder: Satoshi sitting in his basement, ready to launch the Bitcoin Protocol; POV: Satoshi]"),
+                writingStyle: z.string().describe("Define the writing style and tone - e.g. humorous, dramatic, poetic, etc. [placeholder: Smart, mysterious]"),
                 modelId: z.string().nullish().describe("Optional: Specify an AI model to use for image generation"),
                 stylePreset: z.string().nullish().describe("Optional: Choose a style preset to use for image generation"),
             })

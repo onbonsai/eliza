@@ -889,6 +889,13 @@ export const models: Models = {
             [ModelClass.IMAGE]: {
                 name: settings.IMAGE_VENICE_MODEL || "fluently-xl",
             },
+            [ModelClass.UNCENSORED]: {
+                name: "venice-uncensored",
+                stop: [],
+                maxInputTokens: 32768,
+                maxOutputTokens: 8192,
+                temperature: 0.6,
+            },
         },
     },
     [ModelProviderName.NVIDIA]: {

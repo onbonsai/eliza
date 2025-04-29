@@ -116,6 +116,8 @@ type TemplateData = {
 const DEFAULT_MIN_ENGAGEMENT_UPDATE_THREHOLD = 1; // at least 3 upvotes/comments before updating
 const RUNWAY_CHAR_LIMIT = 250; // really 1k, but dont want to push it
 const VIDEO_DURATION = 10;
+const DEFAULT_MODEL_ID = "venice-sd35"; // most creative
+const DEFAULT_STYLE_PRESET = "Film Noir";
 
 /**
  * Handles the generation and updating of a "Choose Your Own Adventure" type post.
@@ -255,11 +257,11 @@ const adventureTimeVideo = {
       const { response: page, usage } = (await generateObjectDeprecated({
         runtime,
         context,
-        modelClass: ModelClass.LARGE,
-        modelProvider: ModelProviderName.OPENAI,
+        modelClass: ModelClass.UNCENSORED,
+        modelProvider: ModelProviderName.VENICE,
         returnUsage: true,
       })) as unknown as { response: NextPageResponse, usage: LanguageModelUsage };
-      totalUsage.customTokens[getModelSettings(ModelProviderName.OPENAI, ModelClass.LARGE)?.name] = usage;
+      totalUsage.customTokens[getModelSettings(ModelProviderName.VENICE, ModelClass.UNCENSORED)?.name] = usage;
 
       const imageResponse = await generateImage(
         {
