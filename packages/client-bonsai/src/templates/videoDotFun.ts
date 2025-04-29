@@ -29,18 +29,10 @@ import { bufferToVideoFile } from "../utils/ipfs";
 import { fetchAllCollectorsFor, fetchAllCommentsFor } from "../services/lens/posts";
 import { LENS_CHAIN_ID, storageClient } from "../services/lens/client";
 import { BONSAI_PROTOCOL_FEE_RECIPIENT } from "../utils/constants";
-import { type AspectRatio, generateVideoRunway } from "../services/runway";
+import type { AspectRatio } from "../services/runway";
 import { generateSpeech } from "../services/elevenlabs";
 import { concatenateVideos, extractFrameFromVideo, mergeVideoAndAudio } from '../services/videoProcessor';
-
-export const nextImageTemplate = `
-# Instructions
-Begin with the given current image and evolve it. Use the Style and Prompt to generate the evolution.
-# Style
-{{style}}
-# Prompt
-{{prompt}}
-`;
+import { DEFAULT_DURATION_S, DEFAULT_MODEL_ID, generateVideoLuma } from "../services/luma";
 
 type TemplateData = {
   sceneDescription: string;
@@ -56,9 +48,8 @@ type TemplateData = {
 const DEFAULT_IMAGE_MODEL_ID = "venice-sd35"; // most artistic (venice)
 const DEFAULT_VOICE_ID = "zcAOhNBS3c14rBihAFp1"; // Italian
 const MAX_VERSION_COUNT = 3; // only 3 versions allowed (index is 0-based)
-const RUNWAY_CHAR_LIMIT = 750; // really 1k, but dont want to push it
+const RUNWAY_CHAR_LIMIT = 150; // really 1k, but dont want to push it
 const NARRATION_CHAR_LIMIT = 130; // roughly 10s
-const VIDEO_DURATION = 10;
 
 /**
  * Handles the generation and updating of a "Video fun" type post.
@@ -92,7 +83,7 @@ const videoFun = {
       completionTokens: 0,
       totalTokens: 0,
       imagesCreated: 0,
-      videoDuration: 0,
+      videoCostParams: 0,
       audioCharacters: 0,
       customTokens: {},
     };
@@ -207,7 +198,7 @@ const videoFun = {
           content: [
             {
               type: "text",
-              text: `Given the current image and the following user comment, briefly describe a dynamic and visually clear scene for video animation. Focus on specific movements or actions that naturally evolve from the image, directly incorporating the user's suggestion without introducing overly complex concepts. Keep it strictly under ${RUNWAY_CHAR_LIMIT} characters. User comment: ${comment}`
+              text: `Given the current image and the following user comment, briefly describe a dynamic and visually clear scene for video animation. Focus solely on ONE specific movement or action that naturally animates the image, ensuring the description is purely visual. Keep it strictly under ${RUNWAY_CHAR_LIMIT} characters. User comment: ${comment}`
             },
             {
               type: "image",
@@ -220,14 +211,12 @@ const videoFun = {
       const videoPrompt = response;
 
       elizaLogger.info(`generating video with prompt: ${videoPrompt}`);
-      const videoResponse = await generateVideoRunway({
+      const videoResponse = await generateVideoLuma({
         prompt: videoPrompt,
         promptImage: image,
-        count: 1,
-        duration: VIDEO_DURATION,
         aspectRatio: templateData?.aspectRatio,
       }, runtime);
-      totalUsage.videoDuration = VIDEO_DURATION;
+      totalUsage.videoCostParams = { model: DEFAULT_MODEL_ID, duration: DEFAULT_DURATION_S };
 
       let videoBuffer: Buffer;
       if (videoResponse.success && videoResponse.data?.length) {
@@ -317,9 +306,9 @@ const videoFun = {
     },
     templateData: {
       form: z.object({
-        sceneDescription: z.string().describe("Describe the scene for your video"),
+        sceneDescription: z.string().describe("Describe the scene for your video [placeholder: The character waves at the camera]"),
         elevenLabsVoiceId: z.string().nullish().describe("Choose the voice that will narrate your video"),
-        narration: z.string().max(NARRATION_CHAR_LIMIT).nullish().describe(`Optional: What gets narrated during your video? (max ${NARRATION_CHAR_LIMIT} characters)`),
+        narration: z.string().max(NARRATION_CHAR_LIMIT).nullish().describe(`Optional: What gets narrated during your video? (max ${NARRATION_CHAR_LIMIT} characters) [placeholder: Hello, Bonsai. Load up your bags!]`),
         modelId: z.string().nullish().describe("Optional: Specify an AI model to use for image generation"),
         stylePreset: z.string().nullish().describe("Optional: Choose a style preset to use for image generation"),
       })

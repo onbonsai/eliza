@@ -236,7 +236,7 @@ const nftDotFun = {
             content: [
               {
                 type: "text",
-                text: `Based on the provided image and accompanying user prompt, describe the visual scene for video animation. Focus solely on ONE specific movement or action that naturally evolve from the image, ensuring the description is purely visual. Feel free to focus on one of the Image attributes for the animation. Limit the prompt to strictly under ${RUNWAY_CHAR_LIMIT} characters. User prompt: "${templateData.videoPrompt}. Image attributes: ${attributes}`
+                text: `Based on the provided image and accompanying user prompt, describe the visual scene for video animation. Focus solely on ONE specific movement or action that naturally animates the image, ensuring the description is purely visual. Feel free to focus on one of the Image attributes for the animation. Limit the prompt to strictly under ${RUNWAY_CHAR_LIMIT} characters. User prompt: "${templateData.videoPrompt}. Image attributes: ${attributes}`
               },
               {
                 type: "image",

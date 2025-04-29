@@ -712,7 +712,7 @@ class BonsaiClient {
     this.mongo = await getClient();
 
     // init templates
-    for (const template of [adventureTimeTemplate, adventureTimeVideo, evolvingArtTemplate, infoAgentTemplate, nftDotFunTemplate]) { //, videoFunTemplate]) {
+    for (const template of [adventureTimeTemplate, adventureTimeVideo, evolvingArtTemplate, infoAgentTemplate, nftDotFunTemplate, videoFunTemplate]) {
       this.templates.set(template.clientMetadata.name, template);
     };
   }
