@@ -390,8 +390,8 @@ Option B) ${page.decisions[1]}
     defaultModel: getModelSettings(ModelProviderName.OPENAI, ModelClass.LARGE)?.name,
     templateData: {
       form: z.object({
-        context: z.string().describe("Set the initial context and background for your story. This will help guide the narrative direction."),
-        writingStyle: z.string().describe("Define the writing style and tone - e.g. humorous, dramatic, poetic, etc."),
+        context: z.string().describe("Set the initial context and background for your story. This will help guide the narrative direction. [placeholder: Satoshi sitting in his basement, ready to launch the Bitcoin Protocol; POV: Satoshi]"),
+        writingStyle: z.string().describe("Define the writing style and tone - e.g. humorous, dramatic, poetic, etc. [placeholder: Smart, mysterious]"),
         modelId: z.string().nullish().describe("Optional: Specify an AI model to use for image generation"),
         stylePreset: z.string().nullish().describe("Optional: Choose a style preset to use for image generation"),
       })

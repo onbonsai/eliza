@@ -279,7 +279,7 @@ const evolvingArt = {
     },
     templateData: {
       form: z.object({
-        style: z.string().describe("Define the style to maintain for all image generations - e.g. bright, neon green."),
+        style: z.string().describe("Define the style to maintain for all image generations - e.g. bright, neon green. [placeholder: Bright, neon green]"),
         modelId: z.string().nullish().describe("Optional: Specify an AI model to use for image generation"),
         stylePreset: z.string().nullish().describe("Optional: Choose a style preset to use for image generation"),
       })

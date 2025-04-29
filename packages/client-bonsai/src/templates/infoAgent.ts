@@ -41,7 +41,7 @@ Some additional information about the post is:
 Use these websites to get more information about the post:
 {{urls}}
 
-Your job is to respond to the following comments. Reply with a JSON formatted object that is a reply to the index of the comment you are replying to. 
+Your job is to respond to the following comments. Reply with a JSON formatted object that is a reply to the index of the comment you are replying to.
 Format the reply as a JSON array with the following properties where each object in the array represents a reply to a comment:
 \`\`\`json
 {
@@ -212,12 +212,12 @@ const infoAgent = {
                 info: z
                     .string()
                     .describe(
-                        "Provide information about the topic you want the agent to respond to"
+                        "Provide information about the topic you want the agent to respond to [placeholder: Bonsai Smart Media]"
                     ),
                 urls: z
                     .string()
                     .describe(
-                        "List of URLs containing additional information for the agent to reference separated by commas"
+                        "List of URLs containing additional information for the agent to reference separated by commas [placeholder: https://onbons.ai/whitepaper.pdf]"
                     ),
             }),
         },

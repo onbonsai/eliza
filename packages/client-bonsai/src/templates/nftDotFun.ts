@@ -336,9 +336,9 @@ const nftDotFun = {
     },
     templateData: {
       form: z.object({
-        videoPrompt: z.string().describe("Describe the scene for your video"),
+        videoPrompt: z.string().describe("Describe the scene for your video. [placeholder: The character waves at the camera]"),
         elevenLabsVoiceId: z.string().nullish().describe("Choose the voice that will narrate your video"),
-        narration: z.string().max(NARRATION_CHAR_LIMIT).describe(`What gets narrated during your video? (max ${NARRATION_CHAR_LIMIT} characters)`),
+        narration: z.string().max(NARRATION_CHAR_LIMIT).describe(`What gets narrated during your video? (max ${NARRATION_CHAR_LIMIT} characters) [placeholder: Hello, Bonsai. Load up your bags!]`),
       })
     }
   }
