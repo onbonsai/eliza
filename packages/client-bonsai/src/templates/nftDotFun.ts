@@ -9,7 +9,7 @@ import {
   generateText,
 } from "@elizaos/core";
 import type { LanguageModelUsage } from "ai";
-import type { ImageMetadata, URI } from "@lens-protocol/metadata";
+import { MediaVideoMimeType, type ImageMetadata, type URI } from "@lens-protocol/metadata";
 import type { Post, TextOnlyMetadata } from "@lens-protocol/client";
 import { base } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
@@ -29,7 +29,7 @@ import {
   type NFTMetadata,
 } from "../utils/types";
 import { isMediaStale, getLatestComments, getVoteWeightFromBalance, downloadVideoBuffer } from "../utils/utils";
-import { bufferToVideoFile } from "../utils/ipfs";
+import { bufferToVideoFile, cacheJsonStorj, cacheVideoStorj, uriToBuffer } from "../utils/ipfs";
 import { fetchAllCollectorsFor, fetchAllCommentsFor, fetchAllUpvotersFor } from "../services/lens/posts";
 import { balanceOfBatched } from "../utils/viem";
 import { storageClient, LENS_CHAIN_ID, LENS_CHAIN } from "../services/lens/client";
@@ -38,6 +38,8 @@ import type { AspectRatio } from "../services/runway";
 import { DEFAULT_DURATION_S, DEFAULT_MODEL_ID, generateVideoLuma } from "../services/luma";
 import { generateSpeech } from "../services/elevenlabs";
 import { mergeVideoAndAudio } from "../services/videoProcessor";
+import { formatMetadata } from "../services/lens/createPost";
+import { v4 as uuidv4 } from 'uuid';
 
 type VideoGenerationResponse = {
   videoPrompt: string;
@@ -289,12 +291,44 @@ const nftDotFun = {
       const video = await mergeVideoAndAudio(videoBuffer, audioBuffer, subtitles);
 
       let metadata: ImageMetadata | undefined;
+      let persistVersionUri: string | undefined;
       if (refresh) {
         const url = await storageClient.resolve(media?.uri as URI);
         const json: ImageMetadata = await fetch(url).then(res => res.json());
         const videoUri = json?.lens?.video?.item;
         const signer = privateKeyToAccount(process.env.LENS_STORAGE_NODE_PRIVATE_KEY as `0x${string}`);
         const acl = walletOnly(signer.address, LENS_CHAIN_ID);
+
+        // save previous version to storj
+        // cache video to storj
+        const storjResult = await cacheVideoStorj({ id: uuidv4(), buffer: await uriToBuffer(videoUri) });
+        if (storjResult.success && storjResult.url) {
+            // upload version to storj for versioning
+            const versionMetadata = formatMetadata({
+                text: json.lens.content as string,
+                video: {
+                    url: storjResult.url,
+                    type: MediaVideoMimeType.MP4
+                },
+                attributes: json.lens.attributes,
+                media: {
+                  category: TemplateCategory.EVOLVING_ART,
+                  name: TemplateName.NFT_DOT_FUN,
+                },
+            });
+
+            let versionCount = media?.versionCount || 0;
+            const versionResult = await cacheJsonStorj({
+                id: `${json.lens.id}-version-${versionCount}.json`,
+                data: versionMetadata
+            });
+
+            if (versionResult.success) {
+                persistVersionUri = versionResult.url;
+            } else {
+                elizaLogger.error('Failed to cache version metadata:', versionResult.error);
+            }
+        }
 
         // edit the video
         const videoFile = bufferToVideoFile(video);
@@ -314,6 +348,7 @@ const nftDotFun = {
         refreshMetadata: refresh,
         updatedTemplateData: { ...templateData, nft: omit(templateData.nft, "image") }, // dont store the image as its base64
         totalUsage,
+        persistVersionUri,
       }
     } catch (error) {
       console.log(error);
