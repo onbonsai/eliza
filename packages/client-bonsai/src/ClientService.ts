@@ -610,6 +610,7 @@ class BonsaiClient {
       const update: any = {};
       if (hasNewVersion) {
         update.$push = { versions: response.persistVersionUri as string };
+        update.$set = { versionCount: (data.versionCount || 0) + 1 };
       }
       if (needsStatusUpdate) {
         update.$set = { status: SmartMediaStatus.ACTIVE };
@@ -655,6 +656,7 @@ class BonsaiClient {
       updatedAt: Math.floor(Date.now() / 1000),
       // HACK: make sure we dont save these in redis
       versions: undefined,
+      versionCount: (data.versionCount || 0) + 1,
       status: undefined,
     });
 

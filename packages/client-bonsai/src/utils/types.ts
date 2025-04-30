@@ -35,6 +35,7 @@ export type SmartMedia = SmartMediaBase & {
   uri: URI; // lens storage node uri
   token?: LaunchpadToken; // optional associated token
   versions?: [string]; // versions of uri; only present in the db
+  versionCount?: number; // number of versions of uri
   canvas?: string; // canvas html
   status?: SmartMediaStatus; // status of the last update; only present in the db
 };

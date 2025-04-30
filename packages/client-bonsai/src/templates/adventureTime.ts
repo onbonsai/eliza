@@ -30,11 +30,13 @@ import {
 } from "../utils/types";
 import { formatMetadata } from "../services/lens/createPost";
 import { isMediaStale, getLatestComments, getVoteWeightFromBalance } from "../utils/utils";
-import { parseBase64Image, uploadJson, pinFile, storjGatewayURL } from "../utils/ipfs";
+import { parseBase64Image, uploadJson, cacheImageStorj, uriToBuffer } from "../utils/ipfs";
 import { fetchAllCollectorsFor, fetchAllCommentsFor, fetchAllUpvotersFor } from "../services/lens/posts";
 import { balanceOfBatched } from "../utils/viem";
 import { storageClient, LENS_CHAIN_ID, LENS_CHAIN } from "../services/lens/client";
 import { BONSAI_PROTOCOL_FEE_RECIPIENT } from "../utils/constants";
+import { v4 as uuidv4 } from 'uuid';
+import { cacheJsonStorj } from "../utils/ipfs";
 
 export const nextPageTemplate = `
 # Instructions
@@ -307,6 +309,36 @@ Option B) ${page.decisions[1]}
                 const signer = privateKeyToAccount(process.env.LENS_STORAGE_NODE_PRIVATE_KEY as `0x${string}`);
                 const acl = walletOnly(signer.address, LENS_CHAIN_ID);
 
+                // cache image to storj
+                const storjResult = await cacheImageStorj({ id: uuidv4(), buffer: await uriToBuffer(imageUri) });
+                if (storjResult.success && storjResult.url) {
+                    // upload version to storj for versioning
+                    const versionMetadata = formatMetadata({
+                        text: json.lens.content as string,
+                        image: {
+                            url: storjResult.url,
+                            type: MediaImageMimeType.PNG // see generation.ts the provider
+                        },
+                        attributes: json.lens.attributes,
+                        media: {
+                            category: TemplateCategory.EVOLVING_POST,
+                            name: TemplateName.ADVENTURE_TIME,
+                        },
+                    });
+
+                    let versionCount = media?.versionCount || 0;
+                    const versionResult = await cacheJsonStorj({
+                        id: `${json.lens.id}-version-${versionCount}.json`,
+                        data: versionMetadata
+                    });
+
+                    if (versionResult.success) {
+                        persistVersionUri = versionResult.url;
+                    } else {
+                        elizaLogger.error('Failed to cache version metadata:', versionResult.error);
+                    }
+                }
+
                 // edit the image and the metadata json
                 const file = parseBase64Image(imageResponse) as unknown as File;
                 await storageClient.editFile(imageUri, file, signer, { acl });
@@ -324,9 +356,6 @@ Option B) ${page.decisions[1]}
                     },
                 }) as ImageMetadata;
                 await storageClient.updateJson(media?.uri, metadata, signer, { acl });
-
-                // // upload version to storj for versioning
-                // persistVersionUri = await uploadJson(metadata);
             }
 
             return {

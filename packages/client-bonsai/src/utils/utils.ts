@@ -65,6 +65,7 @@ export const formatSmartMedia = (
         maxStaleTime: DEFAULT_MAX_STALE_TIME,
         createdAt: ts,
         updatedAt: ts,
+        versionCount: 0,
     };
 }
 

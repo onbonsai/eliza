@@ -3,6 +3,9 @@ import axios from "axios";
 import FormData from "form-data";
 import { File } from 'node:buffer';
 import { Blob } from 'node:buffer';
+import pkg from 'aws-sdk';
+const { S3 } = pkg;
+import { storageClient } from "../services/lens/client";
 
 const STORJ_API_URL = "https://www.storj-ipfs.com";
 const STORJ_API_USERNAME = process.env.STORJ_API_USERNAME;
@@ -187,3 +190,172 @@ export function bufferToVideoFile(buffer: Buffer): File {
   // Create a File from the Blob
   return new File([blob], `video-${Date.now()}.mp4`, { type: 'video/mp4' });
 }
+
+export const defaultGatewayURL = (uriOrHash: string) => `https://ipfs.io/ipfs/${_hash(uriOrHash)}`;
+
+export const uriToBuffer = async (uri: string): Promise<Buffer> => {
+  try {
+    // Handle data URIs (base64 encoded)
+    if (uri.startsWith('data:')) {
+      const base64Data = uri.split(',')[1];
+      return Buffer.from(base64Data, 'base64');
+    }
+
+    if (uri.startsWith("lens://")) {
+      uri = await storageClient.resolve(uri);
+    }
+
+    if (uri.startsWith("ipfs://")) {
+      uri = defaultGatewayURL(uri);
+    }
+    // Handle regular URLs
+    const response = await axios.get(uri, { responseType: 'arraybuffer' });
+    return Buffer.from(response.data);
+  } catch (error) {
+    elizaLogger.error('Failed to convert URI to buffer:', error);
+    throw new Error('Failed to convert URI to buffer');
+  }
+};
+
+interface StorjUploadParams {
+  id: string;
+  buffer: Buffer;
+  bucket?: string;
+}
+
+interface StorjUploadResult {
+  success: boolean;
+  url?: string;
+  error?: string;
+}
+
+const getStorjPublicUrl = (bucket: string, key: string): string => {
+  const keys = {
+    "publication-history-media": "jw5fzwqqirjuu6i2aambbebh4uza",
+    "publication-history-metadata": "jw3iog3dy7frukpkum5xo6tklyxq",
+  }
+  const endpoint = `https://link.storjshare.io/raw/${keys[bucket]}/${bucket}`;
+  return `${endpoint}/${key}`;
+};
+
+export const cacheImageStorj = async ({ id, buffer, bucket = "publication-history-media" }: StorjUploadParams): Promise<StorjUploadResult> => {
+  if (!process.env.STORJ_ACCESS_KEY || !process.env.STORJ_SECRET_KEY || !process.env.STORJ_ENDPOINT) {
+    return {
+      success: false,
+      error: 'Storj credentials are not properly configured'
+    };
+  }
+
+  const s3 = new S3({
+    accessKeyId: process.env.STORJ_ACCESS_KEY,
+    secretAccessKey: process.env.STORJ_SECRET_KEY,
+    endpoint: process.env.STORJ_ENDPOINT,
+    s3ForcePathStyle: true,
+    signatureVersion: "v4",
+  });
+
+  const params = {
+    Bucket: bucket,
+    Key: id,
+    Body: buffer,
+    ContentType: "image/png",
+  };
+
+  try {
+    await s3.upload(params).promise();
+    return {
+      success: true,
+      url: getStorjPublicUrl(bucket, id)
+    };
+  } catch (error) {
+    elizaLogger.error('Failed to upload image to Storj:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
+};
+
+export const cacheVideoStorj = async ({ id, buffer, bucket = "publication-history-media" }: StorjUploadParams): Promise<StorjUploadResult> => {
+  if (!process.env.STORJ_ACCESS_KEY || !process.env.STORJ_SECRET_KEY || !process.env.STORJ_ENDPOINT) {
+    return {
+      success: false,
+      error: 'Storj credentials are not properly configured'
+    };
+  }
+
+  const s3 = new S3({
+    accessKeyId: process.env.STORJ_ACCESS_KEY,
+    secretAccessKey: process.env.STORJ_SECRET_KEY,
+    endpoint: process.env.STORJ_ENDPOINT,
+    s3ForcePathStyle: true,
+    signatureVersion: "v4",
+  });
+
+  const params = {
+    Bucket: bucket,
+    Key: id,
+    Body: buffer,
+    ContentType: "video/mp4",
+  };
+
+  try {
+    await s3.upload(params).promise();
+    return {
+      success: true,
+      url: getStorjPublicUrl(bucket, id)
+    };
+  } catch (error) {
+    elizaLogger.error('Failed to upload video to Storj:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
+};
+
+export const cacheJsonStorj = async ({ id, data, bucket = "publication-history-metadata" }: { 
+  id: string; 
+  data: any; 
+  bucket?: string;
+}): Promise<StorjUploadResult> => {
+  if (!process.env.STORJ_ACCESS_KEY || !process.env.STORJ_SECRET_KEY || !process.env.STORJ_ENDPOINT) {
+    return {
+      success: false,
+      error: 'Storj credentials are not properly configured'
+    };
+  }
+
+  const s3 = new S3({
+    accessKeyId: process.env.STORJ_ACCESS_KEY,
+    secretAccessKey: process.env.STORJ_SECRET_KEY,
+    endpoint: process.env.STORJ_ENDPOINT,
+    s3ForcePathStyle: true,
+    signatureVersion: "v4",
+  });
+
+  // Convert data to JSON string if it's not already
+  const jsonString = typeof data === 'string' ? data : JSON.stringify(data);
+  const buffer = Buffer.from(jsonString, 'utf-8');
+
+  const params = {
+    Bucket: bucket,
+    Key: id,
+    Body: buffer,
+    ContentType: "application/json",
+  };
+
+  try {
+    await s3.upload(params).promise();
+    return {
+      success: true,
+      url: getStorjPublicUrl(bucket, id)
+    };
+  } catch (error) {
+    elizaLogger.error('Failed to upload JSON to Storj:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
+};
