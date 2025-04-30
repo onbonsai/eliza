@@ -38,6 +38,7 @@ import { fetchAllCommentsFor, fetchPostsBy } from "./services/lens/posts";
 import { formatPost } from "./utils/utils";
 import { getWallets } from "./services/coinbase";
 import { decrementCredits, getCreditsForMessage, getCredits } from "./utils/apiCredits";
+import PostPresenceController, { type UserPresence } from "./services/postPresence";
 
 /**
  * BonsaiTerminalClient provides an Express server for interacting wtih smart media.
@@ -46,6 +47,7 @@ class BonsaiTerminalClient {
   private app: express.Application;
   private server: HttpServer;
   private io: SocketIOServer;
+  private postPresence: PostPresenceController;
 
   private redis: Redis;
   private mongo: { client?: MongoClient, media?: Collection };
@@ -65,6 +67,7 @@ class BonsaiTerminalClient {
     this.io = new SocketIOServer<ServerOptions>(this.server, {
       cors: { origin: "*", methods: ["GET", "POST"] },
     });
+    this.postPresence = new PostPresenceController(this.io, this.redis);
     this.app.use(cors());
     this.mongo = {};
 
@@ -274,6 +277,48 @@ class BonsaiTerminalClient {
             username: "bons_ai"
           }
         });
+      }
+    );
+
+    // Add bulk presence endpoint
+    this.app.post(
+      "/presence/bulk",
+      async (req: express.Request, res: express.Response) => {
+        const { postIds } = req.body;
+
+        if (!Array.isArray(postIds)) {
+          res.status(400).json({ error: "postIds must be an array" });
+          return;
+        }
+
+        try {
+          const results = await Promise.all(
+            postIds.map(async (postId) => {
+              const presence = await this.postPresence.getPostPresence(postId);
+              const sortedUsers = [...presence.users].sort((a, b) => b.score - a.score);
+
+              return {
+                postId,
+                count: presence.users.length,
+                topUsers: sortedUsers.slice(0, 3)
+              };
+            })
+          );
+
+          // Convert array to object with postIds as keys
+          const response = results.reduce((acc, curr) => {
+            acc[curr.postId] = {
+              count: curr.count,
+              topUsers: curr.topUsers
+            };
+            return acc;
+          }, {} as Record<string, { count: number; topUsers: UserPresence[] }>);
+
+          res.status(200).json(response);
+        } catch (error) {
+          console.error('Error fetching bulk presence:', error);
+          res.status(500).json({ error: "Failed to fetch presence data" });
+        }
       }
     );
   }
