@@ -235,8 +235,8 @@ const evolvingArt = {
               },
               attributes: json.lens.attributes,
               media: {
-                  category: TemplateCategory.EVOLVING_POST,
-                  name: TemplateName.ADVENTURE_TIME,
+                  category: TemplateCategory.EVOLVING_ART,
+                  name: TemplateName.EVOLVING_ART,
               },
           });
 

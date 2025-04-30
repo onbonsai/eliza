@@ -31,12 +31,13 @@ import {
 } from "../utils/types";
 import { formatMetadata } from "../services/lens/createPost";
 import { isMediaStale, getLatestComments, getVoteWeightFromBalance, downloadVideoBuffer } from "../utils/utils";
-import { parseBase64Image, uploadJson, pinFile, storjGatewayURL, bufferToVideoFile } from "../utils/ipfs";
+import { bufferToVideoFile, uriToBuffer, cacheVideoStorj, cacheJsonStorj } from "../utils/ipfs";
 import { fetchAllCollectorsFor, fetchAllCommentsFor, fetchAllUpvotersFor } from "../services/lens/posts";
 import { balanceOfBatched } from "../utils/viem";
 import { storageClient, LENS_CHAIN_ID, LENS_CHAIN } from "../services/lens/client";
 import { BONSAI_PROTOCOL_FEE_RECIPIENT } from "../utils/constants";
 import { generateVideoRunway } from "../services/runway";
+import { v4 as uuidv4 } from 'uuid';
 
 export const nextPageTemplate = `
 # Instructions
@@ -329,12 +330,44 @@ Option B) ${page.decisions[1]}
       }
 
       let metadata: ImageMetadata | undefined;
+      let persistVersionUri: string | undefined;
       if (refresh) {
         const url = await storageClient.resolve(media?.uri as URI);
         const json: ImageMetadata = await fetch(url).then(res => res.json());
         const videoUri = json?.lens?.video?.item
         const signer = privateKeyToAccount(process.env.LENS_STORAGE_NODE_PRIVATE_KEY as `0x${string}`);
         const acl = walletOnly(signer.address, LENS_CHAIN_ID);
+
+        // save previous version to storj
+        // cache video to storj
+        const storjResult = await cacheVideoStorj({ id: uuidv4(), buffer: await uriToBuffer(videoUri) });
+        if (storjResult.success && storjResult.url) {
+            // upload version to storj for versioning
+            const versionMetadata = formatMetadata({
+                text: json.lens.content as string,
+                video: {
+                    url: storjResult.url,
+                    type: MediaVideoMimeType.MP4
+                },
+                attributes: json.lens.attributes,
+                media: {
+                  category: TemplateCategory.EVOLVING_POST,
+                  name: TemplateName.ADVENTURE_TIME_VIDEO,
+                },
+            });
+
+            let versionCount = media?.versionCount || 0;
+            const versionResult = await cacheJsonStorj({
+                id: `${json.lens.id}-version-${versionCount}.json`,
+                data: versionMetadata
+            });
+
+            if (versionResult.success) {
+                persistVersionUri = versionResult.url;
+            } else {
+                elizaLogger.error('Failed to cache version metadata:', versionResult.error);
+            }
+        }
 
         // edit the video and the metadata json
         const videoFile = bufferToVideoFile(video);
@@ -368,6 +401,7 @@ Option B) ${page.decisions[1]}
         metadata,
         refreshMetadata: refresh,
         updatedTemplateData: { ...templateData, decisions: page.decisions, chapterName: page.chapterName },
+        persistVersionUri,
         totalUsage,
       }
     } catch (error) {
