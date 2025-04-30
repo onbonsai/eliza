@@ -350,7 +350,7 @@ class BonsaiClient {
      */
     this.app.post(
       "/post/:postId/update",
-      // verifyApiKeyOrLensId,
+      verifyApiKeyOrLensId,
       async (req: express.Request, res: express.Response) => {
         const { postId } = req.params;
         const { forceUpdate } = req.body;
@@ -366,10 +366,10 @@ class BonsaiClient {
           return;
         }
 
-        // if (forceUpdate && (data.creator !== req.user?.sub as `0x${string}`)) {
-        //   res.status(401).json({ error: "only post creator can force update" });
-        //   return;
-        // }
+        if (forceUpdate && (data.creator !== req.user?.sub as `0x${string}`)) {
+          res.status(401).json({ error: "only post creator can force update" });
+          return;
+        }
 
         // check if user has enough credits
         if (!await canUpdate(data.creator, data.template)) {
