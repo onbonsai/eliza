@@ -263,7 +263,7 @@ const nftDotFun = {
         totalUsage.customTokens[getModelSettings(ModelProviderName.OPENAI, ModelClass.SMALL)?.name] = profanityUsage;
       }
 
-      elizaLogger.info(`generating video with prompt: ${videoPrompt} and image: ${image}`);
+      elizaLogger.info(`generating video with prompt: ${videoPrompt}`);
       const videoResponse = await generateVideoLuma({
         prompt: videoPrompt,
         promptImage: image,
