@@ -309,6 +309,7 @@ Option B) ${page.decisions[1]}
                 const signer = privateKeyToAccount(process.env.LENS_STORAGE_NODE_PRIVATE_KEY as `0x${string}`);
                 const acl = walletOnly(signer.address, LENS_CHAIN_ID);
 
+                // save previous version to storj
                 // cache image to storj
                 const storjResult = await cacheImageStorj({ id: uuidv4(), buffer: await uriToBuffer(imageUri) });
                 if (storjResult.success && storjResult.url) {

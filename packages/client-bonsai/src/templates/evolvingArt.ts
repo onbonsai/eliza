@@ -29,12 +29,13 @@ import {
 } from "../utils/types";
 import { formatMetadata } from "../services/lens/createPost";
 import { isMediaStale, getLatestComments, getVoteWeightFromBalance } from "../utils/utils";
-import { parseBase64Image, pinFile, uploadJson } from "../utils/ipfs";
+import { cacheJsonStorj, cacheImageStorj, parseBase64Image, pinFile, uploadJson, uriToBuffer } from "../utils/ipfs";
 import { fetchAllCollectorsFor, fetchAllCommentsFor, fetchAllUpvotersFor } from "../services/lens/posts";
 import { balanceOfBatched } from "../utils/viem";
 import { LENS_CHAIN, LENS_CHAIN_ID, storageClient } from "../services/lens/client";
 import { BONSAI_PROTOCOL_FEE_RECIPIENT } from "../utils/constants";
 import { refresh } from "@lens-protocol/client/actions";
+import { v4 as uuidv4 } from 'uuid';
 
 export const nextImageTemplate = `
 # Instructions
@@ -220,6 +221,38 @@ const evolvingArt = {
         throw new Error("Failed to generate image after multiple attempts");
       }
 
+      // save previous version to storj
+      let persistVersionUri: string | undefined;
+      // cache image to storj
+      const storjResult = await cacheImageStorj({ id: uuidv4(), buffer: await uriToBuffer(imageUri) });
+      if (storjResult.success && storjResult.url) {
+          // upload version to storj for versioning
+          const versionMetadata = formatMetadata({
+              text: json.lens.content as string,
+              image: {
+                  url: storjResult.url,
+                  type: MediaImageMimeType.PNG // see generation.ts the provider
+              },
+              attributes: json.lens.attributes,
+              media: {
+                  category: TemplateCategory.EVOLVING_POST,
+                  name: TemplateName.ADVENTURE_TIME,
+              },
+          });
+
+          let versionCount = media?.versionCount || 0;
+          const versionResult = await cacheJsonStorj({
+              id: `${json.lens.id}-version-${versionCount}.json`,
+              data: versionMetadata
+          });
+
+          if (versionResult.success) {
+              persistVersionUri = versionResult.url;
+          } else {
+              elizaLogger.error('Failed to cache version metadata:', versionResult.error);
+          }
+      }
+
       let signer: Account;
       let acl;
       let file;
@@ -235,28 +268,6 @@ const evolvingArt = {
         console.log(error);
         throw new Error("failed");
       }
-      let persistVersionUri: string | undefined;
-      // TODO: not working
-      // try {
-      //   const prevImageBase64 = await fetch(imageUrl)
-      //     .then(res => res.arrayBuffer())
-      //     .then(buffer => Buffer.from(buffer).toString('base64'));
-      //   const metadata = formatMetadata({
-      //     text: prompt,
-      //     image: {
-      //       url: await pinFile(parseBase64Image({ success: true, data: [prevImageBase64] })),
-      //       type: MediaImageMimeType.PNG // see generation.ts the provider
-      //     },
-      //     attributes: json.lens.attributes,
-      //     media: {
-      //       category: TemplateCategory.EVOLVING_POST,
-      //       name: TemplateName.ADVENTURE_TIME,
-      //     },
-      //   }) as ImageMetadata;
-
-      //   // upload version to storj for versioning
-      //   persistVersionUri = await uploadJson(metadata);
-      // } catch {}
 
       return { persistVersionUri, totalUsage, refreshMetadata: refresh }
     } catch (error) {
