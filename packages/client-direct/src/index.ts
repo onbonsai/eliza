@@ -292,7 +292,7 @@ export class DirectClient {
                     runtime: runtime,
                     context,
                     modelClass: ModelClass.LARGE,
-                });
+                }) as Content;
 
                 if (!response) {
                     res.status(500).send(
@@ -811,7 +811,7 @@ export class DirectClient {
                     runtime: runtime,
                     context,
                     modelClass: ModelClass.LARGE,
-                });
+                }) as Content;
 
                 // save response to memory
                 const responseMessage = {

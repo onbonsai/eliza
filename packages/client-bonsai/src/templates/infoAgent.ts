@@ -41,15 +41,22 @@ Some additional information about the post is:
 Use these websites to get more information about the post:
 {{urls}}
 
-Your job is to respond to the following comments. Reply with a JSON formatted object that is a reply to the index of the comment you are replying to. Format the reply as a JSON array with the following properties where each object in the array represents a reply to a comment:
- \`\`\`json
-[
-    {
-        reply_to: number,
-        text: string
-    },
-    ...
-]
+Your job is to respond to the following comments. Reply with a JSON formatted object that is a reply to the index of the comment you are replying to.
+Format the reply as a JSON array with the following properties where each object in the array represents a reply to a comment:
+\`\`\`json
+{
+    replies: [
+        {
+            reply_to: number,
+            text: string
+        },
+        {
+            reply_to: number,
+            text: string
+        },
+        ...
+    ]
+}
 \`\`\`
 
 # Comments
@@ -138,7 +145,7 @@ const infoAgent = {
                 template: replyTemplate,
             });
 
-            const { response: replies, usage } =
+            const { response: { replies }, usage } =
                 (await generateObjectDeprecated({
                     runtime,
                     context,
@@ -149,7 +156,7 @@ const infoAgent = {
                       web_search_preview: openai.tools.webSearchPreview(),
                     },
                 })) as unknown as {
-                    response: Reply[];
+                    response: { replies: Reply[] };
                     usage: LanguageModelUsage;
                 };
 
@@ -178,8 +185,8 @@ const infoAgent = {
 
             // TODO: pick some comments to tip - max 3 per post
 
-            // metdata does not change
-            return { metadata: undefined, totalUsage };
+            // metdata does not change and we want to refresh the cache to register the new comments
+            return { metadata: undefined, totalUsage, refreshCache: true };
         } catch (error) {
             console.log(error);
             elizaLogger.error("handler failed", error);
@@ -205,12 +212,12 @@ const infoAgent = {
                 info: z
                     .string()
                     .describe(
-                        "Provide information about the topic you want the agent to respond to"
+                        "Provide information about the topic you want the agent to respond to [placeholder: Bonsai Smart Media]"
                     ),
                 urls: z
                     .string()
                     .describe(
-                        "List of URLs containing additional information for the agent to reference separated by commas"
+                        "List of URLs containing additional information for the agent to reference separated by commas [placeholder: https://onbons.ai/whitepaper.pdf]"
                     ),
             }),
         },

@@ -22,7 +22,8 @@
     "docker": "pnpm docker:build && pnpm docker:run && pnpm docker:bash",
     "test": "bash ./scripts/test.sh",
     "smokeTests": "bash ./scripts/smokeTests.sh",
-    "integrationTests": "bash ./scripts/integrationTests.sh"
+    "integrationTests": "bash ./scripts/integrationTests.sh",
+    "postinstall": "npm rebuild better-sqlite3"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
@@ -57,7 +58,6 @@
       "@polkadot/types-codec": "10.13.1",
       "@polkadot/keyring": "12.6.2",
       "@ai-sdk/provider": "1.0.6",
-      "@ai-sdk/provider-utils": "2.1.6",
       "cookie": "0.7.0",
       "bs58": "5.0.0",
       "@coral-xyz/anchor": "0.30.1",

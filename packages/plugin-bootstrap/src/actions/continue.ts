@@ -195,7 +195,7 @@ export const continueAction: Action = {
             runtime,
             context,
             modelClass: ModelClass.LARGE,
-        });
+        }) as Content;
 
         response.inReplyTo = message.id;
 

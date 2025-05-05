@@ -35,6 +35,7 @@ export type SmartMedia = SmartMediaBase & {
   uri: URI; // lens storage node uri
   token?: LaunchpadToken; // optional associated token
   versions?: [string]; // versions of uri; only present in the db
+  versionCount?: number; // number of versions of uri
   canvas?: string; // canvas html
   status?: SmartMediaStatus; // status of the last update; only present in the db
 };
@@ -44,8 +45,9 @@ export type SmartMedia = SmartMediaBase & {
  */
 export enum TemplateName {
   ADVENTURE_TIME = "adventure_time",
-  ARTIST_PRESENT = "artist_present",
+  EVOLVING_ART = "evolving_art",
   INFO_AGENT = "info_agent",
+  ADVENTURE_TIME_VIDEO = "adventure_time_video",
 }
 
 /**
@@ -70,6 +72,9 @@ export interface Template {
 
 export type TemplateUsage = LanguageModelUsage & {
   imagesCreated?: number;
+  videoCostParams?: { model: string; duration: number }
+  audioCharacters?: number;
+  customTokens?: Record<string, LanguageModelUsage>; // model => usage
 }
 
 /**
@@ -87,11 +92,17 @@ export type TemplateHandler = (
  */
 export interface TemplateHandlerResponse {
   preview?: { // not necessary for all templates
-    text: string;
+    text?: string;
     image?: string; // base64
-    video?: string,
+    video?: {
+      buffer: number[],
+      mimeType: string,
+      size: number
+    }
   };
-  metadata?: TextOnlyMetadata | ImageMetadata | VideoMetadata; // only undefined on failure or generating preview
+  metadata?: TextOnlyMetadata | ImageMetadata | VideoMetadata; // undefined on failure, generating preview, or no new metadata json
+  refreshMetadata?: boolean; // force the metadata refresh on file edits
+  refreshCache?: boolean; // force the cache refresh on file edits
   persistVersionUri?: string; // in case the handler wants versioning on the media
   updatedTemplateData?: unknown; // updated payload for the next generation
   totalUsage?: TemplateUsage;
@@ -135,6 +146,7 @@ export type TemplateClientMetadata = {
     imageRequirement?: ImageRequirement;
     requireContent?: boolean;
     isCanvas?: boolean;
+    nftRequirement?: ImageRequirement;
   };
   templateData: {
     form: z.ZodObject<any>;
@@ -143,3 +155,22 @@ export type TemplateClientMetadata = {
   /** Developer fee recipient: https://docs.bonsai.meme/elizaos/client-bonsai/developer-fees */
   protocolFeeRecipient: `0x${string}`;
 };
+
+export interface Payload {
+  action: string;
+  data: { [key: string]: string };
+  imageUrl?: string;
+}
+
+export interface NFTMetadata {
+  tokenId: number;
+  contract: {
+    address: string;
+    network: string;
+  };
+  collection?: {
+    name?: string;
+  };
+  image?: string; // base64 or url
+  attributes?: any[];
+}

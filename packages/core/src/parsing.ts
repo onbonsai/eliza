@@ -6,7 +6,7 @@ export const messageCompletionFooter = `\nResponse format should be formatted in
 { "user": "{{agentName}}", "text": "<string>", "action": "<string>" }
 \`\`\`
 
-The “action” field should be one of the options in [Available Actions] and the "text" field should be the response you want to send.
+The "action" field should be one of the options in [Available Actions] and the "text" field should be the response you want to send.
 `;
 
 export const shouldRespondFooter = `The available options are [RESPOND], [IGNORE], or [STOP]. Choose the most appropriate option.
@@ -142,6 +142,44 @@ export function parseJsonArrayFromText(text: string) {
 export function parseJSONObjectFromText(
     text: string
 ): Record<string, any> | null {
+    text = text.trim();
+
+    // If the text is wrapped in a code block, extract the content
+    const codeBlockMatch = text.match(/```(?:json)?\n([\s\S]*?)\n```/);
+    if (codeBlockMatch) {
+        text = codeBlockMatch[1].trim();
+    }
+
+    // First try to parse the raw text as JSON
+    try {
+        const rawJsonData = JSON.parse(text);
+        if (
+            typeof rawJsonData === "object" &&
+            rawJsonData !== null &&
+            !Array.isArray(rawJsonData)
+        ) {
+            return rawJsonData;
+        }
+    } catch (e) {
+        // If raw parsing fails, try cleaning the string
+        try {
+            // Remove any potential BOM or hidden characters
+            const cleaned = text.replace(/^\uFEFF/, '')  // Remove BOM
+                              .replace(/[\u200B-\u200D\uFEFF]/g, ''); // Remove zero-width spaces
+            const rawJsonData = JSON.parse(cleaned);
+            if (
+                typeof rawJsonData === "object" &&
+                rawJsonData !== null &&
+                !Array.isArray(rawJsonData)
+            ) {
+                return rawJsonData;
+            }
+        } catch (e2) {
+            console.log("Cleaned parse failed:", e2.message);
+            // Continue with existing cleanup steps
+        }
+    }
+
     let jsonData = null;
     const jsonBlockMatch = text.match(jsonBlockPattern);
 

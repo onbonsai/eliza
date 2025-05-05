@@ -2,7 +2,7 @@ class TaskQueue {
   private queue: { postId: string; task: () => Promise<any> }[] = [];
   private activeTaskCount = 0;  // Track number of currently running tasks
   private _isProcessing: Map<string, boolean> = new Map(); // Public mapping to track processing state by postId
-  private static readonly MAX_CONCURRENT_TASKS = 10;
+  private static readonly MAX_CONCURRENT_TASKS = 5;
 
   async add<T>(postId: string, request: () => Promise<T>): Promise<T> {
     return new Promise((resolve, reject) => {

@@ -10,6 +10,7 @@ import {
     type CoreTool,
     type GenerateObjectResult,
     type StepResult as AIStepResult,
+    LanguageModelUsage,
 } from "ai";
 import { Buffer } from "buffer";
 import { createOllama } from "ollama-ai-provider";
@@ -344,6 +345,37 @@ function getCloudflareGatewayBaseURL(
     return baseURL;
 }
 
+const getToken = (runtime, modelProvider: ModelProviderName) => {
+    // First try to match the specific provider
+    switch (modelProvider) {
+        case ModelProviderName.HEURIST:
+            return runtime.getSetting("HEURIST_API_KEY");
+        case ModelProviderName.TOGETHER:
+            return runtime.getSetting("TOGETHER_API_KEY");
+        case ModelProviderName.FAL:
+            return runtime.getSetting("FAL_API_KEY");
+        case ModelProviderName.OPENAI:
+            return runtime.getSetting("OPENAI_API_KEY");
+        case ModelProviderName.VENICE:
+            return runtime.getSetting("VENICE_API_KEY");
+        case ModelProviderName.LIVEPEER:
+            return runtime.getSetting("LIVEPEER_GATEWAY_URL");
+        case ModelProviderName.TITLES:
+            return runtime.getSetting("TITLES_API_KEY");
+        default:
+            // If no specific match, try the fallback chain
+            return (
+                runtime.getSetting("HEURIST_API_KEY") ??
+                runtime.getSetting("NINETEEN_AI_API_KEY") ??
+                runtime.getSetting("TOGETHER_API_KEY") ??
+                runtime.getSetting("FAL_API_KEY") ??
+                runtime.getSetting("OPENAI_API_KEY") ??
+                runtime.getSetting("VENICE_API_KEY") ??
+                runtime.getSetting("LIVEPEER_GATEWAY_URL")
+            );
+    }
+};
+
 /**
  * Send a message to the model for a text generateText - receive a string back and parse how you'd like
  * @param opts - The options for the generateText request.
@@ -361,17 +393,21 @@ export async function generateText({
     runtime,
     context,
     modelClass,
+    modelProvider,
     tools = {},
     onStepFinish,
     maxSteps = 1,
     stop,
     customSystemPrompt,
+    returnUsage = false,
+    messages,
 }: // verifiableInference = process.env.VERIFIABLE_INFERENCE_ENABLED === "true",
 // verifiableInferenceOptions,
 {
     runtime: IAgentRuntime;
-    context: string;
+    context?: string;
     modelClass: ModelClass;
+    modelProvider?: ModelProviderName;
     tools?: Record<string, Tool>;
     onStepFinish?: (event: StepResult) => Promise<void> | void;
     maxSteps?: number;
@@ -380,8 +416,10 @@ export async function generateText({
     // verifiableInference?: boolean;
     // verifiableInferenceAdapter?: IVerifiableInferenceAdapter;
     // verifiableInferenceOptions?: VerifiableInferenceOptions;
-}): Promise<string> {
-    if (!context) {
+    returnUsage?: boolean;
+    messages?: any[]
+}): Promise<string | { response: string; usage: LanguageModelUsage; }> {
+    if (!context && messages.length === 0) {
         console.error("generateText context is empty");
         return "";
     }
@@ -389,11 +427,10 @@ export async function generateText({
     elizaLogger.log("Generating text...");
 
     elizaLogger.info("Generating text with options:", {
-        modelProvider: runtime.modelProvider,
+        modelProvider: modelProvider || runtime.modelProvider,
         model: modelClass,
         // verifiableInference,
     });
-    elizaLogger.log("Using provider:", runtime.modelProvider);
     // If verifiable inference is requested and adapter is provided, use it
     // if (verifiableInference && runtime.verifiableInferenceAdapter) {
     //     elizaLogger.log(
@@ -422,7 +459,7 @@ export async function generateText({
     //     }
     // }
 
-    const provider = runtime.modelProvider;
+    const provider = modelProvider || runtime.modelProvider;
     elizaLogger.debug("Provider settings:", {
         provider,
         hasRuntime: !!runtime,
@@ -439,7 +476,7 @@ export async function generateText({
 
     const endpoint =
         runtime.character.modelEndpointOverride || getEndpoint(provider);
-    const modelSettings = getModelSettings(runtime.modelProvider, modelClass);
+    const modelSettings = getModelSettings(provider, modelClass);
     let model = modelSettings.name;
 
     // allow character.json settings => secrets to override models
@@ -526,7 +563,9 @@ export async function generateText({
         modelConfiguration?.experimental_telemetry ||
         modelSettings.experimental_telemetry;
 
-    const apiKey = runtime.token;
+    const apiKey = modelProvider
+        ? getToken(runtime, modelProvider)
+        : runtime.token;
 
     try {
         elizaLogger.debug(
@@ -536,6 +575,7 @@ export async function generateText({
         context = await trimTokens(context, max_context_length, runtime);
 
         let response: string;
+        let usage: LanguageModelUsage;
 
         const _stop = stop || modelSettings.stop;
         elizaLogger.debug(
@@ -568,8 +608,8 @@ export async function generateText({
                     fetch: runtime.fetch,
                 });
 
-                const { text: openaiResponse } = await aiGenerateText({
-                    model: openai.languageModel(model),
+                const { text: openaiResponse, usage: openaiUsage } = await aiGenerateText({
+                    model: tools && Object.keys(tools).length > 0 ? openai.responses(model) : openai.languageModel(model),
                     prompt: context,
                     system:
                         runtime.character.system ??
@@ -586,6 +626,7 @@ export async function generateText({
                 });
 
                 response = openaiResponse;
+                usage = openaiUsage;
                 console.log("Received response from OpenAI model.");
                 break;
             }
@@ -683,7 +724,7 @@ export async function generateText({
                     fetch: runtime.fetch,
                 });
 
-                const { text: googleResponse } = await aiGenerateText({
+                const { text: googleResponse, usage: googleUsage } = await aiGenerateText({
                     model: google(model),
                     prompt: context,
                     system:
@@ -701,6 +742,7 @@ export async function generateText({
                 });
 
                 response = googleResponse;
+                usage = googleUsage;
                 elizaLogger.debug("Received response from Google model.");
                 break;
             }
@@ -708,7 +750,7 @@ export async function generateText({
             case ModelProviderName.MISTRAL: {
                 const mistral = createMistral();
 
-                const { text: mistralResponse } = await aiGenerateText({
+                const { text: mistralResponse, usage: mistralUsage } = await aiGenerateText({
                     model: mistral(model),
                     prompt: context,
                     system:
@@ -722,6 +764,7 @@ export async function generateText({
                 });
 
                 response = mistralResponse;
+                usage = mistralUsage;
                 elizaLogger.debug("Received response from Mistral model.");
                 break;
             }
@@ -740,7 +783,7 @@ export async function generateText({
                     baseURL,
                     fetch: runtime.fetch,
                 });
-                const { text: anthropicResponse } = await aiGenerateText({
+                const { text: anthropicResponse, usage: anthropicUsage } = await aiGenerateText({
                     model: anthropic.languageModel(model),
                     prompt: context,
                     system:
@@ -758,6 +801,7 @@ export async function generateText({
                 });
 
                 response = anthropicResponse;
+                usage = anthropicUsage;
                 elizaLogger.debug("Received response from Anthropic model.");
                 break;
             }
@@ -770,7 +814,7 @@ export async function generateText({
                     fetch: runtime.fetch,
                 });
 
-                const { text: anthropicResponse } = await aiGenerateText({
+                const { text: anthropicResponse, usage: anthropicUsage } = await aiGenerateText({
                     model: anthropic.languageModel(model),
                     prompt: context,
                     system:
@@ -788,6 +832,7 @@ export async function generateText({
                 });
 
                 response = anthropicResponse;
+                usage = anthropicUsage;
                 elizaLogger.debug(
                     "Received response from Claude Vertex model."
                 );
@@ -802,7 +847,7 @@ export async function generateText({
                     fetch: runtime.fetch,
                 });
 
-                const { text: grokResponse } = await aiGenerateText({
+                const { text: grokResponse, usage: grokUsage } = await aiGenerateText({
                     model: grok.languageModel(model, {
                         parallelToolCalls: false,
                     }),
@@ -822,6 +867,7 @@ export async function generateText({
                 });
 
                 response = grokResponse;
+                usage = grokUsage;
                 elizaLogger.debug("Received response from Grok model.");
                 break;
             }
@@ -838,7 +884,7 @@ export async function generateText({
                     baseURL,
                 });
 
-                const { text: groqResponse } = await aiGenerateText({
+                const { text: groqResponse, usage: groqUsage } = await aiGenerateText({
                     model: groq.languageModel(model),
                     prompt: context,
                     temperature,
@@ -856,6 +902,7 @@ export async function generateText({
                 });
 
                 response = groqResponse;
+                usage = groqUsage;
                 elizaLogger.debug("Received response from Groq model.");
                 break;
             }
@@ -894,7 +941,7 @@ export async function generateText({
                     fetch: runtime.fetch,
                 });
 
-                const { text: redpillResponse } = await aiGenerateText({
+                const { text: redpillResponse, usage: redpillUsage } = await aiGenerateText({
                     model: openai.languageModel(model),
                     prompt: context,
                     temperature: temperature,
@@ -912,6 +959,7 @@ export async function generateText({
                 });
 
                 response = redpillResponse;
+                usage = redpillUsage;
                 elizaLogger.debug("Received response from redpill model.");
                 break;
             }
@@ -925,7 +973,7 @@ export async function generateText({
                     fetch: runtime.fetch,
                 });
 
-                const { text: openrouterResponse } = await aiGenerateText({
+                const { text: openrouterResponse, usage: openrouterUsage } = await aiGenerateText({
                     model: openrouter.languageModel(model),
                     prompt: context,
                     temperature: temperature,
@@ -943,6 +991,7 @@ export async function generateText({
                 });
 
                 response = openrouterResponse;
+                usage = openrouterUsage;
                 elizaLogger.debug("Received response from OpenRouter model.");
                 break;
             }
@@ -959,7 +1008,7 @@ export async function generateText({
 
                     elizaLogger.debug("****** MODEL\n", model);
 
-                    const { text: ollamaResponse } = await aiGenerateText({
+                    const { text: ollamaResponse, usage: ollamaUsage } = await aiGenerateText({
                         model: ollama,
                         prompt: context,
                         tools: tools,
@@ -976,6 +1025,7 @@ export async function generateText({
                         /<think>[\s\S]*?<\/think>\s*\n*/g,
                         ""
                     );
+                    usage = ollamaUsage;
                 }
                 elizaLogger.debug("Received response from Ollama model.");
                 break;
@@ -988,7 +1038,7 @@ export async function generateText({
                     fetch: runtime.fetch,
                 });
 
-                const { text: heuristResponse } = await aiGenerateText({
+                const { text: heuristResponse, usage: heuristUsage } = await aiGenerateText({
                     model: heurist.languageModel(model),
                     prompt: context,
                     system:
@@ -1007,6 +1057,7 @@ export async function generateText({
                 });
 
                 response = heuristResponse;
+                usage = heuristUsage;
                 elizaLogger.debug("Received response from Heurist model.");
                 break;
             }
@@ -1042,7 +1093,7 @@ export async function generateText({
                     fetch: runtime.fetch,
                 });
 
-                const { text: openaiResponse } = await aiGenerateText({
+                const { text: openaiResponse, usage: openaiUsage } = await aiGenerateText({
                     model: openai.languageModel(model),
                     prompt: context,
                     system:
@@ -1060,6 +1111,7 @@ export async function generateText({
                 });
 
                 response = openaiResponse;
+                usage = openaiUsage;
                 elizaLogger.debug("Received response from GAIANET model.");
                 break;
             }
@@ -1072,7 +1124,7 @@ export async function generateText({
                     fetch: runtime.fetch,
                 });
 
-                const { text: atomaResponse } = await aiGenerateText({
+                const { text: atomaResponse, usage: atomaUsage } = await aiGenerateText({
                     model: atoma.languageModel(model),
                     prompt: context,
                     system:
@@ -1090,6 +1142,7 @@ export async function generateText({
                 });
 
                 response = atomaResponse;
+                usage = atomaUsage;
                 elizaLogger.debug("Received response from Atoma model.");
                 break;
             }
@@ -1110,7 +1163,7 @@ export async function generateText({
                     fetch: runtime.fetch,
                 });
 
-                const { text: galadrielResponse } = await aiGenerateText({
+                const { text: galadrielResponse, usage: galadrielUsage } = await aiGenerateText({
                     model: galadriel.languageModel(model),
                     prompt: context,
                     system:
@@ -1128,6 +1181,7 @@ export async function generateText({
                 });
 
                 response = galadrielResponse;
+                usage = galadrielUsage;
                 elizaLogger.debug("Received response from Galadriel model.");
                 break;
             }
@@ -1146,7 +1200,7 @@ export async function generateText({
                     },
                 });
 
-                const { text: inferaResponse } = await aiGenerateText({
+                const { text: inferaResponse, usage: inferaUsage } = await aiGenerateText({
                     model: infera.languageModel(model),
                     prompt: context,
                     system:
@@ -1159,6 +1213,7 @@ export async function generateText({
                     presencePenalty: presence_penalty,
                 });
                 response = inferaResponse;
+                usage = inferaUsage;
                 elizaLogger.debug("Received response from Infera model.");
                 break;
             }
@@ -1170,9 +1225,10 @@ export async function generateText({
                     baseURL: endpoint,
                 });
 
-                const { text: veniceResponse } = await aiGenerateText({
+                elizaLogger.log(`model: ${model}`);
+                const { text: veniceResponse, usage: veniceUsage } = await aiGenerateText({
                     model: venice.languageModel(model),
-                    prompt: context,
+                    prompt: messages?.length ? undefined : context,
                     system:
                         runtime.character.system ??
                         settings.SYSTEM_PROMPT ??
@@ -1182,6 +1238,7 @@ export async function generateText({
                     temperature: temperature,
                     maxSteps: maxSteps,
                     maxTokens: max_response_length,
+                    messages: messages
                 });
 
                 // console.warn("veniceResponse:")
@@ -1192,6 +1249,7 @@ export async function generateText({
                     ""
                 );
                 // console.warn(response)
+                usage = veniceUsage;
 
                 // response = veniceResponse;
                 elizaLogger.debug("Received response from Venice model.");
@@ -1205,7 +1263,7 @@ export async function generateText({
                     baseURL: endpoint,
                 });
 
-                const { text: nvidiaResponse } = await aiGenerateText({
+                const { text: nvidiaResponse, usage: nvidiaUsage } = await aiGenerateText({
                     model: nvidia.languageModel(model),
                     prompt: context,
                     system:
@@ -1220,6 +1278,7 @@ export async function generateText({
                 });
 
                 response = nvidiaResponse;
+                usage = nvidiaUsage;
                 elizaLogger.debug("Received response from NVIDIA model.");
                 break;
             }
@@ -1233,7 +1292,7 @@ export async function generateText({
                     fetch: runtime.fetch,
                 });
 
-                const { text: deepseekResponse } = await aiGenerateText({
+                const { text: deepseekResponse, usage: deepseekUsage } = await aiGenerateText({
                     model: deepseek.languageModel(model),
                     prompt: context,
                     temperature: temperature,
@@ -1251,6 +1310,7 @@ export async function generateText({
                 });
 
                 response = deepseekResponse;
+                usage = deepseekUsage;
                 elizaLogger.debug("Received response from Deepseek model.");
                 break;
             }
@@ -1308,6 +1368,11 @@ export async function generateText({
                     /<\|start_header_id\|>assistant<\|end_header_id\|>\n\n/,
                     ""
                 );
+                usage = {
+                    promptTokens: 0,
+                    completionTokens: 0,
+                    totalTokens: 0,
+                };
                 elizaLogger.debug(
                     "Successfully received response from Livepeer model"
                 );
@@ -1328,7 +1393,7 @@ export async function generateText({
                     });
                     const secretAi = secretAiProvider(model);
 
-                    const { text: secretAiResponse } = await aiGenerateText({
+                    const { text: secretAiResponse, usage: secretUsage } = await aiGenerateText({
                         model: secretAi,
                         prompt: context,
                         tools: tools,
@@ -1339,13 +1404,14 @@ export async function generateText({
                     });
 
                     response = secretAiResponse;
+                    usage = secretUsage;
                 }
                 break;
 
             case ModelProviderName.BEDROCK: {
                 elizaLogger.debug("Initializing Bedrock model.");
 
-                const { text: bedrockResponse } = await aiGenerateText({
+                const { text: bedrockResponse, usage: bedrockUsage } = await aiGenerateText({
                     model: bedrock(model),
                     maxSteps: maxSteps,
                     temperature: temperature,
@@ -1357,6 +1423,7 @@ export async function generateText({
                 });
 
                 response = bedrockResponse;
+                usage = bedrockUsage;
                 elizaLogger.debug("Received response from Bedrock model.");
                 break;
             }
@@ -1368,7 +1435,7 @@ export async function generateText({
             }
         }
 
-        return response;
+        return returnUsage ? { response, usage } : response;
     } catch (error) {
         elizaLogger.error("Error in generateText:", error);
         throw error;
@@ -1409,7 +1476,7 @@ export async function generateShouldRespond({
                 runtime,
                 context,
                 modelClass,
-            });
+            }) as string;
 
             elizaLogger.debug("Received response from generateText:", response);
             const parsedResponse = parseShouldRespondFromText(response.trim());
@@ -1541,7 +1608,7 @@ export async function generateTrueOrFalse({
                 runtime,
                 context,
                 modelClass,
-            });
+            }) as string;
 
             const parsedResponse = parseBooleanFromText(response.trim());
             if (parsedResponse !== null) {
@@ -1594,7 +1661,7 @@ export async function generateTextArray({
                 modelClass,
             });
 
-            const parsedResponse = parseJsonArrayFromText(response);
+            const parsedResponse = parseJsonArrayFromText(response as string);
             if (parsedResponse) {
                 return parsedResponse;
             }
@@ -1611,13 +1678,21 @@ export async function generateObjectDeprecated({
     runtime,
     context,
     modelClass,
+    modelProvider,
+    returnUsage = false,
+    tools = {},
+    messages,
 }: {
     runtime: IAgentRuntime;
     context: string;
     modelClass: ModelClass;
+    modelProvider?: ModelProviderName;
+    returnUsage?: boolean;
+    tools?: Record<string, Tool>;
+    messages?: any
 }): Promise<any> {
-    if (!context) {
-        elizaLogger.error("generateObjectDeprecated context is empty");
+    if (!context && messages.length === 0) {
+        elizaLogger.error("generateObjectDeprecated context and messages is empty");
         return null;
     }
     let retryDelay = 1000;
@@ -1625,14 +1700,36 @@ export async function generateObjectDeprecated({
     while (true) {
         try {
             // this is slightly different than generateObjectArray, in that we parse object, not object array
-            const response = await generateText({
+            let generateResponse = await generateText({
                 runtime,
                 context,
                 modelClass,
+                modelProvider,
+                returnUsage,
+                tools,
+                messages,
             });
+
+            let response: string;
+            let usage: LanguageModelUsage | undefined;
+
+            if (returnUsage) {
+                response = (generateResponse as { response: string; usage: LanguageModelUsage }).response;
+                usage = (generateResponse as { response: string; usage: LanguageModelUsage }).usage;
+            } else {
+                response = generateResponse as string;
+                usage = undefined;
+            }
+
+            // HACK: would add this to handleProvider but ai package not yet compatible
+            if (modelProvider === ModelProviderName.VENICE) {
+                response = response
+                    .replace(/<think>[\s\S]*?<\/think>\s*\n*/g, '');
+            }
+
             const parsedResponse = parseJSONObjectFromText(response);
             if (parsedResponse) {
-                return parsedResponse;
+                return returnUsage ? { response: parsedResponse, usage } : parsedResponse;
             }
         } catch (error) {
             elizaLogger.error("Error in generateObject:", error);
@@ -1666,7 +1763,7 @@ export async function generateObjectArray({
                 modelClass,
             });
 
-            const parsedResponse = parseJsonArrayFromText(response);
+            const parsedResponse = parseJsonArrayFromText(response as string);
             if (parsedResponse) {
                 return parsedResponse;
             }
@@ -1695,43 +1792,64 @@ export async function generateMessageResponse({
     runtime,
     context,
     modelClass,
+    returnUsage,
 }: {
     runtime: IAgentRuntime;
     context: string;
     modelClass: ModelClass;
-}): Promise<Content> {
+    returnUsage?: boolean;
+}): Promise<Content | { response: Content, usage: LanguageModelUsage }> {
     const modelSettings = getModelSettings(runtime.modelProvider, modelClass);
     const max_context_length = modelSettings.maxInputTokens;
 
     context = await trimTokens(context, max_context_length, runtime);
     elizaLogger.debug("Context:", context);
     let retryLength = 1000; // exponential backoff
-    while (true) {
+    let parsedContent;
+    let usage;
+    let attempts = 0;
+    const maxAttempts = 3;
+
+    while (attempts < maxAttempts) {
         try {
             elizaLogger.log("Generating message response..");
 
-            const response = await generateText({
+            let response = await generateText({
                 runtime,
                 context,
                 modelClass,
+                returnUsage,
             });
 
-            // try parsing the response as JSON, if null then try again
-            const parsedContent = parseJSONObjectFromText(response) as Content;
-            if (!parsedContent) {
-                elizaLogger.debug("parsedContent is null, retrying");
-                continue;
+            if (returnUsage) {
+                // @ts-ignore
+                usage = response.usage as LanguageModelUsage;
+                // @ts-ignore
+                response = response.response as string;
+
             }
 
-            return parsedContent;
+            // try parsing the response as JSON, if null then try again
+            parsedContent = parseJSONObjectFromText(response as string) as Content;
+            if (parsedContent) {
+                return !returnUsage ? parsedContent : { response: parsedContent, usage };
+            }
+
+            elizaLogger.debug("parsedContent is null, retrying");
+            attempts++;
+
         } catch (error) {
             elizaLogger.error("ERROR:", error);
-            // wait for 2 seconds
-            retryLength *= 2;
-            await new Promise((resolve) => setTimeout(resolve, retryLength));
-            elizaLogger.debug("Retrying...");
+            attempts++;
+            if (attempts < maxAttempts) {
+                retryLength *= 2;
+                await new Promise((resolve) => setTimeout(resolve, retryLength));
+                elizaLogger.debug("Retrying...");
+            }
         }
     }
+
+    throw new Error("Failed to generate message response after 3 attempts");
 }
 
 export const generateImage = async (
@@ -1744,12 +1862,18 @@ export const generateImage = async (
         numIterations?: number;
         guidanceScale?: number;
         seed?: number;
+        imageModelProvider?: ModelProviderName;
         modelId?: string;
         jobId?: string;
         stylePreset?: string;
         hideWatermark?: boolean;
         safeMode?: boolean;
         cfgScale?: number;
+        returnRawResponse?: boolean;
+        inpaint?: {
+            strength: number;
+            source_image_base64: string;
+        }
     },
     runtime: IAgentRuntime
 ): Promise<{
@@ -1757,24 +1881,26 @@ export const generateImage = async (
     data?: string[];
     error?: any;
 }> => {
-    const modelSettings = getImageModelSettings(runtime.imageModelProvider);
+    const imageModelProvider = data.imageModelProvider || runtime.imageModelProvider;
+    const modelSettings = getImageModelSettings(imageModelProvider);
     if (!modelSettings) {
-        elizaLogger.warn(
-            "No model settings found for the image model provider."
-        );
+        elizaLogger.warn("No model settings found for the image model provider.");
         return { success: false, error: "No model settings available" };
     }
     const model = modelSettings.name;
     elizaLogger.info("Generating image with options:", {
-        imageModelProvider: model,
+        imageModelProvider,
+        modelId: data.modelId,
+        stylePreset: data.stylePreset,
+        inpaint: !!data.inpaint
     });
 
     const apiKey =
-        runtime.imageModelProvider === runtime.modelProvider
+        ((!imageModelProvider || imageModelProvider === runtime.imageModelProvider)) && runtime.imageModelProvider === runtime.modelProvider
             ? runtime.token
             : (() => {
                   // First try to match the specific provider
-                  switch (runtime.imageModelProvider) {
+                  switch (imageModelProvider) {
                       case ModelProviderName.HEURIST:
                           return runtime.getSetting("HEURIST_API_KEY");
                       case ModelProviderName.TOGETHER:
@@ -1822,7 +1948,7 @@ export const generateImage = async (
                   }
               })();
     try {
-        if (runtime.imageModelProvider === ModelProviderName.HEURIST) {
+        if (imageModelProvider === ModelProviderName.HEURIST) {
             const response = await fetch(
                 "http://sequencer.heurist.xyz/submit_job",
                 {
@@ -1860,9 +1986,9 @@ export const generateImage = async (
             const imageURL = await response.json();
             return { success: true, data: [imageURL] };
         } else if (
-            runtime.imageModelProvider === ModelProviderName.TOGETHER ||
+            imageModelProvider === ModelProviderName.TOGETHER ||
             // for backwards compat
-            runtime.imageModelProvider === ModelProviderName.LLAMACLOUD
+            imageModelProvider === ModelProviderName.LLAMACLOUD
         ) {
             const together = new Together({ apiKey: apiKey as string });
             const response = await together.images.create({
@@ -1917,7 +2043,7 @@ export const generateImage = async (
 
             elizaLogger.debug(`Generated ${base64s.length} images`);
             return { success: true, data: base64s };
-        } else if (runtime.imageModelProvider === ModelProviderName.FAL) {
+        } else if (imageModelProvider === ModelProviderName.FAL) {
             fal.config({
                 credentials: apiKey as string,
             });
@@ -1970,7 +2096,7 @@ export const generateImage = async (
 
             const base64s = await Promise.all(base64Promises);
             return { success: true, data: base64s };
-        } else if (runtime.imageModelProvider === ModelProviderName.VENICE) {
+        } else if (imageModelProvider === ModelProviderName.VENICE) {
             const response = await fetch(
                 "https://api.venice.ai/api/v1/image/generate",
                 {
@@ -1980,7 +2106,7 @@ export const generateImage = async (
                         "Content-Type": "application/json",
                     },
                     body: JSON.stringify({
-                        model: model,
+                        model: data.modelId || model,
                         prompt: data.prompt,
                         cfg_scale: data.guidanceScale,
                         negative_prompt: data.negativePrompt,
@@ -1991,6 +2117,7 @@ export const generateImage = async (
                         seed: data.seed,
                         style_preset: data.stylePreset,
                         hide_watermark: data.hideWatermark,
+                        inpaint: data.inpaint,
                     }),
                 }
             );
@@ -2012,7 +2139,7 @@ export const generateImage = async (
 
             return { success: true, data: base64s };
         } else if (
-            runtime.imageModelProvider === ModelProviderName.NINETEEN_AI
+            imageModelProvider === ModelProviderName.NINETEEN_AI
         ) {
             const response = await fetch(
                 "https://api.nineteen.ai/v1/text-to-image",
@@ -2050,7 +2177,7 @@ export const generateImage = async (
             });
 
             return { success: true, data: base64s };
-        } else if (runtime.imageModelProvider === ModelProviderName.LIVEPEER) {
+        } else if (imageModelProvider === ModelProviderName.LIVEPEER) {
             if (!apiKey) {
                 throw new Error("Livepeer Gateway is not defined");
             }
@@ -2362,10 +2489,10 @@ async function handleOpenAI({
 }: ProviderOptions): Promise<GenerateObjectResult<unknown>> {
     const endpoint = runtime.character.modelEndpointOverride || getEndpoint(provider);
     const baseURL = getCloudflareGatewayBaseURL(runtime, "openai") || endpoint;
-    const openai = createOpenAI({ 
-        apiKey, 
+    const openai = createOpenAI({
+        apiKey,
         baseURL,
-        fetch: runtime.fetch 
+        fetch: runtime.fetch
     });
     return aiGenerateObject({
         model: openai.languageModel(model),
@@ -2401,10 +2528,10 @@ async function handleAnthropic({
     const baseURL = getCloudflareGatewayBaseURL(runtime, "anthropic");
     elizaLogger.debug("Anthropic handleAnthropic baseURL:", { baseURL });
 
-    const anthropic = createAnthropic({ 
-        apiKey, 
+    const anthropic = createAnthropic({
+        apiKey,
         baseURL,
-        fetch: runtime.fetch 
+        fetch: runtime.fetch
     });
     return await aiGenerateObject({
         model: anthropic.languageModel(model),
@@ -2432,10 +2559,10 @@ async function handleGrok({
     modelOptions,
     runtime,
 }: ProviderOptions): Promise<GenerationResult> {
-    const grok = createOpenAI({ 
-        apiKey, 
+    const grok = createOpenAI({
+        apiKey,
         baseURL: models.grok.endpoint,
-        fetch: runtime.fetch 
+        fetch: runtime.fetch
     });
     return aiGenerateObject({
         model: grok.languageModel(model, { parallelToolCalls: false }),
@@ -2467,10 +2594,10 @@ async function handleGroq({
     const baseURL = getCloudflareGatewayBaseURL(runtime, "groq");
     elizaLogger.debug("Groq handleGroq baseURL:", { baseURL });
 
-    const groq = createGroq({ 
-        apiKey, 
+    const groq = createGroq({
+        apiKey,
         baseURL,
-        fetch: runtime.fetch 
+        fetch: runtime.fetch
     });
     return await aiGenerateObject({
         model: groq.languageModel(model),
@@ -2500,7 +2627,7 @@ async function handleGoogle({
 }: ProviderOptions): Promise<GenerateObjectResult<unknown>> {
     const google = createGoogleGenerativeAI({
         apiKey,
-        fetch: runtime.fetch 
+        fetch: runtime.fetch
     });
     return aiGenerateObject({
         model: google(model),
@@ -2554,10 +2681,10 @@ async function handleRedPill({
     modelOptions,
     runtime,
 }: ProviderOptions): Promise<GenerationResult> {
-    const redPill = createOpenAI({ 
-        apiKey, 
+    const redPill = createOpenAI({
+        apiKey,
         baseURL: models.redpill.endpoint,
-        fetch: runtime.fetch 
+        fetch: runtime.fetch
     });
     return aiGenerateObject({
         model: redPill.languageModel(model),
@@ -2647,10 +2774,10 @@ async function handleDeepSeek({
     modelOptions,
     runtime,
 }: ProviderOptions): Promise<GenerationResult> {
-    const openai = createOpenAI({ 
-        apiKey, 
+    const openai = createOpenAI({
+        apiKey,
         baseURL: models.deepseek.endpoint,
-        fetch: runtime.fetch 
+        fetch: runtime.fetch
     });
     return aiGenerateObject({
         model: openai.languageModel(model),
@@ -2773,10 +2900,10 @@ async function handleNearAi({
     modelOptions,
     runtime,
 }: ProviderOptions): Promise<GenerationResult> {
-    const nearai = createOpenAI({ 
-        apiKey, 
+    const nearai = createOpenAI({
+        apiKey,
         baseURL: models.nearai.endpoint,
-        fetch: runtime.fetch 
+        fetch: runtime.fetch
     });
     const settings = schema ? { structuredOutputs: true } : undefined;
     return aiGenerateObject({
@@ -2815,7 +2942,7 @@ export async function generateTweetActions({
                 runtime,
                 context,
                 modelClass,
-            });
+            }) as string;
             elizaLogger.debug(
                 "Received response from generateText for tweet actions:",
                 response

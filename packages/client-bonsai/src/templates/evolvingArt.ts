@@ -29,11 +29,13 @@ import {
 } from "../utils/types";
 import { formatMetadata } from "../services/lens/createPost";
 import { isMediaStale, getLatestComments, getVoteWeightFromBalance } from "../utils/utils";
-import { parseAndUploadBase64Image, parseBase64Image, uploadJson } from "../utils/ipfs";
+import { cacheJsonStorj, cacheImageStorj, parseBase64Image, pinFile, uploadJson, uriToBuffer } from "../utils/ipfs";
 import { fetchAllCollectorsFor, fetchAllCommentsFor, fetchAllUpvotersFor } from "../services/lens/posts";
 import { balanceOfBatched } from "../utils/viem";
-import { LENS_CHAIN_ID, storageClient } from "../services/lens/client";
+import { LENS_CHAIN, LENS_CHAIN_ID, storageClient } from "../services/lens/client";
 import { BONSAI_PROTOCOL_FEE_RECIPIENT } from "../utils/constants";
+import { refresh } from "@lens-protocol/client/actions";
+import { v4 as uuidv4 } from 'uuid';
 
 export const nextImageTemplate = `
 # Instructions
@@ -51,8 +53,7 @@ type TemplateData = {
   minCommentUpdateThreshold?: number;
 }
 
-const DEFAULT_IMAGE_MODEL_ID = "stable-diffusion-3.5"; // most creative
-const DEFAULT_IMAGE_STYLE_PRESET = "Neon Punk";
+const DEFAULT_IMAGE_MODEL_ID = "venice-sd35"; // most creative
 const DEFAULT_MIN_ENGAGEMENT_UPDATE_THREHOLD = 1; // at least 3 upvotes/comments before updating
 
 /**
@@ -65,14 +66,15 @@ const DEFAULT_MIN_ENGAGEMENT_UPDATE_THREHOLD = 1; // at least 3 upvotes/comments
  * @param {TemplateData} [_templateData] - Initial data for generating a new adventure preview, used when not refreshing.
  * @returns {Promise<TemplateHandlerResponse | null>} A promise that resolves to the response object containing the new image preview, uri (optional), and updated template data, or null if the operation cannot be completed.
  */
-const artistPresent = {
+const evolvingArt = {
   handler: async (
     runtime: IAgentRuntime,
     media?: SmartMedia,
     _templateData?: TemplateData,
     options?: { forceUpdate: boolean },
   ): Promise<TemplateHandlerResponse | undefined> => {
-    elizaLogger.log("Running template:", TemplateName.ARTIST_PRESENT);
+    const refresh = !!media?.templateData;
+    elizaLogger.info(`Running template (refresh: ${refresh}):`, TemplateName.EVOLVING_ART);
 
     if (!media?.templateData) {
       elizaLogger.error("Missing template data");
@@ -93,20 +95,20 @@ const artistPresent = {
 
       // if the post not stale, check if we've passed the min comment threshold
       if (isMediaStale(media as SmartMedia) || options?.forceUpdate) {
-        elizaLogger.info("media is stale...");
+        elizaLogger.info(`evolvingArt:: post ${media?.postId} is stale`);
         const allComments = await fetchAllCommentsFor(media?.postId as string);
         comments = getLatestComments(media as SmartMedia, allComments);
         comments = uniqBy(comments, 'comment.author.address');
         const threshold = (media?.templateData as TemplateData).minCommentUpdateThreshold ||
           DEFAULT_MIN_ENGAGEMENT_UPDATE_THREHOLD;
         if (comments.length < threshold) {
-          elizaLogger.info(`artistPresent:: media ${media?.agentId} is stale but has not met comment threshold; skipping`);
-          return { metadata: undefined, updatedUri: undefined, totalUsage };
+          elizaLogger.info(`evolvingArt:: post ${media?.postId} is stale but has not met comment threshold; skipping`);
+          return { metadata: undefined, totalUsage };
         }
       } else {
         // do not update if the media was recently updated
-        elizaLogger.info("not stale");
-        return { metadata: undefined, updatedUri: undefined, totalUsage };
+        elizaLogger.info(`evolvingArt:: post ${media?.postId} is not stale; skipping`);
+        return { metadata: undefined, totalUsage };
       }
 
       // fetch the token balances for each comment / upvote to use weighted votes
@@ -127,7 +129,7 @@ const artistPresent = {
 
         // Token-weighted voting
         const balances = await balanceOfBatched(
-          media.token.chain === LaunchpadChain.BASE ? base : chains.testnet,
+          media.token.chain === LaunchpadChain.BASE ? base : LENS_CHAIN,
           voters,
           media.token.address as `0x${string}`
         );
@@ -148,7 +150,8 @@ const artistPresent = {
       let attempts = 0;
       const MAX_ATTEMPTS = 2;
       while (attempts < MAX_ATTEMPTS) {
-        const firstAttempt = attempts === 0;
+        // const firstAttempt = attempts === 0;
+        const firstAttempt = false;
 
         let imagePrompt: string;
         if (firstAttempt) {
@@ -164,7 +167,6 @@ const artistPresent = {
         } else {
           const { response, usage } = await generateText({
             runtime,
-            context: "You are an expert at image prompting", // not actually used
             modelClass: ModelClass.MEDIUM,
             modelProvider: ModelProviderName.VENICE,
             returnUsage: true,
@@ -173,7 +175,7 @@ const artistPresent = {
               content: [
                 {
                   type: "text",
-                  text: "Provide a description of an image that evolves the current one, using the user input as direction for the evolution: ${prompt}. Only reply with the new image description"
+                  text: `Produce a prompt for an image that evolves the current one, using the user input as direction for the evolution: ${prompt}. Only reply with the new image prompt, and be concise so to successfully prompt a new image.`
                 },
                 {
                   type: "image",
@@ -198,7 +200,7 @@ const artistPresent = {
             height: 1024,
             imageModelProvider: ModelProviderName.VENICE,
             modelId: templateData.modelId || DEFAULT_IMAGE_MODEL_ID,
-            stylePreset: templateData.stylePreset || DEFAULT_IMAGE_STYLE_PRESET,
+            stylePreset: templateData.stylePreset,
             inpaint: firstAttempt ? {
               strength: 50,
               source_image_base64: await fetch(imageUrl)
@@ -208,7 +210,7 @@ const artistPresent = {
           },
           runtime
         );
-        // @ts-expect-error
+
         totalUsage.imagesCreated += 1;
 
         if (imageResponse.success) break;
@@ -219,12 +221,45 @@ const artistPresent = {
         throw new Error("Failed to generate image after multiple attempts");
       }
 
+      // save previous version to storj
+      let persistVersionUri: string | undefined;
+      // cache image to storj
+      const storjResult = await cacheImageStorj({ id: uuidv4(), buffer: await uriToBuffer(imageUri) });
+      if (storjResult.success && storjResult.url) {
+          // upload version to storj for versioning
+          const versionMetadata = formatMetadata({
+              text: json.lens.content as string,
+              image: {
+                  url: storjResult.url,
+                  type: MediaImageMimeType.PNG // see generation.ts the provider
+              },
+              attributes: json.lens.attributes,
+              media: {
+                  category: TemplateCategory.EVOLVING_ART,
+                  name: TemplateName.EVOLVING_ART,
+              },
+          });
+
+          let versionCount = media?.versionCount || 0;
+          const versionResult = await cacheJsonStorj({
+              id: `${json.lens.id}-version-${versionCount}.json`,
+              data: versionMetadata
+          });
+
+          if (versionResult.success) {
+              persistVersionUri = versionResult.url;
+          } else {
+              elizaLogger.error('Failed to cache version metadata:', versionResult.error);
+          }
+      }
+
       let signer: Account;
       let acl;
+      let file;
       try {
         signer = privateKeyToAccount(process.env.LENS_STORAGE_NODE_PRIVATE_KEY as `0x${string}`);
         acl = walletOnly(signer.address, LENS_CHAIN_ID);
-        const file = parseBase64Image(imageResponse);
+        file = parseBase64Image(imageResponse);
 
         if (!file) throw new Error("Failed to parse base64 image");
 
@@ -233,24 +268,8 @@ const artistPresent = {
         console.log(error);
         throw new Error("failed");
       }
-      const metadata = formatMetadata({
-        text: prompt,
-        image: {
-          url: imageUri,
-          type: MediaImageMimeType.PNG // see generation.ts the provider
-        },
-        attributes: json.lens.attributes,
-        media: {
-          category: TemplateCategory.EVOLVING_POST,
-          name: TemplateName.ADVENTURE_TIME,
-        },
-      }) as ImageMetadata;
-      await storageClient.updateJson(media?.uri, metadata, signer, { acl });
 
-      // upload version to storj for versioning
-      const persistVersionUri = await uploadJson(json);
-
-      return { metadata, persistVersionUri, totalUsage }
+      return { persistVersionUri, totalUsage, refreshMetadata: refresh }
     } catch (error) {
       console.log(error);
       elizaLogger.error("handler failed", error);
@@ -259,9 +278,9 @@ const artistPresent = {
   clientMetadata: {
     protocolFeeRecipient: BONSAI_PROTOCOL_FEE_RECIPIENT,
     category: TemplateCategory.EVOLVING_ART,
-    name: TemplateName.ARTIST_PRESENT,
-    displayName: "Artist is Present",
-    description: "The artist is present in the evolving art. Creator sets the original image and style. The comment with the most votes dictates how the image evolves.",
+    name: TemplateName.EVOLVING_ART,
+    displayName: "Evolving Art",
+    description: "Collect the post, buy tokens, and interact with the post (replies, upvotes) to evolve the image.",
     image: "https://link.storjshare.io/raw/jwq56rwpuhhle4k7tjbxyfd4l37q/bonsai/artistPresent.png",
     options: {
       allowPreview: false,
@@ -271,7 +290,7 @@ const artistPresent = {
     },
     templateData: {
       form: z.object({
-        style: z.string().describe("Define the style to maintain for all image generations - e.g. bright, neon green."),
+        style: z.string().describe("Define the style to maintain for all image generations - e.g. bright, neon green. [placeholder: Bright, neon green]"),
         modelId: z.string().nullish().describe("Optional: Specify an AI model to use for image generation"),
         stylePreset: z.string().nullish().describe("Optional: Choose a style preset to use for image generation"),
       })
@@ -279,4 +298,4 @@ const artistPresent = {
   }
 } as Template;
 
-export default artistPresent;
+export default evolvingArt;

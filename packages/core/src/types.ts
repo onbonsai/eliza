@@ -134,6 +134,7 @@ export enum ModelClass {
     LARGE = "large",
     EMBEDDING = "embedding",
     IMAGE = "image",
+    UNCENSORED = "uncensored",
 }
 
 /**
@@ -194,6 +195,7 @@ export type Model = {
         [ModelClass.LARGE]?: ModelSettings;
         [ModelClass.EMBEDDING]?: EmbeddingModelSettings;
         [ModelClass.IMAGE]?: ImageModelSettings;
+        [ModelClass.UNCENSORED]?: ModelSettings;
     };
 };
 
@@ -235,6 +237,7 @@ export type Models = {
     [ModelProviderName.ATOMA]: Model;
     [ModelProviderName.SECRETAI]: Model;
     [ModelProviderName.NEARAI]: Model;
+    [ModelProviderName.TITLES]: Model;
 };
 
 /**
@@ -276,6 +279,7 @@ export enum ModelProviderName {
     ATOMA = "atoma",
     SECRETAI = "secret_ai",
     NEARAI = "nearai",
+    TITLES = "titles",
 }
 
 /**

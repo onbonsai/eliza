@@ -31,7 +31,7 @@ export const models: Models = {
                 temperature: 0.6,
             },
             [ModelClass.LARGE]: {
-                name: settings.LARGE_OPENAI_MODEL || "gpt-4o",
+                name: settings.LARGE_OPENAI_MODEL || "gpt-4.1",
                 stop: [],
                 maxInputTokens: 128000,
                 maxOutputTokens: 8192,
@@ -889,6 +889,13 @@ export const models: Models = {
             [ModelClass.IMAGE]: {
                 name: settings.IMAGE_VENICE_MODEL || "fluently-xl",
             },
+            [ModelClass.UNCENSORED]: {
+                name: "venice-uncensored",
+                stop: [],
+                maxInputTokens: 32768,
+                maxOutputTokens: 8192,
+                temperature: 0.6,
+            },
         },
     },
     [ModelProviderName.NVIDIA]: {
@@ -1221,6 +1228,15 @@ export const models: Models = {
             },
         },
     },
+    [ModelProviderName.TITLES]: {
+        endpoint: "https://wallflower-service-prod.herokuapp.com/api/v1",
+        // no text generation
+        model: {
+            [ModelClass.IMAGE]: {
+                name: settings.TITLES_IMAGE_MODEL_ID || "EHhr62whbgnIHtADxrro", // TODO: maybe another default
+            }
+        }
+    }
 };
 
 export function getModelSettings(

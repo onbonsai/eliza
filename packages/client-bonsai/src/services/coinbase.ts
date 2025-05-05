@@ -1,7 +1,7 @@
 import { Coinbase, Wallet } from "@coinbase/coinbase-sdk";
 import { Chain, erc20Abi, maxUint256 } from "viem";
 import { decrypt, encrypt } from "../utils/crypto.ts";
-import { getClient } from "./mongo.ts";
+import { getWalletsClient } from "./mongo.ts";
 import { getPublicClient } from "../utils/viem";
 
 // lens profile
@@ -28,7 +28,7 @@ export const getWallets = async (
         // debugging: true
     });
 
-    const { collection } = await getClient();
+    const { collection } = await getWalletsClient();
 
     let wallets: any;
     const walletData = await collection.findOne({ agentId });

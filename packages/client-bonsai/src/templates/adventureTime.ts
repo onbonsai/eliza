@@ -30,18 +30,20 @@ import {
 } from "../utils/types";
 import { formatMetadata } from "../services/lens/createPost";
 import { isMediaStale, getLatestComments, getVoteWeightFromBalance } from "../utils/utils";
-import { parseAndUploadBase64Image, parseBase64Image, uploadJson } from "../utils/ipfs";
+import { parseBase64Image, uploadJson, cacheImageStorj, uriToBuffer } from "../utils/ipfs";
 import { fetchAllCollectorsFor, fetchAllCommentsFor, fetchAllUpvotersFor } from "../services/lens/posts";
 import { balanceOfBatched } from "../utils/viem";
-import { storageClient, LENS_CHAIN_ID } from "../services/lens/client";
+import { storageClient, LENS_CHAIN_ID, LENS_CHAIN } from "../services/lens/client";
 import { BONSAI_PROTOCOL_FEE_RECIPIENT } from "../utils/constants";
+import { v4 as uuidv4 } from 'uuid';
+import { cacheJsonStorj } from "../utils/ipfs";
 
 export const nextPageTemplate = `
 # Instructions
 You are generating the next page in a choose-your-own-adventure story.
 The story is defined by the Context (the overall setting and premise), Writing Style, and Previous Pages (each condensed into this format: CHAPTER_NAME; DECISION_TAKEN).
 Based on this information, write the next page. If there are no Previous Pages, then simply produce the first page which sets up the rest of the story.
-Each "page" should be roughly 1-2 short paragraphs (4-5 sentences each) describing the action or situation.
+Each "page" should be roughly 2 short paragraphs (4-5 sentences each) describing the action or situation.
 End the new page with two distinct decision choices that the reader can pick from. The decision should be related to the events of the current page.
 Start the page with a descriptive chapter name that can be used for future prompts to summarize the page. Do not include the chapter number in the name.
 
@@ -121,8 +123,8 @@ type TemplateData = {
     minCommentUpdateThreshold?: number;
 }
 
-const DEFAULT_MODEL_ID = "stable-diffusion-3.5"; // most creative
-const DEFAULT_STYLE_PRESET = "Film Noir";
+const DEFAULT_MODEL_ID = "venice-sd35"; // most creative
+const DEFAULT_STYLE_PRESET = "Photographic";
 const DEFAULT_MIN_ENGAGEMENT_UPDATE_THREHOLD = 1; // at least 3 upvotes/comments before updating
 
 /**
@@ -143,7 +145,7 @@ const adventureTime = {
         options?: { forceUpdate: boolean },
     ): Promise<TemplateHandlerResponse | undefined> => {
         const refresh = !!media?.templateData;
-        elizaLogger.log(`Running template (refresh: ${refresh}):`, TemplateName.ADVENTURE_TIME);
+        elizaLogger.info(`Running template (refresh: ${refresh}):`, TemplateName.ADVENTURE_TIME);
 
         // either we are refreshing the persisted `media` object or we're generating a preview using `_templateData`
         const templateData = refresh ? media?.templateData as TemplateData : _templateData;
@@ -165,19 +167,19 @@ const adventureTime = {
 
                 // if the post not stale, check if we've passed the min comment threshold
                 if (isMediaStale(media as SmartMedia) || options?.forceUpdate) {
-                    elizaLogger.info("media is stale...");
+                    elizaLogger.info(`media is stale for post: ${media?.postId}`);
 
                     try {
                         // TODO: try to filter by timestamp in lens sdk
                         const allComments = await fetchAllCommentsFor(media?.postId as string);
                         comments = getLatestComments(media as SmartMedia, allComments);
                         comments = uniqBy(comments, 'comment.author.address');
-                        console.log("comments", comments.length);
+                        elizaLogger.info(`latest, unique comments: ${comments.length}`);
                         const threshold = (media?.templateData as TemplateData).minCommentUpdateThreshold ||
                             DEFAULT_MIN_ENGAGEMENT_UPDATE_THREHOLD;
                         if (comments.length < threshold) {
-                            elizaLogger.info(`adventureTime:: media ${media?.agentId} is stale but has not met comment threshold; skipping`);
-                            return { metadata: undefined, updatedUri: undefined, totalUsage };
+                            elizaLogger.info(`adventureTime:: post ${media?.postId} is stale but has not met comment threshold; skipping`);
+                            return { metadata: undefined, totalUsage };
                         }
                     } catch (error) {
                         console.log(error);
@@ -185,11 +187,9 @@ const adventureTime = {
                     }
                 } else {
                     // do not update if the media isn't stale; we're paying for generations
-                    elizaLogger.info("media not stale...");
-                    return { metadata: undefined, updatedUri: undefined, totalUsage };
+                    elizaLogger.info(`media not stale for post: ${media?.postId}...`);
+                    return { metadata: undefined, totalUsage };
                 }
-
-                elizaLogger.info("sufficient comments, checking balances");
 
                 // fetch the token balances for each comment / upvote to use weighted votes
                 const allCollectors = await fetchAllCollectorsFor(media?.postId as string);
@@ -209,7 +209,7 @@ const adventureTime = {
 
                     // Token-weighted voting
                     const balances = await balanceOfBatched(
-                        media.token.chain === LaunchpadChain.BASE ? base : chains.testnet,
+                        media.token.chain === LaunchpadChain.BASE ? base : LENS_CHAIN,
                         voters,
                         media.token.address as `0x${string}`
                     );
@@ -242,11 +242,19 @@ const adventureTime = {
                 totalUsage.completionTokens += usage.completionTokens;
                 totalUsage.totalTokens += usage.totalTokens;
 
+                let decision: string;
+                if (!response.decisions?.length) {
+                    elizaLogger.error(`Failed to retrieve decisions for post: ${media?.postId}; using the first one`);
+                    decision = templateData.decisions[0];
+                } else {
+                    decision = response.decisions[0].content;
+                }
+
                 // push to templateData.previousPages to be immediately used for a new generation
                 if (templateData.previousPages) {
-                    templateData.previousPages.push(`${templateData.chapterName}; ${response.decisions[0].content}`);
+                    templateData.previousPages.push(`${templateData.chapterName}; ${decision}`);
                 } else {
-                    templateData.previousPages = [`${templateData.chapterName}; ${response.decisions[0].content}`];
+                    templateData.previousPages = [`${templateData.chapterName}; ${decision}`];
                 }
                 console.log("templateData.previousPages", templateData.previousPages);
             }
@@ -265,8 +273,8 @@ const adventureTime = {
             const { response: page, usage } = (await generateObjectDeprecated({
                 runtime,
                 context,
-                modelClass: ModelClass.LARGE,
-                modelProvider: ModelProviderName.OPENAI,
+                modelClass: ModelClass.UNCENSORED,
+                modelProvider: ModelProviderName.VENICE,
                 returnUsage: true,
             })) as unknown as { response: NextPageResponse, usage: LanguageModelUsage };
             elizaLogger.info("generated", page);
@@ -307,8 +315,40 @@ Option B) ${page.decisions[1]}
                 const signer = privateKeyToAccount(process.env.LENS_STORAGE_NODE_PRIVATE_KEY as `0x${string}`);
                 const acl = walletOnly(signer.address, LENS_CHAIN_ID);
 
+                // save previous version to storj
+                // cache image to storj
+                const storjResult = await cacheImageStorj({ id: uuidv4(), buffer: await uriToBuffer(imageUri) });
+                if (storjResult.success && storjResult.url) {
+                    // upload version to storj for versioning
+                    const versionMetadata = formatMetadata({
+                        text: json.lens.content as string,
+                        image: {
+                            url: storjResult.url,
+                            type: MediaImageMimeType.PNG // see generation.ts the provider
+                        },
+                        attributes: json.lens.attributes,
+                        media: {
+                            category: TemplateCategory.EVOLVING_POST,
+                            name: TemplateName.ADVENTURE_TIME,
+                        },
+                    });
+
+                    let versionCount = media?.versionCount || 0;
+                    const versionResult = await cacheJsonStorj({
+                        id: `${json.lens.id}-version-${versionCount}.json`,
+                        data: versionMetadata
+                    });
+
+                    if (versionResult.success) {
+                        persistVersionUri = versionResult.url;
+                    } else {
+                        elizaLogger.error('Failed to cache version metadata:', versionResult.error);
+                    }
+                }
+
                 // edit the image and the metadata json
-                await storageClient.editFile(imageUri, parseBase64Image(imageResponse) as unknown as File, signer, { acl });
+                const file = parseBase64Image(imageResponse) as unknown as File;
+                await storageClient.editFile(imageUri, file, signer, { acl });
                 // edit the metadata
                 metadata = formatMetadata({
                     text,
@@ -323,9 +363,6 @@ Option B) ${page.decisions[1]}
                     },
                 }) as ImageMetadata;
                 await storageClient.updateJson(media?.uri, metadata, signer, { acl });
-
-                // upload version to storj for versioning
-                persistVersionUri = await uploadJson(json);
             }
 
             return {
@@ -334,6 +371,7 @@ Option B) ${page.decisions[1]}
                     image: imageResponse.success ? imageResponse.data?.[0] : undefined,
                 },
                 metadata,
+                refreshMetadata: refresh,
                 updatedTemplateData: { ...templateData, decisions: page.decisions, chapterName: page.chapterName },
                 persistVersionUri,
                 totalUsage,
@@ -348,18 +386,18 @@ Option B) ${page.decisions[1]}
         category: TemplateCategory.EVOLVING_POST,
         name: TemplateName.ADVENTURE_TIME,
         displayName: "Adventure Time",
-        description: "Choose your own adventure. Creator sets the context and inits the post with the first page. Weighted comments / upvotes decide the direction of the story.",
+        description: "The creator sets the stage for an evolving choose-your-own-adventure. Collectors & token holders decide the direction of the story.",
         image: "https://link.storjshare.io/raw/jxejf7rwn2hq3lhwh3v72g7bdpxa/bonsai/adventureTime.png",
         options: {
             allowPreview: true,
             allowPreviousToken: true,
             imageRequirement: ImageRequirement.NONE,
         },
-        defaultModel: getModelSettings(ModelProviderName.OPENAI, ModelClass.LARGE)?.name,
+        defaultModel: getModelSettings(ModelProviderName.VENICE, ModelClass.UNCENSORED)?.name,
         templateData: {
             form: z.object({
-                context: z.string().describe("Set the initial context and background for your story. This will help guide the narrative direction."),
-                writingStyle: z.string().describe("Define the writing style and tone - e.g. humorous, dramatic, poetic, etc."),
+                context: z.string().describe("Set the initial context and background for your story. This will help guide the narrative direction. [placeholder: Satoshi sitting in his basement, ready to launch the Bitcoin Protocol; POV: Satoshi]"),
+                writingStyle: z.string().describe("Define the writing style and tone - e.g. humorous, dramatic, poetic, etc. [placeholder: Smart, mysterious]"),
                 modelId: z.string().nullish().describe("Optional: Specify an AI model to use for image generation"),
                 stylePreset: z.string().nullish().describe("Optional: Choose a style preset to use for image generation"),
             })
